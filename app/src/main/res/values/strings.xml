@@ -68,7 +68,7 @@
     <string name="hw_alt_latch">Alt lock</string>
     <string name="hw_alt_latch_summary">Double-tap the lock key to latch Alt.</string>
     <string name="hw_caps_lock">Caps lock via Shift</string>
-    <string name="hw_caps_lock_summary">Long-press or double-tap Shift to lock uppercase; tap Shift to unlock. The Caps Lock key toggles it too.</string>
+    <string name="hw_caps_lock_summary">Long-press Shift to lock uppercase; tap Shift to unlock. A short tap immediately toggles Chinese/English. The Caps Lock key toggles it too.</string>
     <string name="caps_lock_enabled">Caps lock on</string>
     <string name="caps_lock_disabled">Caps lock off</string>
     <string name="hw_alt_latch_key">Alt lock key (double-tap)</string>

@@ -78,6 +78,7 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.input.PanelModule
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
+import org.fcitx.fcitx5.android.input.shortcut.VoiceShortcut
 import org.fcitx.fcitx5.android.input.voice.VoiceInputController
 import org.fcitx.fcitx5.android.input.status.StatusAreaWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindow
@@ -394,54 +395,71 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     /**
-     * 语音输入统一入口：键盘栏麦克风按钮与「语音输入」快捷键都走这里。
-     * 开始录音给一句 Toast 回执——热键触发时按钮可能被「隐藏状态栏」收起，没有回执用户不知道按中没按中。
+     * 工具栏麦克风：点一下开始、再点结束。物理快捷键走 [pressVoiceInput] / [releaseVoiceInput]
+     * （按住说话）。
      */
     fun toggleVoiceInput() {
-        // 密码框一律不响应（按钮靠 GONE 隐藏，热键只能在这里拦）
         if (isCapabilityFlagsPassword) {
             context.toast(R.string.voice_input_unavailable)
             return
         }
-        onVoiceInputButtonClick()
-    }
-
-    private fun onVoiceInputButtonClick() {
         when (voiceInputController.state) {
             VoiceInputController.State.Recording -> voiceInputController.stop()
             VoiceInputController.State.Recognizing -> Unit
-            VoiceInputController.State.Idle -> {
-                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    context.toast(R.string.voice_input_permission_required)
-                    AppUtil.launchMainToRecordAudioPermission(context)
-                    return
-                }
-                when (VoiceModelManager.state.value) {
-                    is VoiceModelManager.State.Downloading ->
-                        context.toast(R.string.voice_input_model_downloading)
+            VoiceInputController.State.Idle -> startVoiceInputSession()
+        }
+    }
 
-                    VoiceModelManager.State.Ready -> {
-                        voiceInputController.start()
-                        if (voiceInputController.state == VoiceInputController.State.Recording) {
-                            context.toast(R.string.voice_input_listening)
-                        }
-                    }
+    /** 物理快捷键按下：空闲则开录；已在录则保持（松手才停）。 */
+    fun pressVoiceInput() {
+        if (isCapabilityFlagsPassword) {
+            context.toast(R.string.voice_input_unavailable)
+            return
+        }
+        val recording = voiceInputController.state == VoiceInputController.State.Recording
+        if (VoiceShortcut.onDown(recording) == VoiceShortcut.Command.Start) {
+            startVoiceInputSession()
+        }
+    }
 
-                    VoiceModelManager.State.NotDownloaded,
-                    is VoiceModelManager.State.Error -> {
-                        context.toast(R.string.voice_input_model_download_start)
-                        VoiceModelManager.ensureDownloaded(
-                            onSuccess = {
-                                context.toast(R.string.voice_input_model_download_done)
-                            },
-                            onFailure = {
-                                context.toast(R.string.voice_input_model_download_error)
-                            }
-                        )
-                    }
+    /** 物理快捷键抬起：正在录才收尾识别。 */
+    fun releaseVoiceInput() {
+        val recording = voiceInputController.state == VoiceInputController.State.Recording
+        if (VoiceShortcut.onUp(recording) == VoiceShortcut.Command.Stop) {
+            voiceInputController.stop()
+        }
+    }
+
+    private fun startVoiceInputSession() {
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            context.toast(R.string.voice_input_permission_required)
+            AppUtil.launchMainToRecordAudioPermission(context)
+            return
+        }
+        when (VoiceModelManager.state.value) {
+            is VoiceModelManager.State.Downloading ->
+                context.toast(R.string.voice_input_model_downloading)
+
+            VoiceModelManager.State.Ready -> {
+                voiceInputController.start()
+                if (voiceInputController.state == VoiceInputController.State.Recording) {
+                    context.toast(R.string.voice_input_listening)
                 }
+            }
+
+            VoiceModelManager.State.NotDownloaded,
+            is VoiceModelManager.State.Error -> {
+                context.toast(R.string.voice_input_model_download_start)
+                VoiceModelManager.ensureDownloaded(
+                    onSuccess = {
+                        context.toast(R.string.voice_input_model_download_done)
+                    },
+                    onFailure = {
+                        context.toast(R.string.voice_input_model_download_error)
+                    }
+                )
             }
         }
     }
