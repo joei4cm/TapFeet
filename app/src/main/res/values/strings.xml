@@ -79,7 +79,9 @@
     <string name="hw_long_press_symbol_threshold">Long-press symbol duration</string>
     <string name="hw_long_press_symbol_threshold_summary">Hold time before the keycap symbol is input.</string>
     <string name="hw_keyboard_flytext">Keyboard fly-text</string>
-    <string name="hw_keyboard_flytext_summary">Swipe up to pick a candidate, left/right to page.</string>
+    <string name="hw_keyboard_flytext_summary">Swipe up to pick Chinese, down to commit pinyin/English, left/right to page.</string>
+    <string name="hw_flytext_bilingual">Pinyin / English gestures</string>
+    <string name="hw_flytext_bilingual_summary">Swipe down to commit pinyin or English as-is (or dismiss predictions). Two-finger swipe left/right switches pinyin and English. Some keyboards only report one finger.</string>
     <string name="hw_flytext_swap_page">Swap page swipe direction</string>
     <string name="hw_flytext_swap_page_summary">Swipe left = previous, right = next (default is reversed).</string>
     <string name="hw_flytext_corner_delete">Corner swipe deletes</string>

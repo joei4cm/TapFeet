@@ -39,7 +39,7 @@
 
 - **Q25 / BlackBerry KEY**：5 大金刚键（⬆️ 0️⃣ 🈳 sym ⬆️）对应候选词 1~5
 - **Unihertz Titan 2**：顶部导航键 + 空格键快捷选词
-- **Unihertz Titan 2 Elite**：巨硬居中（4-2-1-3-5）为 Alt / 左Shift / 空格 / Fn / 右Shift，翻页用 Sym / Alt+Sym。不占用返回键。Home / 多任务仍是系统键，IME 收不到。
+- **Unihertz Titan 2 Elite**：巨硬居中（4-2-1-3-5）为 Alt / 左Shift / 空格 / Fn / 右Shift，翻页用 Sym / Alt+Sym。不占用返回键。Home / 多任务仍是系统键，IME 收不到。键盘触摸面：**上滑选中文、下滑上屏拼音/英文、双指左右滑切换拼音和英文**。
 
 首次安装会按 `Build` 机型（以及键盘触摸面）自动套用预设；仍可在「选项 → 物理键盘 → 键盘布局预设」里改。
 

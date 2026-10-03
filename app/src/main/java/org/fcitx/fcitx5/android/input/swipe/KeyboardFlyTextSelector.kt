@@ -15,10 +15,15 @@ import timber.log.Timber
  * the keyboard surface's motion samples as the IME receives them on its own window
  * (`FcitxInputMethodService.installDecorMotionListener`).
  *
- * Three (or four) gestures:
+ * Gestures:
  *  - **Up-swipe** (vertical-dominant, upward): pick the candidate whose on-screen column the finger
  *    is over — resolved by [candidateIndexAtX] against live [candidateRectsProvider] rects.
+ *  - **Down-swipe** (while [bilingualProvider]): commit the pinyin/latin preedit, or dismiss a
+ *    prediction strip. Off: a no-op (no "scroll candidates" gesture).
  *  - **Left / right swipe** (horizontal-dominant): page candidates. Left = next page, right = previous.
+ *  - **Two-finger left / right** (while [bilingualProvider]): switch IME. Takes over as soon as a
+ *    second pointer appears, so it cannot page or pick. Devices that only ever report one pointer
+ *    simply never fire this path.
  *  - **Corner-delete**: a swipe that STARTS inside the keyboard surface's top-right corner
  *    ([cornerRegionProvider]) and travels clearly leftward acts as Backspace ([onDelete]). The corner
  *    is reserved — a contact that begins there never pages or picks a candidate, so a graze near the
@@ -30,7 +35,8 @@ import timber.log.Timber
  *    applies, so a corner-left swipe deletes rather than moving left. Once the entry swipe fires,
  *    the gesture switches to CONTINUOUS DRAG: every [SWIPE_CURSOR_STEP_SLOP_DP] of travel from the
  *    last fire point advances the caret again (with `isDragStep=true`), live, until the finger
- *    lifts — trackpad semantics, not one flick per gesture.
+ *    lifts — trackpad semantics, not one flick per gesture. A bilingual down-swipe that actually
+ *    commits/dismisses wins over caret-down.
  *
  * Coordinates: candidate rects are absolute screen coordinates ([android.view.View.getLocationOnScreen]),
  * so the incoming [MotionEvent] must be tested against [MotionEvent.getRawX] / [MotionEvent.getRawY]
@@ -87,7 +93,24 @@ class KeyboardFlyTextSelector(
      * plays no click for those: the moving caret is the feedback, and a click per step at drag
      * rate is noise).
      */
-    private val onCursor: (SwipeDirection, Boolean) -> Unit = { _, _ -> }
+    private val onCursor: (SwipeDirection, Boolean) -> Unit = { _, _ -> },
+    /**
+     * True while pinyin/English bilingual gestures are on (AppPrefs `keyboardFlyTextBilingual`).
+     * Down-swipe then commits latin / dismisses prediction, and a two-finger horizontal swipe
+     * switches IME. Off: down-swipe stays a no-op, two-finger is ignored so one-finger paging
+     * still works if the surface ever reports two pointers.
+     */
+    private val bilingualProvider: () -> Boolean = { false },
+    /**
+     * Fired on a classified down-swipe while bilingual is on. Return true if the swipe was
+     * consumed (latin committed or prediction dismissed); false leaves cursor-move free to run.
+     */
+    private val onDown: () -> Boolean = { false },
+    /**
+     * Fired on a classified two-finger horizontal swipe. [forward] is true for right (next IME),
+     * false for left (previous IME).
+     */
+    private val onTwoFingerHorizontal: (forward: Boolean) -> Unit = {}
 ) {
     private var downX = 0f
     private var downY = 0f
@@ -119,6 +142,11 @@ class KeyboardFlyTextSelector(
      * fresh DOWN / UP / CANCEL so the reservation never leaks across gestures.
      */
     private var cornerDeleteArmed = false
+    /**
+     * Second finger landed before this gesture classified. While true, MOVE uses the two-pointer
+     * centroid and only [onTwoFingerHorizontal] can fire — one-finger page/select/cursor cannot.
+     */
+    private var twoFingerArmed = false
     private var lastEventTime = 0L
 
     /**
@@ -174,6 +202,19 @@ class KeyboardFlyTextSelector(
                             "cornerDelete=${cornerDeleteArmed} region=${region}"
                     )
                 }
+                // Some surfaces deliver the second finger as part of the same DOWN. Treat it as
+                // two-finger immediately so a two-thumb rest cannot page/select as one finger.
+                if (bilingualProvider() && event.pointerCount >= 2) armTwoFinger(event)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                if (typingGuard()) {
+                    Timber.d("FlyText: POINTER_DOWN suppressed (typing)")
+                    reset()
+                    return
+                }
+                if (!bilingualProvider() || classified || cursorDragging || downTime == 0L) return
+                if (event.pointerCount < 2) return
+                armTwoFinger(event)
             }
             MotionEvent.ACTION_MOVE -> {
                 if (classified || downTime == 0L) return
@@ -182,6 +223,15 @@ class KeyboardFlyTextSelector(
                 if (typingGuard()) {
                     Timber.d("FlyText: gesture cancelled (typing)")
                     reset()
+                    return
+                }
+                // Late two-finger: some drivers skip POINTER_DOWN and only raise pointerCount on
+                // MOVE. Arm before one-finger classification so a second thumb cannot page/select.
+                if (!twoFingerArmed && bilingualProvider() && event.pointerCount >= 2 && !cursorDragging) {
+                    armTwoFinger(event)
+                }
+                if (twoFingerArmed) {
+                    handleTwoFingerMove(event)
                     return
                 }
                 // Continuous cursor drag: handled BEFORE the one-shot classification machinery —
@@ -255,6 +305,13 @@ class KeyboardFlyTextSelector(
                         SwipeDirection.LEFT, SwipeDirection.RIGHT -> kotlin.math.abs(dx)
                     }
                     if (travel >= cursorSlopPx) {
+                        // Bilingual down-swipe (commit latin / dismiss) wins over caret-down when
+                        // there is actually composing text or a prediction strip to act on.
+                        if (dir == SwipeDirection.DOWN && bilingualProvider() && onDown()) {
+                            Timber.i("FlyText: down-swipe (bilingual) in cursor mode")
+                            classified = true
+                            return
+                        }
                         Timber.i("FlyText: cursor drag start dir=$dir (rawX=${event.rawX} rawY=${event.rawY})")
                         onCursor(dir, false)
                         // Enter drag: per-step advances from this point (handled at the top of the
@@ -280,9 +337,13 @@ class KeyboardFlyTextSelector(
                             onSelect(idx)
                         }
                     }
-                    // Only an UP-swipe selects a candidate; a down-swipe is a no-op (no "scroll
-                    // candidates" gesture — keep the model simple and safe).
-                    SwipeDirection.DOWN -> Timber.i("FlyText: down-swipe (ignored)")
+                    SwipeDirection.DOWN -> {
+                        if (bilingualProvider() && onDown()) {
+                            Timber.i("FlyText: down-swipe (bilingual)")
+                        } else {
+                            Timber.i("FlyText: down-swipe (ignored)")
+                        }
+                    }
                     // Left swipe (dx < 0) = next page, right = previous (the swap pref is applied by
                     // the service).
                     SwipeDirection.LEFT -> {
@@ -308,8 +369,67 @@ class KeyboardFlyTextSelector(
         classified = false
         pendingDir = null
         cornerDeleteArmed = false
+        twoFingerArmed = false
         cursorDragging = false
         cursorOriginX = 0f
         cursorOriginY = 0f
+    }
+
+    /**
+     * Switch this in-flight gesture to two-finger IME-switch. Re-origins at the current centroid
+     * so the first finger's travel does not count as a leftover one-finger page/select.
+     */
+    private fun armTwoFinger(event: MotionEvent) {
+        twoFingerArmed = true
+        cornerDeleteArmed = false
+        pendingDir = null
+        val (cx, cy) = centroidRaw(event)
+        downX = cx
+        downY = cy
+        Timber.i("FlyText: two-finger armed pointers=${event.pointerCount}")
+    }
+
+    private fun handleTwoFingerMove(event: MotionEvent) {
+        if (classified) return
+        if (event.pointerCount < 2) return
+        val d = density * flyTextSensitivityScale(sensitivityProvider())
+        val (cx, cy) = centroidRaw(event)
+        val dx = cx - downX
+        val dy = cy - downY
+        if (hypot(dx, dy) < SWIPE_BASE_SLOP_DP * d) {
+            pendingDir = null
+            return
+        }
+        if (pendingDir == null) pendingDir = swipeAxis(dx, dy, d)
+        val dir = pendingDir ?: return
+        if (swipeDirection(dx, dy, d) != dir) return
+        when (dir) {
+            SwipeDirection.LEFT, SwipeDirection.RIGHT -> {
+                val forward = dir == SwipeDirection.RIGHT
+                Timber.i("FlyText: two-finger ${if (forward) "right" else "left"} (IME)")
+                onTwoFingerHorizontal(forward)
+            }
+            else -> Timber.i("FlyText: two-finger vertical (ignored)")
+        }
+        classified = true
+    }
+
+    /**
+     * Display-space centroid of every pointer. Pointer 0 uses [MotionEvent.getRawX] /
+     * [MotionEvent.getRawY]; further pointers are offset by the same view-to-raw delta so this
+     * works below API 29 (no raw-coordinate overload taking a pointer index).
+     */
+    private fun centroidRaw(event: MotionEvent): Pair<Float, Float> {
+        val n = event.pointerCount
+        if (n <= 1) return event.rawX to event.rawY
+        val dx = event.rawX - event.x
+        val dy = event.rawY - event.y
+        var x = 0f
+        var y = 0f
+        for (i in 0 until n) {
+            x += event.getX(i) + dx
+            y += event.getY(i) + dy
+        }
+        return x / n to y / n
     }
 }

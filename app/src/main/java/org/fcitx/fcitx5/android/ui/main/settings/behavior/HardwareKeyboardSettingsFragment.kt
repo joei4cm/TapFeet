@@ -37,6 +37,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     private lateinit var flyTextCursorMoveSwitch: SwitchPreference
     private lateinit var flyTextCursorMoveUpDnSwitch: SwitchPreference
     private lateinit var flyTextShiftSelectSwitch: SwitchPreference
+    private lateinit var flyTextBilingualSwitch: SwitchPreference
 
     /**
      * References to the candidate2-5 [KeyCapturePreference] views. Their visibility is driven by
@@ -142,6 +143,16 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             isEnabled = hw.keyboardFlyText.getValue()
         }
         flyTextScreen.addPreference(flyTextSwitch)
+        flyTextBilingualSwitch = SwitchPreference(context).apply {
+            key = hw.keyboardFlyTextBilingual.key
+            title = getString(R.string.hw_flytext_bilingual)
+            summary = getString(R.string.hw_flytext_bilingual_summary)
+            setDefaultValue(hw.keyboardFlyTextBilingual.getValue())
+            isChecked = hw.keyboardFlyTextBilingual.getValue()
+            isIconSpaceReserved = false
+            isEnabled = hw.keyboardFlyText.getValue()
+        }
+        flyTextScreen.addPreference(flyTextBilingualSwitch)
         flyTextScreen.addPreference(flyTextSwapSwitch)
         // Corner-delete: a left swipe from the keyboard surface's top-right corner acts as Backspace.
         // Sub-toggle of fly-text (disabled unless the master switch is on), and destructive, so it
@@ -216,6 +227,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         flyTextSwitch.setOnPreferenceChangeListener { _, newValue ->
             val on = newValue as Boolean
             flyTextSwapSwitch.isEnabled = on
+            flyTextBilingualSwitch.isEnabled = on
             flyTextCornerDeleteSwitch.isEnabled = on
             flyTextCursorMoveSwitch.isEnabled = on
             flyTextCursorMoveUpDnSwitch.isEnabled = on

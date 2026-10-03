@@ -79,7 +79,9 @@
     <string name="hw_long_press_symbol_threshold">长按输入符号时长</string>
     <string name="hw_long_press_symbol_threshold_summary">输入符号所需的按住时长。</string>
     <string name="hw_keyboard_flytext">键盘飞字</string>
-    <string name="hw_keyboard_flytext_summary">键盘面上滑选字，左右滑翻页。</string>
+    <string name="hw_keyboard_flytext_summary">键盘面上滑选中文，下滑上屏拼音/英文，左右滑翻页。</string>
+    <string name="hw_flytext_bilingual">拼音 / 英文手势</string>
+    <string name="hw_flytext_bilingual_summary">下滑把拼音或英文原样上屏（或收起联想）。双指左右滑切换拼音和英文。部分键盘只会上报一根手指。</string>
     <string name="hw_flytext_swap_page">翻页方向互换</string>
     <string name="hw_flytext_swap_page_summary">左滑上一页、右滑下一页（默认相反）。</string>
     <string name="hw_flytext_corner_delete">右上角左滑删除</string>

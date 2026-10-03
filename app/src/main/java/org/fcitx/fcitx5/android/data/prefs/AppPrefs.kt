@@ -652,8 +652,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
          * that already stored them), so we leave their values untouched — never overwrite.
          */
         // Keyboard fly-text: in physical-keyboard mode, a swipe up the keyboard surface picks the
-        // candidate whose on-screen column the finger is over, and a left/right swipe pages
-        // candidates. On by default — it only acts while candidates are visible, and it consumes the
+        // candidate whose on-screen column the finger is over, a down-swipe commits pinyin/English
+        // latin, and a left/right swipe pages candidates. On by default — it only acts while
+        // candidates are visible (or bilingual/cursor sub-features are on), and it consumes the
         // surface's own motion stream (never screen touches), so nothing has to be masked.
         val keyboardFlyText = bool("hw_keyboard_flytext", true)
 
@@ -682,6 +683,12 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         // of cursor move — no effect while that is off. Deliberately scoped to the swipe path only;
         // the Fn cursor/selection chords keep their own bindings.
         val keyboardFlyTextAltSelect = bool("hw_keyboard_flytext_alt_select", true)
+
+        // Keyboard fly-text bilingual (pinyin + English): swipe down commits the composing
+        // latin / dismisses 联想 prediction; two-finger left/right cycles IMEs. On by default —
+        // this is the Elite keyboard-surface's pinyin/English pairing with the existing up-swipe
+        // Chinese pick. Only meaningful while fly-text is on.
+        val keyboardFlyTextBilingual = bool("hw_keyboard_flytext_bilingual", true)
 
         // Keyboard fly-text sensitivity (percent). Scales every swipe travel threshold: lower =
         // the finger must travel farther before a gesture fires (fewer accidental triggers while

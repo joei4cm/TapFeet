@@ -25,9 +25,11 @@ import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
+import org.fcitx.fcitx5.android.input.swipe.FlyTextDownAction
 import org.fcitx.fcitx5.android.input.swipe.KeyboardFlyTextSelector
 import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
 import org.fcitx.fcitx5.android.input.swipe.cornerDeleteRegion
+import org.fcitx.fcitx5.android.input.swipe.flyTextDownAction
 import org.fcitx.fcitx5.android.utils.DeviceInfo
 import android.view.View
 import android.view.ViewGroup
@@ -621,6 +623,59 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    /**
+     * Down-swipe: commit the input-panel preedit as latin (pinyin codes / English letters), or
+     * dismiss 联想 prediction when there is nothing to commit. Reads the panel preedit — not the
+     * client preedit — so 拼音 yields `nihao` rather than the first Chinese candidate.
+     *
+     * Pinyin/English `reset()` only clears the panel; table engines commit on reset, so those
+     * backspace the preedit first (same split as long-press symbol).
+     */
+    private fun flyTextHandleDown(): Boolean {
+        if (inputView?.isPickerWindowOpen() == true) return false
+        val panel = fcitx.runImmediately { inputPanelCached.preedit.toString() }
+        val hasCandidates = lastPagedCandidateData.candidates.isNotEmpty() ||
+                lastCandidateListData.candidates.isNotEmpty()
+        return when (flyTextDownAction(panel, hasCandidates)) {
+            FlyTextDownAction.CommitLatin -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                val table = isTableIme()
+                postFcitxJob {
+                    if (table) {
+                        val (clientPre, panelPre) = clientPreeditCached.toString() to
+                                inputPanelCached.preedit.toString()
+                        val preeditStr = if (clientPre.length >= panelPre.length) clientPre else panelPre
+                        val preeditLen = preeditStr.codePointCount(0, preeditStr.length)
+                        repeat(preeditLen.coerceIn(0, 32)) {
+                            sendKey(
+                                KeySym(FcitxKeyMapping.FcitxKey_BackSpace),
+                                KeyStates.Virtual,
+                                0
+                            )
+                        }
+                        if (!isEmpty()) reset()
+                    } else {
+                        if (!isEmpty()) reset()
+                    }
+                    withContext(Dispatchers.Main) { commitText(panel) }
+                }
+                true
+            }
+            FlyTextDownAction.DismissPrediction -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                postFcitxJob { reset() }
+                true
+            }
+            FlyTextDownAction.None -> false
+        }
+    }
+
+    /** Two-finger horizontal swipe: cycle enabled IMEs (拼音 ↔ 英语). */
+    private fun flyTextHandleTwoFingerHorizontal(forward: Boolean) {
+        playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+        postFcitxJob { enumerateIme(forward) }
+    }
+
     fun commitText(text: String, cursor: Int = -1) {
         val ic = currentInputConnection ?: return
         inputView?.onCommitText(text)
@@ -1022,19 +1077,29 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 inputView?.isPickerWindowOpen() != true
 
     /**
+     * Pinyin/English bilingual gestures armed: master fly-text pref + the bilingual sub-toggle.
+     * Down-swipe commits latin / dismisses prediction; two-finger left/right switches IME. Needs
+     * an editable focus (same gate as cursor-move) so a two-finger swipe on the launcher cannot
+     * steal the system's touchpad.
+     */
+    private val flyTextBilingualOn: Boolean
+        get() = flyTextPrefOn &&
+                AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextBilingual.getValue()
+
+    /**
      * Whether the keyboard-surface motion channels (decor listener + service fallback) should feed
-     * the selector and consume the stream. Corner-delete and cursor-move can never do anything
-     * without an editable focus (Backspace / caret have no target), so both are gated on
-     * [InputDeviceManager.isNullInputType]: in windows with no text field (browser page, launcher)
-     * the touchpad stream falls through to the system instead of being swallowed as a gesture.
-     * Select ([flyTextOn]) and picker paging need no gate — visible candidates/panels already prove
-     * the IME owns the gesture. [flyTextSelector.gestureActive] keeps an in-flight stream fed after
-     * a mid-gesture disarm so its UP/CANCEL still lands.
+     * the selector and consume the stream. Corner-delete, cursor-move, and bilingual IME-switch
+     * can never do anything without an editable focus (Backspace / caret / composing have no
+     * target), so they are gated on [InputDeviceManager.isNullInputType]: in windows with no text
+     * field (browser page, launcher) the touchpad stream falls through to the system instead of
+     * being swallowed as a gesture. Select ([flyTextOn]) and picker paging need no gate — visible
+     * candidates/panels already prove the IME owns the gesture. [flyTextSelector.gestureActive]
+     * keeps an in-flight stream fed after a mid-gesture disarm so its UP/CANCEL still lands.
      */
     private val flyTextChannelArmed: Boolean
         get() = flyTextSelectorInitialized &&
                 (flyTextOn || flyTextPickerPagingOn ||
-                        ((flyTextCornerDeleteOn || flyTextCursorOn) &&
+                        ((flyTextCornerDeleteOn || flyTextCursorOn || flyTextBilingualOn) &&
                                 !inputDeviceMgr.isNullInputType()) ||
                         flyTextSelector.gestureActive)
     /** Tracks the last logged [flyTextOn] value; arm/disarm transitions are logged once each. */
@@ -1191,7 +1256,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // Lazily build the selector (needs resources + fcitx, available at runtime). It has to exist
         // before the first touch arrives, and the channel is installed independently of arming, so
         // both [flyTextSelectorInitialized] and the armed flags are checked at event time.
-        if ((flyTextOn || flyTextCornerDeleteOn) && !flyTextSelectorInitialized) {
+        if (flyTextPrefOn && !flyTextSelectorInitialized) {
             flyTextSelector = KeyboardFlyTextSelector(
                 density = resources.displayMetrics.density,
                 candidateRectsProvider = { flyCandidateRects() },
@@ -1265,7 +1330,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextSensitivity.getValue()
                 },
                 cursorModeProvider = { flyTextCursorOn },
-                onCursor = { dir, isDragStep -> flyMoveCursor(dir, isDragStep) }
+                onCursor = { dir, isDragStep -> flyMoveCursor(dir, isDragStep) },
+                bilingualProvider = {
+                    AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextBilingual.getValue()
+                },
+                onDown = { flyTextHandleDown() },
+                onTwoFingerHorizontal = { forward -> flyTextHandleTwoFingerHorizontal(forward) }
             )
             flyTextSelectorInitialized = true
         }
