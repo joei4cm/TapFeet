@@ -6,7 +6,7 @@
 #   SIGN_KEY_ALIAS   tapfeet
 #
 # Settings → Actions → General → Workflow permissions: Read and write
-# (needed to attach the APK to the rolling `ci-production` GitHub Release).
+# (needed to attach the APK to the rolling Latest GitHub Release `ci-production`).
 
 name: Production APK
 
@@ -96,9 +96,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ci-production
-          name: Production APK
-          prerelease: true
-          make_latest: false
+          name: TapFeet ${{ github.ref_name }}
+          prerelease: false
+          make_latest: true
           target_commitish: ${{ github.sha }}
           files: app/build/outputs/apk/release/*.apk
           body: |
