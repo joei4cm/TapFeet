@@ -30,13 +30,20 @@ internal object HardwareKeyProfileDetect {
             blob.contains("titan 2e")
         if (isElite) return "titan2_elite"
         if (hasKeyboardTouchSurface && isTitan) return "titan2_elite"
-        if (isTitan) return "tt2"
+        // Titan Slim / Pocket / original Titan share the Titan 2 row (Fn / Sym), not Elite's
+        // capacitive face or BlackBerry's 0/Alt_R.
+        if (isTitan || blob.contains("titanslim") || blob.contains("titan slim") ||
+            blob.contains("titanpocket") || blob.contains("titan pocket")
+        ) {
+            return "tt2"
+        }
         if (
             blob.contains("q25") ||
             blob.contains("blackberry") ||
             blob.contains("keyone") ||
             blob.contains("key2") ||
-            blob.contains("keyle")
+            blob.contains("keyle") ||
+            blob.contains("key2 le")
         ) {
             return "blackberry"
         }

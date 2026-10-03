@@ -23,8 +23,11 @@ import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.bar.ui.ChipStripUi
 import org.fcitx.fcitx5.android.input.candidates.floating.PagedCandidatesUi
+import org.fcitx.fcitx5.android.input.pinyin.pinyinSegments
 import org.fcitx.fcitx5.android.input.preedit.PreeditUi
+import org.fcitx.fcitx5.android.input.vmode.VMode
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.below
@@ -109,6 +112,8 @@ class CandidatesView(
 
     private val preeditUi = PreeditUi(ctx, theme, setupPreeditTextView)
 
+    private val chipStrip = ChipStripUi(ctx, theme)
+
     // Default candidate row height: one line of text at candidates.fontSize plus the vertical
     // item padding. The paging-buttons column is sized to this height, so the two stacked buttons
     // split a default row evenly (half a row each).
@@ -157,6 +162,7 @@ class CandidatesView(
         // text box instead. Only the candidate list / auxiliary text justify showing the window.
         val preeditVisible = showPreedit && inputPanel.preedit.isNotEmpty()
         return preeditVisible ||
+                chipStrip.root.visibility == VISIBLE ||
                 paged.candidates.isNotEmpty() ||
                 inputPanel.auxUp.isNotEmpty() ||
                 inputPanel.auxDown.isNotEmpty()
@@ -165,6 +171,7 @@ class CandidatesView(
     private fun updateUi() {
         preeditUi.update(inputPanel)
         preeditUi.root.visibility = if (showPreedit && preeditUi.visible) VISIBLE else GONE
+        refreshChips()
         candidatesUi.update(paged, orientation)
         if (evaluateVisibility()) {
             visibility = VISIBLE
@@ -172,6 +179,26 @@ class CandidatesView(
             // RecyclerView won't update its items when ancestor view is GONE
             visibility = INVISIBLE
         }
+    }
+
+    private fun refreshChips() {
+        val prefs = AppPrefs.getInstance().candidateBar
+        val items = mutableListOf<Pair<String, () -> Unit>>()
+        if (prefs.vMode.getValue()) {
+            VMode.suggestions(inputPanel.preedit.toString()).forEach { s ->
+                items += s.text to {
+                    service.commitText(s.text)
+                    fcitx.launchOnReady { it.reset() }
+                }
+            }
+        }
+        pinyinSegments(inputPanel.preedit.strings).forEach { seg ->
+            items += seg.text to {
+                val pos = inputPanel.preedit.codePointCountUntil(seg.cursor)
+                fcitx.launchOnReady { it.moveCursor(pos) }
+            }
+        }
+        chipStrip.update(items)
     }
 
     private var bottomInsets = 0
@@ -407,6 +434,10 @@ class CandidatesView(
             topOfParent()
             startOfParent()
         })
+        add(chipStrip.root, lParams(wrapContent, wrapContent) {
+            below(preeditUi.root)
+            startOfParent()
+        })
         // Paging buttons: stacked vertically (prev on top, next on bottom), always pinned to the
         // bottom-right corner of the window (the candidate list may wrap to several rows). Total
         // height = one default candidate row, each button gets half of it (enforced by layout
@@ -419,7 +450,7 @@ class CandidatesView(
         add(candidatesUi.root, lParams(matchConstraints, wrapContent) {
             matchConstraintMinWidth = wrapContent
             horizontalBias = 0.5f
-            below(preeditUi.root)
+            below(chipStrip.root)
             startOfParent()
             before(pagination)
             bottomOfParent()

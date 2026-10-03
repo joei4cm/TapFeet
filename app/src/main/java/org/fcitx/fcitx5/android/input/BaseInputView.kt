@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
+import org.fcitx.fcitx5.android.core.reloadPinyinCustomPhrase
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -77,8 +78,35 @@ abstract class BaseInputView(
             }
         }
 
-    private fun triggerCandidateAction(idx: Int, actionIdx: Int) {
-        fcitx.runIfReady { triggerCandidateAction(idx, actionIdx) }
+    private fun pinCustomPhrase(text: String) {
+        val key = org.fcitx.fcitx5.android.data.pinyin.PinyinLookup.pinyinOf(text) ?: return
+        try {
+            val existing = (org.fcitx.fcitx5.android.data.pinyin.CustomPhraseManager.load()
+                ?: emptyArray()).toMutableList()
+            existing.removeAll { it.key == key && it.value == text }
+            val order = (existing.maxOfOrNull { kotlin.math.abs(it.order) } ?: 0) + 1
+            existing.add(
+                0,
+                org.fcitx.fcitx5.android.data.pinyin.customphrase.PinyinCustomPhrase(key, order, text)
+            )
+            org.fcitx.fcitx5.android.data.pinyin.CustomPhraseManager.save(existing.toTypedArray())
+            fcitx.runIfReady { reloadPinyinCustomPhrase() }
+        } catch (e: Exception) {
+            Timber.e(e, "pinCustomPhrase")
+        }
+    }
+
+    private fun deleteCustomPhrase(text: String) {
+        try {
+            val existing = (org.fcitx.fcitx5.android.data.pinyin.CustomPhraseManager.load()
+                ?: emptyArray()).toMutableList()
+            if (existing.none { it.value == text }) return
+            existing.removeAll { it.value == text }
+            org.fcitx.fcitx5.android.data.pinyin.CustomPhraseManager.save(existing.toTypedArray())
+            fcitx.runIfReady { reloadPinyinCustomPhrase() }
+        } catch (e: Exception) {
+            Timber.e(e, "deleteCustomPhrase")
+        }
     }
 
     private var candidateActionMenu: PopupMenu? = null
@@ -90,7 +118,6 @@ abstract class BaseInputView(
         candidateActionMenu = null
         service.lifecycleScope.launch {
             val actions = fcitx.runOnReady { getCandidateActions(idx) }
-            if (actions.isEmpty()) return@launch
             InputFeedbacks.hapticFeedback(view, longPress = true)
             candidateActionMenu = PopupMenu(themedContext, view).apply {
                 menu.add(buildSpannedString {
@@ -106,6 +133,12 @@ abstract class BaseInputView(
                     menu.item(action.text) {
                         triggerCandidateAction(idx, action.id)
                     }
+                }
+                menu.item(context.getString(R.string.candidate_pin_phrase)) {
+                    pinCustomPhrase(text)
+                }
+                menu.item(context.getString(R.string.candidate_delete_phrase)) {
+                    deleteCustomPhrase(text)
                 }
                 setOnDismissListener {
                     candidateActionMenu = null

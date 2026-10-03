@@ -37,7 +37,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     private lateinit var flyTextCursorMoveSwitch: SwitchPreference
     private lateinit var flyTextCursorMoveUpDnSwitch: SwitchPreference
     private lateinit var flyTextShiftSelectSwitch: SwitchPreference
-    private lateinit var flyTextBilingualSwitch: SwitchPreference
+    private val flyTextActionPrefs = mutableListOf<ListPreference>()
 
     /**
      * References to the candidate2-5 [KeyCapturePreference] views. Their visibility is driven by
@@ -143,16 +143,32 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             isEnabled = hw.keyboardFlyText.getValue()
         }
         flyTextScreen.addPreference(flyTextSwitch)
-        flyTextBilingualSwitch = SwitchPreference(context).apply {
-            key = hw.keyboardFlyTextBilingual.key
-            title = getString(R.string.hw_flytext_bilingual)
-            summary = getString(R.string.hw_flytext_bilingual_summary)
-            setDefaultValue(hw.keyboardFlyTextBilingual.getValue())
-            isChecked = hw.keyboardFlyTextBilingual.getValue()
-            isIconSpaceReserved = false
-            isEnabled = hw.keyboardFlyText.getValue()
+        fun addFlyTextAction(
+            pref: org.fcitx.fcitx5.android.data.prefs.ManagedPreference.PStringLike<org.fcitx.fcitx5.android.input.swipe.FlyTextAction>,
+            title: Int,
+        ) {
+            val lp = ListPreference(context).apply {
+                key = pref.key
+                this.title = getString(title)
+                entries = org.fcitx.fcitx5.android.input.swipe.FlyTextAction.entries
+                    .map { getString(it.stringRes) }.toTypedArray()
+                entryValues = org.fcitx.fcitx5.android.input.swipe.FlyTextAction.entries
+                    .map { it.name }.toTypedArray()
+                setDefaultValue(pref.getValue().name)
+                value = pref.getValue().name
+                summary = "%s"
+                isIconSpaceReserved = false
+                isEnabled = hw.keyboardFlyText.getValue()
+            }
+            flyTextActionPrefs += lp
+            flyTextScreen.addPreference(lp)
         }
-        flyTextScreen.addPreference(flyTextBilingualSwitch)
+        addFlyTextAction(hw.flyTextUpAction, R.string.flytext_up_action)
+        addFlyTextAction(hw.flyTextDownAction, R.string.flytext_down_action)
+        addFlyTextAction(hw.flyTextLeftAction, R.string.flytext_left_action)
+        addFlyTextAction(hw.flyTextRightAction, R.string.flytext_right_action)
+        addFlyTextAction(hw.flyTextTwoFingerLeftAction, R.string.flytext_twofinger_left_action)
+        addFlyTextAction(hw.flyTextTwoFingerRightAction, R.string.flytext_twofinger_right_action)
         flyTextScreen.addPreference(flyTextSwapSwitch)
         // Corner-delete: a left swipe from the keyboard surface's top-right corner acts as Backspace.
         // Sub-toggle of fly-text (disabled unless the master switch is on), and destructive, so it
@@ -227,7 +243,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         flyTextSwitch.setOnPreferenceChangeListener { _, newValue ->
             val on = newValue as Boolean
             flyTextSwapSwitch.isEnabled = on
-            flyTextBilingualSwitch.isEnabled = on
+            flyTextActionPrefs.forEach { it.isEnabled = on }
             flyTextCornerDeleteSwitch.isEnabled = on
             flyTextCursorMoveSwitch.isEnabled = on
             flyTextCursorMoveUpDnSwitch.isEnabled = on

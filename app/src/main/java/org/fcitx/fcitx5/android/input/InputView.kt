@@ -311,7 +311,7 @@ class InputView(
                 centerVertically()
                 centerHorizontally()
             })
-            add(kawaiiBar.view, lParams(matchParent, dp(KawaiiBarComponent.HEIGHT)) {
+            add(kawaiiBar.view, lParams(matchParent, wrapContent) {
                 topOfParent()
                 centerHorizontally()
             })

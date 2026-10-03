@@ -18,12 +18,12 @@ import timber.log.Timber
  * Gestures:
  *  - **Up-swipe** (vertical-dominant, upward): pick the candidate whose on-screen column the finger
  *    is over — resolved by [candidateIndexAtX] against live [candidateRectsProvider] rects.
- *  - **Down-swipe** (while [bilingualProvider]): commit the pinyin/latin preedit, or dismiss a
- *    prediction strip. Off: a no-op (no "scroll candidates" gesture).
+ *  - **Down-swipe** (while [downSwipeEnabled]): runs the configured down action (latin/dismiss by
+ *    default). Off: a no-op (no "scroll candidates" gesture).
  *  - **Left / right swipe** (horizontal-dominant): page candidates. Left = next page, right = previous.
- *  - **Two-finger left / right** (while [bilingualProvider]): switch IME. Takes over as soon as a
- *    second pointer appears, so it cannot page or pick. Devices that only ever report one pointer
- *    simply never fire this path.
+ *  - **Two-finger left / right** (while [twoFingerEnabled]): runs the configured two-finger actions
+ *    (IME switch by default). Takes over as soon as a second pointer appears, so it cannot page or
+ *    pick. Devices that only ever report one pointer simply never fire this path.
  *  - **Corner-delete**: a swipe that STARTS inside the keyboard surface's top-right corner
  *    ([cornerRegionProvider]) and travels clearly leftward acts as Backspace ([onDelete]). The corner
  *    is reserved — a contact that begins there never pages or picks a candidate, so a graze near the
@@ -95,15 +95,18 @@ class KeyboardFlyTextSelector(
      */
     private val onCursor: (SwipeDirection, Boolean) -> Unit = { _, _ -> },
     /**
-     * True while pinyin/English bilingual gestures are on (AppPrefs `keyboardFlyTextBilingual`).
-     * Down-swipe then commits latin / dismisses prediction, and a two-finger horizontal swipe
-     * switches IME. Off: down-swipe stays a no-op, two-finger is ignored so one-finger paging
-     * still works if the surface ever reports two pointers.
+     * True while the configured down-swipe action should fire. Off: down-swipe stays a no-op
+     * (cursor-move can still claim it). Two-finger is independent — see [twoFingerEnabled].
      */
-    private val bilingualProvider: () -> Boolean = { false },
+    private val downSwipeEnabled: () -> Boolean = { false },
     /**
-     * Fired on a classified down-swipe while bilingual is on. Return true if the swipe was
-     * consumed (latin committed or prediction dismissed); false leaves cursor-move free to run.
+     * True while a two-finger horizontal swipe should be classified. Off: two-finger is ignored
+     * so one-finger paging still works if the surface ever reports two pointers.
+     */
+    private val twoFingerEnabled: () -> Boolean = { false },
+    /**
+     * Fired on a classified down-swipe while [downSwipeEnabled] is on. Return true if the swipe was
+     * consumed; false leaves cursor-move free to run.
      */
     private val onDown: () -> Boolean = { false },
     /**
@@ -204,7 +207,7 @@ class KeyboardFlyTextSelector(
                 }
                 // Some surfaces deliver the second finger as part of the same DOWN. Treat it as
                 // two-finger immediately so a two-thumb rest cannot page/select as one finger.
-                if (bilingualProvider() && event.pointerCount >= 2) armTwoFinger(event)
+                if (twoFingerEnabled() && event.pointerCount >= 2) armTwoFinger(event)
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (typingGuard()) {
@@ -212,7 +215,7 @@ class KeyboardFlyTextSelector(
                     reset()
                     return
                 }
-                if (!bilingualProvider() || classified || cursorDragging || downTime == 0L) return
+                if (!twoFingerEnabled() || classified || cursorDragging || downTime == 0L) return
                 if (event.pointerCount < 2) return
                 armTwoFinger(event)
             }
@@ -227,7 +230,7 @@ class KeyboardFlyTextSelector(
                 }
                 // Late two-finger: some drivers skip POINTER_DOWN and only raise pointerCount on
                 // MOVE. Arm before one-finger classification so a second thumb cannot page/select.
-                if (!twoFingerArmed && bilingualProvider() && event.pointerCount >= 2 && !cursorDragging) {
+                if (!twoFingerArmed && twoFingerEnabled() && event.pointerCount >= 2 && !cursorDragging) {
                     armTwoFinger(event)
                 }
                 if (twoFingerArmed) {
@@ -307,7 +310,7 @@ class KeyboardFlyTextSelector(
                     if (travel >= cursorSlopPx) {
                         // Bilingual down-swipe (commit latin / dismiss) wins over caret-down when
                         // there is actually composing text or a prediction strip to act on.
-                        if (dir == SwipeDirection.DOWN && bilingualProvider() && onDown()) {
+                        if (dir == SwipeDirection.DOWN && downSwipeEnabled() && onDown()) {
                             Timber.i("FlyText: down-swipe (bilingual) in cursor mode")
                             classified = true
                             return
@@ -338,7 +341,7 @@ class KeyboardFlyTextSelector(
                         }
                     }
                     SwipeDirection.DOWN -> {
-                        if (bilingualProvider() && onDown()) {
+                        if (downSwipeEnabled() && onDown()) {
                             Timber.i("FlyText: down-swipe (bilingual)")
                         } else {
                             Timber.i("FlyText: down-swipe (ignored)")

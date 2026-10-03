@@ -18,6 +18,9 @@ import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
+import splitties.views.dsl.core.verticalLayout
+import splitties.views.dsl.core.matchParent
+import splitties.views.dsl.core.wrapContent
 
 class CandidateUi(override val ctx: Context, theme: Theme, private val horizontalView: View) : Ui {
 
@@ -50,7 +53,9 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
         visibility = View.INVISIBLE
     }
 
-    override val root = ctx.constraintLayout {
+    val chipStrip = ChipStripUi(ctx, theme)
+
+    private val candidateRow = ctx.constraintLayout {
         add(prevPageButton, lParams(dp(40)) {
             centerVertically()
             startOfParent()
@@ -72,5 +77,10 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
             after(prevPageButton)
             before(keyboardToggleButton)
         })
+    }
+
+    override val root = ctx.verticalLayout {
+        add(chipStrip.root, lParams(matchParent, wrapContent))
+        add(candidateRow, lParams(matchParent, dp(40)))
     }
 }

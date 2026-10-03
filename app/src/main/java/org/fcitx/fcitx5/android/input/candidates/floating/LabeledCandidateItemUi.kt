@@ -7,12 +7,14 @@ package org.fcitx.fcitx5.android.input.candidates.floating
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.widget.TextView
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import org.fcitx.fcitx5.android.core.CandidateWord
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.candidates.displayComment
 import splitties.views.backgroundColor
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.textView
@@ -38,25 +40,21 @@ class LabeledCandidateItemUi(
             color(fg) {
                 append(candidate.text)
             }
-            if (candidate.comment.isNotBlank()) {
+            val showComment = AppPrefs.getInstance().candidateBar.showCandidateComment.getValue()
+            val hint = if (showComment) candidate.displayComment() else ""
+            if (hint.isNotBlank()) {
                 if (candidate.spaceBetweenComment) {
                     append(" ")
                 }
                 color(altFg) {
-                    append(candidate.comment)
+                    append(hint)
                 }
             }
         }
-        val bg = if (active) theme.genericActiveBackgroundColor else Color.TRANSPARENT
-        root.backgroundColor = bg
-        if (active) {
-            // Active candidate is indicated by the background tint above; do NOT draw the extra
-            // bottom underline bar — it reads as an underline under the first candidate (首选字).
-            root.setTypeface(Typeface.DEFAULT_BOLD)
-            root.background = null
-        } else {
-            root.setTypeface(Typeface.DEFAULT)
-            root.background = null
-        }
+        root.backgroundColor =
+            if (active) theme.genericActiveBackgroundColor else Color.TRANSPARENT
+        val prefs = AppPrefs.getInstance().candidateBar
+        root.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
+        root.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
     }
 }

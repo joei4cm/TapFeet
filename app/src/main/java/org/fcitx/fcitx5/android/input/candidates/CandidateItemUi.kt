@@ -6,7 +6,6 @@
 package org.fcitx.fcitx5.android.input.candidates
 
 import android.content.Context
-import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LayerDrawable
 import android.util.TypedValue
@@ -15,6 +14,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.core.graphics.ColorUtils
 import org.fcitx.fcitx5.android.core.CandidateWord
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
@@ -45,12 +45,21 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         setTextColor(theme.candidateTextColor)
     }
 
+    private val comment = textView {
+        textSize = 10f
+        isSingleLine = true
+        gravity = gravityCenter
+        setTextColor(theme.candidateCommentColor)
+        visibility = View.GONE
+    }
+
     private val content = view(::LinearLayout) {
         orientation = LinearLayout.HORIZONTAL
         gravity = gravityCenter
 
         add(index, lParams(wrapContent, wrapContent))
         add(text, lParams(wrapContent, matchParent))
+        add(comment, lParams(wrapContent, wrapContent))
     }
 
     private val pressHighlight = pressHighlightDrawable(theme.keyPressHighlightColor)
@@ -81,15 +90,29 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     }
 
     fun updateCandidate(candidate: CandidateWord, indexLabel: String = "", isActive: Boolean = false, showIndex: Boolean = true, indexFontSize: Int = 10, textFontSize: Int = 20) {
+        val prefs = org.fcitx.fcitx5.android.data.prefs.AppPrefs.getInstance().candidateBar
+        val showComment = prefs.showCandidateComment.getValue()
         index.text = if (showIndex && indexLabel.isNotBlank()) "$indexLabel " else ""
         index.setTextSize(TypedValue.COMPLEX_UNIT_SP, indexFontSize.toFloat())
-        text.text = candidate.textWithComment()
+        text.text = candidate.text
         text.setTextSize(TypedValue.COMPLEX_UNIT_SP, textFontSize.toFloat())
+        val face = CandidateFont.typeface(
+            ctx, isActive || prefs.candidateFontBold.getValue()
+        )
+        text.typeface = face
+        comment.typeface = face
+        text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
+        val hint = if (showComment) candidate.displayComment() else ""
+        if (hint.isNotBlank()) {
+            comment.visibility = View.VISIBLE
+            comment.text = if (candidate.spaceBetweenComment) " $hint" else hint
+        } else {
+            comment.visibility = View.GONE
+            comment.text = ""
+        }
         if (isActive) {
-            text.setTypeface(Typeface.DEFAULT_BOLD)
             root.background = activeBackground
         } else {
-            text.setTypeface(Typeface.DEFAULT)
             root.background = pressHighlight
         }
     }

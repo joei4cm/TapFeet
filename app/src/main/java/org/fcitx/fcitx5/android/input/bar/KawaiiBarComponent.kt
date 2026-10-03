@@ -35,6 +35,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlag
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxEvent.CandidateListEvent
+import org.fcitx.fcitx5.android.core.FcitxEvent.InputPanelEvent
 import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.daemon.launchOnReady
@@ -93,6 +94,7 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
+import splitties.views.dsl.core.wrapContent
 import timber.log.Timber
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
@@ -746,9 +748,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             backgroundColor =
                 if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
                 else theme.barColor
-            add(idleUi.root, lParams(matchParent, matchParent))
-            add(candidateUi.root, lParams(matchParent, matchParent))
-            add(titleUi.root, lParams(matchParent, matchParent))
+            add(idleUi.root, lParams(matchParent, wrapContent))
+            add(candidateUi.root, lParams(matchParent, wrapContent))
+            add(titleUi.root, lParams(matchParent, wrapContent))
             // 初始可见性：此处不能走 refreshBarVisibility()，那会重入本 `view` 的懒加载
             visibility = if (shouldHideStatusBar()) View.GONE else View.VISIBLE
         }
@@ -839,8 +841,33 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         barStateMachine.push(PreeditUpdated, PreeditEmpty to empty)
     }
 
+    private var lastCandidatesEmpty = true
+    private var chipsNonEmpty = false
+
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
+        lastCandidatesEmpty = data.candidates.isEmpty()
+        barStateMachine.push(CandidatesUpdated, CandidateEmpty to (lastCandidatesEmpty && !chipsNonEmpty))
+    }
+
+    override fun onInputPanelUpdate(data: InputPanelEvent.Data) {
+        val items = mutableListOf<Pair<String, () -> Unit>>()
+        if (prefs.candidateBar.vMode.getValue()) {
+            org.fcitx.fcitx5.android.input.vmode.VMode.suggestions(data.preedit.toString()).forEach { s ->
+                items += s.text to {
+                    service.commitText(s.text)
+                    fcitx.launchOnReady { it.reset() }
+                }
+            }
+        }
+        org.fcitx.fcitx5.android.input.pinyin.pinyinSegments(data.preedit.strings).forEach { seg ->
+            items += seg.text to {
+                val pos = data.preedit.codePointCountUntil(seg.cursor)
+                fcitx.launchOnReady { it.moveCursor(pos) }
+            }
+        }
+        chipsNonEmpty = items.isNotEmpty()
+        candidateUi.chipStrip.update(items)
+        barStateMachine.push(CandidatesUpdated, CandidateEmpty to (lastCandidatesEmpty && !chipsNonEmpty))
     }
 
     override fun onPagedCandidateUpdate(data: PagedCandidateEvent.Data) = Unit

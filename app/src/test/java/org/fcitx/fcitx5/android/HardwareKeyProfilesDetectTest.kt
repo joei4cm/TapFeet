@@ -54,7 +54,14 @@ class HardwareKeyProfilesDetectTest {
     fun q25AndBlackberry() {
         assertEquals("blackberry", detect(model = "Q25"))
         assertEquals("blackberry", detect(manufacturer = "BlackBerry", model = "KEYone"))
-        assertEquals("blackberry", detect(model = "KEY2"))
+        assertEquals("blackberry", detect(model = "KEY2 LE"))
+        assertEquals("blackberry", detect(model = "Key2LE"))
+    }
+
+    @Test
+    fun titanSlimAndPocketUseTt2() {
+        assertEquals("tt2", detect(manufacturer = "Unihertz", model = "Titan Slim"))
+        assertEquals("tt2", detect(model = "Titan Pocket"))
     }
 
     @Test

@@ -25,6 +25,7 @@ import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
+import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.fcitx.fcitx5.android.input.swipe.FlyTextDownAction
 import org.fcitx.fcitx5.android.input.swipe.KeyboardFlyTextSelector
 import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
@@ -676,6 +677,52 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         postFcitxJob { enumerateIme(forward) }
     }
 
+    private fun executeFlyTextAction(
+        action: FlyTextAction,
+        selectPos: Int = -1,
+        pageDir: Int = 0,
+    ): Boolean {
+        when (action) {
+            FlyTextAction.None -> return false
+            FlyTextAction.SelectCandidate -> {
+                if (selectPos < 0) return false
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                if (inputView?.flySelectSelectionIndex(selectPos) != true) {
+                    postFcitxJob { select(selectPos) }
+                }
+            }
+            FlyTextAction.CommitLatinOrDismiss -> return flyTextHandleDown()
+            FlyTextAction.PageNext, FlyTextAction.PagePrev -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                var d = if (pageDir != 0) pageDir else 1
+                if (action == FlyTextAction.PagePrev) d = -d
+                if (AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextSwapPage.getValue()) {
+                    d = -d
+                }
+                if (inputView?.flyPagePicker(d) != true) {
+                    if (inputView?.flyPageCandidates(d) != true) {
+                        postFcitxJob { offsetCandidatePage(d) }
+                    }
+                }
+            }
+            FlyTextAction.SwitchImeNext -> flyTextHandleTwoFingerHorizontal(true)
+            FlyTextAction.SwitchImePrev -> flyTextHandleTwoFingerHorizontal(false)
+            FlyTextAction.Backspace -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Delete)
+                val del = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL)
+                if (inputView?.handleDeleteClearsPrediction(del) != true) {
+                    forwardKeyEvent(del)
+                    forwardKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                }
+            }
+            FlyTextAction.HideBar -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                AppPrefs.getInstance().candidateBar.hideStatusBar.setValue(true)
+            }
+        }
+        return true
+    }
+
     fun commitText(text: String, cursor: Int = -1) {
         val ic = currentInputConnection ?: return
         inputView?.onCommitText(text)
@@ -1077,14 +1124,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 inputView?.isPickerWindowOpen() != true
 
     /**
-     * Pinyin/English bilingual gestures armed: master fly-text pref + the bilingual sub-toggle.
-     * Down-swipe commits latin / dismisses prediction; two-finger left/right switches IME. Needs
-     * an editable focus (same gate as cursor-move) so a two-finger swipe on the launcher cannot
-     * steal the system's touchpad.
+     * Extra keyboard-surface gestures that should keep the channel armed without visible
+     * candidates: configurable down-swipe, two-finger IME switch, hide-bar, backspace.
      */
     private val flyTextBilingualOn: Boolean
-        get() = flyTextPrefOn &&
-                AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextBilingual.getValue()
+        get() {
+            if (!flyTextPrefOn) return false
+            val hw = AppPrefs.getInstance().hardwareKeyboard
+            return hw.flyTextDownAction.getValue().keepsChannelWithoutCandidates() ||
+                hw.flyTextTwoFingerLeftAction.getValue().keepsChannelWithoutCandidates() ||
+                hw.flyTextTwoFingerRightAction.getValue().keepsChannelWithoutCandidates()
+        }
 
     /**
      * Whether the keyboard-surface motion channels (decor listener + service fallback) should feed
@@ -1261,39 +1311,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 density = resources.displayMetrics.density,
                 candidateRectsProvider = { flyCandidateRects() },
                 onSelect = { pos ->
-                    // Sound first: the finger is on the keyboard surface, not the screen, so the
-                    // click is the only immediate confirmation the up-swipe registered at all.
-                    // A key-based pick (physical number key, bar tap) stays silent on purpose — the
-                    // physical key already clicks and stacking a second click there was rejected.
-                    playHardwareSound(InputFeedbacks.SoundEffect.Standard)
-                    // Route through the bar's tap path so the fly animation fires like a normal
-                    // pick; fall back to a plain engine select when the index isn't on the bar
-                    // (stale rects, or the rects came from the floating CandidatesView).
-                    if (inputView?.flySelectSelectionIndex(pos) != true) {
-                        postFcitxJob { select(pos) }
-                    }
+                    executeFlyTextAction(
+                        AppPrefs.getInstance().hardwareKeyboard.flyTextUpAction.getValue(),
+                        selectPos = pos
+                    )
                 },
                 onPage = { dir ->
-                    // Clicks on EVERY recognised left/right swipe, including one that lands on the
-                    // first/last page and therefore moves nothing: the swipe itself was understood,
-                    // and silence there reads as "the gesture was ignored". Both directions share
-                    // one sound — the page visibly moves, so the direction needs no audio cue.
-                    // Same key click as a physical key press (SoundEffect.Standard), not a distinct
-                    // paging tone — the swipe should feel like a hardware-keyboard action.
-                    playHardwareSound(InputFeedbacks.SoundEffect.Standard)
-                    // Honours the user's "swap page swipe direction" toggle, then pages the
-                    // candidate bar locally for bulk lists (engine paging has nothing to move
-                    // there); only falls back to engine paging for the floating window.
-                    val d = if (AppPrefs.getInstance().hardwareKeyboard
-                            .keyboardFlyTextSwapPage.getValue()
-                    ) -dir else dir
-                    // A symbol/emoji/emoticon panel is open → page it (same as the physical
-                    // pageNext/pagePrev keys); skip the candidate bar so the two never fight.
-                    if (inputView?.flyPagePicker(d) != true) {
-                        if (inputView?.flyPageCandidates(d) != true) {
-                            postFcitxJob { offsetCandidatePage(d) }
-                        }
-                    }
+                    val hw = AppPrefs.getInstance().hardwareKeyboard
+                    val action = if (dir > 0) hw.flyTextLeftAction.getValue()
+                    else hw.flyTextRightAction.getValue()
+                    executeFlyTextAction(action, pageDir = dir)
                 },
                 cornerRegionProvider = {
                     // The top-right corner of the keyboard surface, in display coordinates — the
@@ -1331,11 +1358,27 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 },
                 cursorModeProvider = { flyTextCursorOn },
                 onCursor = { dir, isDragStep -> flyMoveCursor(dir, isDragStep) },
-                bilingualProvider = {
-                    AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextBilingual.getValue()
+                downSwipeEnabled = {
+                    AppPrefs.getInstance().hardwareKeyboard.flyTextDownAction.getValue() !=
+                        FlyTextAction.None
                 },
-                onDown = { flyTextHandleDown() },
-                onTwoFingerHorizontal = { forward -> flyTextHandleTwoFingerHorizontal(forward) }
+                twoFingerEnabled = {
+                    val hw = AppPrefs.getInstance().hardwareKeyboard
+                    hw.flyTextTwoFingerLeftAction.getValue() != FlyTextAction.None ||
+                        hw.flyTextTwoFingerRightAction.getValue() != FlyTextAction.None
+                },
+                onDown = {
+                    executeFlyTextAction(
+                        AppPrefs.getInstance().hardwareKeyboard.flyTextDownAction.getValue()
+                    )
+                },
+                onTwoFingerHorizontal = { forward ->
+                    val hw = AppPrefs.getInstance().hardwareKeyboard
+                    executeFlyTextAction(
+                        if (forward) hw.flyTextTwoFingerRightAction.getValue()
+                        else hw.flyTextTwoFingerLeftAction.getValue()
+                    )
+                }
             )
             flyTextSelectorInitialized = true
         }
@@ -2503,6 +2546,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         if (!isNullType) {
             lastNonNullStartInputViewUptime = now
             suppressTransientFinishInputView = false
+        }
+        if (!restarting) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                org.fcitx.fcitx5.android.data.pinyin.ContactsDictionary.maybeSync(
+                    this@FcitxInputMethodService, fcitx
+                )
+            }
         }
         if (restarting && isNullType && currentInputStarted &&
             (now - lastNonNullStartInputViewUptime) < 1500

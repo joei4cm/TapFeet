@@ -51,6 +51,14 @@ object AppUtil {
         }
     }
 
+    fun launchMainToContactsPermission(context: Context) {
+        context.startActivity<MainActivity> {
+            action = Intent.ACTION_RUN
+            putExtra(MainActivity.EXTRA_REQUEST_READ_CONTACTS, true)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
+    }
+
     fun launchMainToInputMethodConfig(context: Context, uniqueName: String, displayName: String) =
         launchMainToDest(context, SettingsRoute.InputMethodConfig(displayName, uniqueName))
 

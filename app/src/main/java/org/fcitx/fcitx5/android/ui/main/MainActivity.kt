@@ -253,6 +253,9 @@ class MainActivity : AppCompatActivity() {
                 if (intent.getBooleanExtra(EXTRA_REQUEST_RECORD_AUDIO, false)) {
                     requestRecordAudioPermission()
                 }
+                if (intent.getBooleanExtra(EXTRA_REQUEST_READ_CONTACTS, false)) {
+                    requestReadContactsPermission()
+                }
                 val route = intent.parcelable<SettingsRoute>(EXTRA_SETTINGS_ROUTE) ?: return
                 navController.popBackStack(SettingsRoute.Index, false)
                 navController.navigateWithAnim(route)
@@ -352,6 +355,19 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun requestReadContactsPermission() {
+        if (checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) return
+        AlertDialog.Builder(this)
+            .setIconAttribute(android.R.attr.alertDialogIcon)
+            .setTitle(R.string.contacts_dictionary)
+            .setMessage(R.string.contacts_dictionary_permission)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }
+            .setPositiveButton(R.string.grant_permission) { _, _ ->
+                requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 2)
+            }
+            .show()
+    }
+
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
@@ -383,6 +399,14 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 2) {
+            if (grantResults.getOrNull(0) == PackageManager.PERMISSION_GRANTED) {
+                org.fcitx.fcitx5.android.data.pinyin.ContactsDictionary.maybeSync(
+                    this, viewModel.fcitx, force = true
+                )
+            }
+            return
+        }
         if (requestCode != 0) return
         // do not ask again if user denied the request
         needNotifications = grantResults.getOrNull(0) == PackageManager.PERMISSION_GRANTED
@@ -398,6 +422,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_SETTINGS_ROUTE = "${BuildConfig.APPLICATION_ID}.EXTRA_SETTINGS_ROUTE"
         const val EXTRA_REQUEST_RECORD_AUDIO = "${BuildConfig.APPLICATION_ID}.EXTRA_REQUEST_RECORD_AUDIO"
+        const val EXTRA_REQUEST_READ_CONTACTS = "${BuildConfig.APPLICATION_ID}.EXTRA_REQUEST_READ_CONTACTS"
     }
 
 }

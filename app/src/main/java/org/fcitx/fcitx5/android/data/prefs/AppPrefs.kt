@@ -18,6 +18,7 @@ import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
 import org.fcitx.fcitx5.android.input.candidates.horizontal.CandidateArrangementMode
+import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fcitx.fcitx5.android.input.effects.EffectMode
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
@@ -321,13 +322,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val mode = enumList(
             R.string.show_candidates_window,
             "show_candidates_window",
-            FloatingCandidatesMode.Disabled
+            FloatingCandidatesMode.InputDevice
         )
 
         val orientation = enumList(
             R.string.candidates_orientation,
             "candidates_window_orientation",
-            FloatingCandidatesOrientation.Automatic
+            FloatingCandidatesOrientation.Vertical
         )
 
         val windowMinWidth = int(
@@ -444,8 +445,41 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val hideStatusBar = switch(
             R.string.hide_status_bar,
             "hide_status_bar",
-            false,
+            true,
             R.string.hide_status_bar_summary
+        )
+
+        val showCandidateComment = switch(
+            R.string.show_candidate_comment,
+            "show_candidate_comment",
+            true,
+            R.string.show_candidate_comment_summary
+        )
+
+        val vMode = switch(
+            R.string.v_mode,
+            "pinyin_v_mode",
+            true,
+            R.string.v_mode_summary
+        )
+
+        val contactsDictionary = switch(
+            R.string.contacts_dictionary,
+            "contacts_dictionary",
+            false,
+            R.string.contacts_dictionary_summary
+        )
+
+        val candidateFontBold = switch(
+            R.string.candidate_font_bold,
+            "candidate_font_bold",
+            false
+        )
+
+        val candidateLetterSpacing = int(
+            R.string.candidate_letter_spacing,
+            "candidate_letter_spacing",
+            0, 0, 30, "%"
         )
     }
 
@@ -684,11 +718,26 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         // the Fn cursor/selection chords keep their own bindings.
         val keyboardFlyTextAltSelect = bool("hw_keyboard_flytext_alt_select", true)
 
-        // Keyboard fly-text bilingual (pinyin + English): swipe down commits the composing
-        // latin / dismisses 联想 prediction; two-finger left/right cycles IMEs. On by default —
-        // this is the Elite keyboard-surface's pinyin/English pairing with the existing up-swipe
-        // Chinese pick. Only meaningful while fly-text is on.
-        val keyboardFlyTextBilingual = bool("hw_keyboard_flytext_bilingual", true)
+        val flyTextUpAction = enumList(
+            R.string.flytext_up_action, "hw_flytext_up_action", FlyTextAction.SelectCandidate
+        ) { keyboardFlyText.getValue() }
+        val flyTextDownAction = enumList(
+            R.string.flytext_down_action, "hw_flytext_down_action", FlyTextAction.CommitLatinOrDismiss
+        ) { keyboardFlyText.getValue() }
+        val flyTextLeftAction = enumList(
+            R.string.flytext_left_action, "hw_flytext_left_action", FlyTextAction.PageNext
+        ) { keyboardFlyText.getValue() }
+        val flyTextRightAction = enumList(
+            R.string.flytext_right_action, "hw_flytext_right_action", FlyTextAction.PagePrev
+        ) { keyboardFlyText.getValue() }
+        val flyTextTwoFingerLeftAction = enumList(
+            R.string.flytext_twofinger_left_action, "hw_flytext_twofinger_left_action",
+            FlyTextAction.SwitchImePrev
+        ) { keyboardFlyText.getValue() }
+        val flyTextTwoFingerRightAction = enumList(
+            R.string.flytext_twofinger_right_action, "hw_flytext_twofinger_right_action",
+            FlyTextAction.SwitchImeNext
+        ) { keyboardFlyText.getValue() }
 
         // Keyboard fly-text sensitivity (percent). Scales every swipe travel threshold: lower =
         // the finger must travel farther before a gesture fires (fewer accidental triggers while
