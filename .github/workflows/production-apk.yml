@@ -1,0 +1,106 @@
+# Signed release APK for every push to `production`.
+#
+# Repo Settings → Secrets and variables → Actions — add these three (do not commit them):
+#   SIGN_KEY_BASE64  base64 of tapfeet-release.jks  (Linux: base64 -w0 file.jks)
+#   SIGN_KEY_PWD     keystore / key password
+#   SIGN_KEY_ALIAS   tapfeet
+#
+# Settings → Actions → General → Workflow permissions: Read and write
+# (needed to attach the APK to the rolling `ci-production` GitHub Release).
+
+name: Production APK
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+concurrency:
+  group: production-apk
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Require signing secrets
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          missing=0
+          for n in SIGN_KEY_BASE64 SIGN_KEY_PWD SIGN_KEY_ALIAS; do
+            if [ -z "${!n}" ]; then
+              echo "::error::$n is empty. Add it under Settings → Secrets and variables → Actions."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Fetch source code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y extra-cmake-modules gettext ninja-build
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android environment
+        uses: android-actions/setup-android@v3
+        with:
+          packages: cmake;3.31.6
+
+      - name: Install NDK and build-tools
+        run: |
+          sdkmanager --install "ndk;28.0.13004108" "build-tools;36.1.0" "platforms;android-36"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build signed release APK
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          sed -i 's/-Xmx2048m/-Xmx4096m/' gradle.properties
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK signature
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" verify --print-certs --verbose "$apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: tapfeet-production
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Publish rolling GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ci-production
+          name: Production APK
+          prerelease: true
+          make_latest: false
+          target_commitish: ${{ github.sha }}
+          files: app/build/outputs/apk/release/*.apk
+          body: |
+            Automatic signed APK from `production` @ `${{ github.sha }}`.
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
