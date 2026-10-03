@@ -614,6 +614,11 @@ class InputView(
         kawaiiBar.releaseVoiceInput()
     }
 
+    /** 飞字等非按住手势：点一下开始 / 再点结束。 */
+    fun toggleVoiceInput() {
+        kawaiiBar.toggleVoiceInput()
+    }
+
     /**
      * 动作执行体。开关类动作都是"翻转一个偏好 + 弹一句回执"：偏好一落盘，`AppPrefs` 注册的
      * 全局监听就把变更广播给各消费者（KawaiiBar 可见性 / 特效覆盖层 / 音效闸门…），所以这里
@@ -701,6 +706,11 @@ class InputView(
 
             // 物理快捷键：按住说话（松手由 [releaseVoiceShortcut] 收尾）。工具栏麦克风仍走 toggle。
             ShortcutAction.VoiceInput -> kawaiiBar.pressVoiceInput()
+
+            ShortcutAction.ToggleIme -> {
+                service.postFcitxJob { toggleIme() }
+                toast(R.string.shortcut_toast_ime_toggled)
+            }
 
             // 文本编辑类：全选 / 复制 / 剪切 / 粘贴 / 全删 / 撤销 / 光标四向；
             // 选字类：选区四向扩（右 Shift + E/D/S/F）

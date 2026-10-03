@@ -16,6 +16,7 @@ class FlyTextActionTest {
     fun keepsChannelWithoutCandidates() {
         assertTrue(FlyTextAction.CommitLatinOrDismiss.keepsChannelWithoutCandidates())
         assertTrue(FlyTextAction.SwitchImeNext.keepsChannelWithoutCandidates())
+        assertTrue(FlyTextAction.VoiceInput.keepsChannelWithoutCandidates())
         assertTrue(FlyTextAction.HideBar.keepsChannelWithoutCandidates())
         assertTrue(FlyTextAction.Backspace.keepsChannelWithoutCandidates())
         assertFalse(FlyTextAction.SelectCandidate.keepsChannelWithoutCandidates())

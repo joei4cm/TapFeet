@@ -89,6 +89,12 @@ enum class ShortcutAction(
      */
     VoiceInput("shortcut_voice_input_key", R.string.shortcut_voice_input),
 
+    /**
+     * 切换已启用的 fcitx 输入法（拼音 ↔ 英语）。动作快捷键排在巨硬选字之前，所以 Elite 出候选时
+     * 仍能按：左 Alt / 左 Shift / 空格当时都是选词键，`Alt+Space` 会被抢走。
+     */
+    ToggleIme("shortcut_toggle_ime_key", R.string.shortcut_toggle_ime),
+
     // —— 文本编辑类（chord=FN；作用在焦点编辑器上，经 InputConnection；
     // 编辑器自身给出可见反馈，不弹 Toast）——
     // 字母取自用户敲定的那套 `Fn+字母` 键位表（A/C/X/V/Q/Z + 光标簇 S/F/E/D + 选字簇 U/J/H/K），

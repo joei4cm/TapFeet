@@ -93,7 +93,8 @@
     <string name="flytext_action_ime_next">Next input method</string>
     <string name="flytext_action_ime_prev">Previous input method</string>
     <string name="flytext_action_backspace">Backspace</string>
-    <string name="flytext_action_hide_bar">Hide idle bar</string>
+    <string name="flytext_action_hide_bar">Toggle idle bar</string>
+    <string name="flytext_action_voice">Voice input</string>
     <string name="flytext_action_none">Do nothing</string>
     <string name="hw_flytext_swap_page">Swap page swipe direction</string>
     <string name="hw_flytext_swap_page_summary">Swipe left = previous, right = next (default is reversed).</string>
@@ -144,6 +145,7 @@
     <string name="shortcut_toggle_arrangement">Switch candidate arrangement</string>
     <string name="shortcut_cycle_sound_mode">Cycle key sound mode</string>
     <string name="shortcut_voice_input">Voice input</string>
+    <string name="shortcut_toggle_ime">Switch pinyin / English</string>
     <string name="shortcut_select_all">Select all</string>
     <string name="shortcut_copy">Copy</string>
     <string name="shortcut_cut">Cut</string>
@@ -173,6 +175,7 @@
     <string name="shortcut_toast_flytext_off">Fly-text off</string>
     <string name="shortcut_toast_arrangement">Candidate arrangement: %1$s</string>
     <string name="shortcut_toast_sound_mode">Key sound mode: %1$s</string>
+    <string name="shortcut_toast_ime_toggled">Switched input method</string>
     <string name="key_capture_hint">Press any key to bind…</string>
     <string name="key_captured_format">Captured: %1$s (%2$d)</string>
     <string name="hw_reset">Reset to default</string>

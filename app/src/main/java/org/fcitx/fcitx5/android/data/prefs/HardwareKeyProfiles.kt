@@ -174,7 +174,7 @@ object HardwareKeyProfiles {
      * 统一挂到 `Shift_R`** 上（见 [shortcutValuesFor]），同一个修饰键下字母撞了就真的抢键，
      * 所以这里**全局唯一**：
      *  - 编辑类（Fn/Alt_R）：A/C/X/V/Q/Z 编辑、S/F/E/D 光标簇、U/J/H/K 选字簇（U=上 J=下 H=左 K=右）；
-     *  - 开关类（Sym/Alt_R）：拼音助记 特效 t、音 y、排列 p、fLy l、Bar b、Mode m、录音 r。
+     *  - 开关类（Sym/Alt_R）：拼音助记 特效 t、音 y、排列 p、fLy l、Bar b、Mode m、录音 r、英 n。
      *
      * `when` 显式穷举 [ShortcutAction]：以后加动作若忘了给字母会直接编译不过，
      * 不会静默漏一个（「加了枚举项却没有绑定」正是本项目最怕的那类静默失效）。
@@ -188,6 +188,7 @@ object HardwareKeyProfiles {
         ShortcutAction.ToggleArrangement -> "p"
         ShortcutAction.CycleSoundMode -> "m"
         ShortcutAction.VoiceInput -> "r"
+        ShortcutAction.ToggleIme -> "n"
         ShortcutAction.SelectAll -> "a"
         ShortcutAction.Copy -> "c"
         ShortcutAction.Cut -> "x"

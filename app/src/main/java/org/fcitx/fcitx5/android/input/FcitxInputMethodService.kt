@@ -720,7 +720,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             FlyTextAction.HideBar -> {
                 playHardwareSound(InputFeedbacks.SoundEffect.Standard)
-                AppPrefs.getInstance().candidateBar.hideStatusBar.setValue(true)
+                val pref = AppPrefs.getInstance().candidateBar.hideStatusBar
+                pref.setValue(!pref.getValue())
+            }
+            FlyTextAction.VoiceInput -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                inputView?.toggleVoiceInput()
             }
         }
         return true
