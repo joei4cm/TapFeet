@@ -83,10 +83,17 @@ enum class ShortcutAction(
     CycleSoundMode("shortcut_cycle_sound_mode_key", R.string.shortcut_cycle_sound_mode),
 
     /**
-     * 本地语音输入（SenseVoice）：与键盘栏麦克风按钮同一入口（[KawaiiBarComponent.toggleVoiceInput]），
-     * 按一下开始录音，再按一下收尾识别。密码框一律不响应。
+     * 本地语音输入（SenseVoice）。工具栏麦克风仍是点一下开始 / 再点结束
+     * （[org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent.toggleVoiceInput]）；
+     * 物理快捷键是按住说话、松手识别（[VoiceShortcut]）。密码框一律不响应。
      */
     VoiceInput("shortcut_voice_input_key", R.string.shortcut_voice_input),
+
+    /**
+     * 切换已启用的 fcitx 输入法（拼音 ↔ 英语）。动作快捷键排在巨硬选字之前，所以 Elite 出候选时
+     * 仍能按：左 Alt / 左 Shift / 空格当时都是选词键，`Alt+Space` 会被抢走。
+     */
+    ToggleIme("shortcut_toggle_ime_key", R.string.shortcut_toggle_ime),
 
     // —— 文本编辑类（chord=FN；作用在焦点编辑器上，经 InputConnection；
     // 编辑器自身给出可见反馈，不弹 Toast）——

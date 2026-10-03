@@ -68,7 +68,7 @@
     <string name="hw_alt_latch">Alt 锁定</string>
     <string name="hw_alt_latch_summary">双击锁定键可保持 Alt 按下状态。</string>
     <string name="hw_caps_lock">Shift 锁定大写</string>
-    <string name="hw_caps_lock_summary">长按或双击 Shift 锁定大写，再点一下 Shift 解锁；Caps Lock 键可直接切换。</string>
+    <string name="hw_caps_lock_summary">长按 Shift 锁定大写，再点一下 Shift 解锁；短按立即切换中英文。Caps Lock 键可直接切换。</string>
     <string name="caps_lock_enabled">大写锁定已开启</string>
     <string name="caps_lock_disabled">大写锁定已关闭</string>
     <string name="hw_alt_latch_key">Alt 锁定键（双击）</string>
@@ -93,7 +93,8 @@
     <string name="flytext_action_ime_next">下一个输入法</string>
     <string name="flytext_action_ime_prev">上一个输入法</string>
     <string name="flytext_action_backspace">退格</string>
-    <string name="flytext_action_hide_bar">隐藏空闲栏</string>
+    <string name="flytext_action_hide_bar">开关空闲栏</string>
+    <string name="flytext_action_voice">语音输入</string>
     <string name="flytext_action_none">无动作</string>
     <string name="hw_flytext_swap_page">翻页方向互换</string>
     <string name="hw_flytext_swap_page_summary">左滑上一页、右滑下一页（默认相反）。</string>
@@ -140,6 +141,7 @@
     <string name="shortcut_toggle_arrangement">切换候选排列</string>
     <string name="shortcut_cycle_sound_mode">循环音效模式</string>
     <string name="shortcut_voice_input">语音输入</string>
+    <string name="shortcut_toggle_ime">切换拼音/英文</string>
     <string name="shortcut_select_all">全选</string>
     <string name="shortcut_copy">复制</string>
     <string name="shortcut_cut">剪切</string>
@@ -169,6 +171,7 @@
     <string name="shortcut_toast_flytext_off">飞字已关闭</string>
     <string name="shortcut_toast_arrangement">候选排列：%1$s</string>
     <string name="shortcut_toast_sound_mode">按键音模式：%1$s</string>
+    <string name="shortcut_toast_ime_toggled">已切换输入法</string>
     <string name="key_capture_hint">按任意键以绑定…</string>
     <string name="key_captured_format">已捕获: %1$s (%2$d)</string>
     <string name="hw_reset">恢复默认</string>

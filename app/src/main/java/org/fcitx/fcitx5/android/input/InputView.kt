@@ -594,6 +594,7 @@ class InputView(
 
     /**
      * 动作快捷键（开关类 + 文本编辑类）：命中即执行并消费该键。
+     * 语音输入除外：DOWN 只开录，返回 [ShortcutAction.VoiceInput] 让服务在对应 UP 上停录。
      *
      * 由 [FcitxInputMethodService.onKeyDown] 放在整条派发链**最前面**调用，于是：
      * - 物理 / 虚拟两种模式下都生效（探测点在 `isVirtualKeyboard` 分支之前）；
@@ -601,11 +602,21 @@ class InputView(
      *   时也必须能按（探测点必须在所有 early-return 之前，否则又是一次静默失效）；
      * - 同一个键既绑了候选字又绑了动作时，动作优先（配置界面会在保存时提示冲突）。
      */
-    fun handleHardwareActionShortcut(event: KeyEvent): Boolean {
-        if (event.action != KeyEvent.ACTION_DOWN) return false
-        val action = HardwareShortcutResolver.resolveAction(event) ?: return false
+    fun handleHardwareActionShortcut(event: KeyEvent): ShortcutAction? {
+        if (event.action != KeyEvent.ACTION_DOWN) return null
+        val action = HardwareShortcutResolver.resolveAction(event) ?: return null
         performShortcutAction(action)
-        return true
+        return action
+    }
+
+    /** 语音快捷键抬起：和弦状态此时可能已清掉，不能再 [HardwareShortcutResolver.resolveAction]。 */
+    fun releaseVoiceShortcut() {
+        kawaiiBar.releaseVoiceInput()
+    }
+
+    /** 飞字等非按住手势：点一下开始 / 再点结束。 */
+    fun toggleVoiceInput() {
+        kawaiiBar.toggleVoiceInput()
     }
 
     /**
@@ -693,8 +704,13 @@ class InputView(
                 )
             }
 
-            // 本地语音输入：与键盘栏麦克风按钮同一入口
-            ShortcutAction.VoiceInput -> kawaiiBar.toggleVoiceInput()
+            // 物理快捷键：按住说话（松手由 [releaseVoiceShortcut] 收尾）。工具栏麦克风仍走 toggle。
+            ShortcutAction.VoiceInput -> kawaiiBar.pressVoiceInput()
+
+            ShortcutAction.ToggleIme -> {
+                service.postFcitxJob { toggleIme() }
+                toast(R.string.shortcut_toast_ime_toggled)
+            }
 
             // 文本编辑类：全选 / 复制 / 剪切 / 粘贴 / 全删 / 撤销 / 光标四向；
             // 选字类：选区四向扩（右 Shift + E/D/S/F）

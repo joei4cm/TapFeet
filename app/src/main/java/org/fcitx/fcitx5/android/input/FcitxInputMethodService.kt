@@ -80,6 +80,7 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
 import org.fcitx.fcitx5.android.input.cursor.CursorRange
 import org.fcitx.fcitx5.android.input.cursor.CursorTracker
 import org.fcitx.fcitx5.android.input.effects.CommitEffectsOverlay
@@ -107,6 +108,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val cachedKeyEvents = LruCache<Int, KeyEvent>(78)
     private var cachedKeyEventIndex = 0
     private val consumedHardwareCandidateShortcutKeys = HashSet<Int>()
+    /** 语音快捷键按住中：DOWN 时记下 keyCode，UP 时停录（此时和弦前缀已清，不能再 resolve）。 */
+    private var voiceShortcutHeldKeyCode = -1
 
     /**
      * Saves MetaState produced by hardware keyboard with "sticky" modifier keys, to clear them in order.
@@ -717,7 +720,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             FlyTextAction.HideBar -> {
                 playHardwareSound(InputFeedbacks.SoundEffect.Standard)
-                AppPrefs.getInstance().candidateBar.hideStatusBar.setValue(true)
+                val pref = AppPrefs.getInstance().candidateBar.hideStatusBar
+                pref.setValue(!pref.getValue())
+            }
+            FlyTextAction.VoiceInput -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                inputView?.toggleVoiceInput()
             }
         }
         return true
@@ -1834,7 +1842,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // altLatchConsumedThisGesture / altDownStartTime 等内部状态）。命中消费返回 true，否则继续下行。
         hardwareKeyDispatch.dispatchAltLatchDown(keyCode, event, wasAltDown)?.let { return it }
 
-        // Caps-latch 常驻大写状态机（长按/双击 Shift 锁定、CapsLock 键切换）。命中消费返回 true。
+        // Caps-latch 常驻大写状态机（长按 Shift 锁定、CapsLock 键切换）。命中消费返回 true。
         hardwareKeyDispatch.dispatchCapsDown(keyCode, event)?.let { return it }
 
         // ===== 符号窗口打开时：物理键盘直接选符号（BlackBerry SYM 面板） =====
@@ -1882,9 +1890,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             //    之下，就会变成"没在打字时按不动"的静默失效（hideStatusBar、选字特效都栽过这类坑）；
             //  - 物理键盘模式下 InputView 已不是候选面，动作键仍必须可达。
             // 消费后记入 consumedHardwareCandidateShortcutKeys，交给 onKeyUp 一并吞掉。
-            if (inputView?.handleHardwareActionShortcut(effectiveEvent) == true) {
+            val shortcutAction = inputView?.handleHardwareActionShortcut(effectiveEvent)
+            if (shortcutAction != null) {
                 hardwareKeyDispatch.cancelLongPressSymbol(keyCode)
                 consumedHardwareCandidateShortcutKeys.add(keyCode)
+                if (shortcutAction == ShortcutAction.VoiceInput) {
+                    voiceShortcutHeldKeyCode = keyCode
+                }
                 return true
             }
             // Candidate-selection dispatch. The two surfaces handle different key sets:
@@ -1954,6 +1966,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // （长按符号 fired、Alt 锁定消费），漏清一次就是把「Fn 按着」永久留在那儿，
         // 之后每个字母都会被判成和弦（按 E 就切特效），比单纯不生效危险得多。
         HardwareChord.onKeyUp(keyCode)
+
+        // 语音快捷键松手：必须在和弦清掉之后、吞掉 UP 之前。匹配靠 DOWN 记下的 keyCode。
+        if (voiceShortcutHeldKeyCode == keyCode) {
+            voiceShortcutHeldKeyCode = -1
+            inputView?.releaseVoiceShortcut()
+            consumedHardwareCandidateShortcutKeys.remove(keyCode)
+            return true
+        }
 
         // 长按符号 pending 解析 → HardwareKeyDispatch（已长按 fired 则吞掉 up，否则 fall through）。
         if (hardwareKeyDispatch.resolveLongPressSymbolUp(keyCode)) return true
@@ -2144,10 +2164,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         var capsLatched = false
         private var capsDownStartTime = 0L
         private var capsUsedWithOtherKey = false
-        private var lastCapsTapEventTime = 0L
         private var lastCapsKeyCode = KeyEvent.KEYCODE_SHIFT_LEFT
-        private var pendingCapsReplay: Runnable? = null
-        private val capsDoubleTapTimeoutMs = 300L
         private val capsHoldThresholdMs = 500L
         private var capsConsumedThisGesture = false
 
@@ -2156,10 +2173,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
         /**
          * 常驻大写 key-down 状态机。
-         * 交互（与 Alt-latch 同构、对齐手机输入法惯例）：
+         * 交互：
          *  - 长按 Shift ≥500ms → 锁定大写；
-         *  - 双击 Shift（300ms 内两下）→ 锁定大写；纯 Shift 的第一击延迟 300ms 合成补发，
-         *    单击的原有行为（如拼音模式中英切换）不丢、也不增加感知延迟之外的副作用；
+         *  - 短按 Shift 在抬起时立刻补发给 fcitx5（拼音 AltTriggerKeys = 中英切换），不另等双击窗口；
          *  - 锁定后再点一下 Shift → 解锁（整击消费）；
          *  - Caps Lock 物理键 → 直接切换。
          * @return true = 本次按下被消费；null = 未消费，继续下行派发。
@@ -2171,7 +2187,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             if (keyCode == KeyEvent.KEYCODE_CAPS_LOCK && event.repeatCount == 0) {
                 setCapsLatched(!capsLatched)
-                lastCapsTapEventTime = 0L
                 return true
             }
             if (!isCapsLatchKeyCode(keyCode)) {
@@ -2184,16 +2199,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             if (capsLatched) {
                 // 已锁定：轻按 Shift = 解锁（整击消费，不再触发单击行为）
                 setCapsLatched(false)
-                lastCapsTapEventTime = 0L
-                capsConsumedThisGesture = true
-                capsDownStartTime = 0L
-                return true
-            }
-            if (lastCapsTapEventTime > 0L && now - lastCapsTapEventTime <= capsDoubleTapTimeoutMs) {
-                // 双击第二击：锁定；取消第一击的延迟补发
-                cancelCapsReplay()
-                setCapsLatched(true)
-                lastCapsTapEventTime = 0L
                 capsConsumedThisGesture = true
                 capsDownStartTime = 0L
                 return true
@@ -2202,12 +2207,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             capsUsedWithOtherKey = false
             lastCapsKeyCode = keyCode
             if (inputView?.isHardwareShortcutKey(event) == true) {
-                // 这个 Shift 同时绑了候选/翻页（如 Q25 的 Shift_R=候选5）：放行保住原有功能；
-                // 轻按在 up 侧参与双击判定（其候选选择副作用照旧，可接受）
-                lastCapsTapEventTime = now
+                // 这个 Shift 同时绑了候选/翻页（Elite 左 Shift = 候选 2）：放行保住巨硬选字；
+                // 中英切换在「没出候选」时才走得通，见用户手册。
                 return null
             }
-            // 纯 Shift：先消费，up 时判定 短按(延迟补发保单击行为) / 长按(锁定)
+            // 纯 Shift：先消费，up 时判定 短按(立刻补发保单击中英切换) / 长按(锁定)
             capsConsumedThisGesture = true
             return true
         }
@@ -2234,43 +2238,25 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             if (!capsUsedWithOtherKey && capsDownStartTime > 0L) {
                 val held = event.eventTime - capsDownStartTime
                 if (held >= capsHoldThresholdMs) {
-                    // 长按 Shift：锁定常驻大写
-                    cancelCapsReplay()
                     setCapsLatched(true)
-                    lastCapsTapEventTime = 0L
                     return
                 }
-                // 短按轻触：记录双击窗口；纯 Shift 的第一击延迟补发（保住单击行为）
-                lastCapsTapEventTime = event.eventTime
-                if (consumed) scheduleCapsTapReplay()
+                if (consumed) replayCapsTap()
             }
             capsUsedWithOtherKey = false
         }
 
-        /** 纯 Shift 轻按被消费后，300ms 内没有第二击才合成补发给 fcitx5（单击语义不丢）。 */
-        private fun scheduleCapsTapReplay() {
-            cancelCapsReplay()
+        /** 纯 Shift 轻按被消费后立刻合成补发给 fcitx5（单击中英切换，不再等双击窗口）。 */
+        private fun replayCapsTap() {
             val code = lastCapsKeyCode
             val meta = if (code == KeyEvent.KEYCODE_SHIFT_RIGHT) {
                 KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_RIGHT_ON
             } else {
                 KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
             }
-            val r = Runnable {
-                pendingCapsReplay = null
-                if (!capsLatched) {
-                    val t = android.os.SystemClock.uptimeMillis()
-                    forwardKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta, -1, 0, 0, 0))
-                    forwardKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta, -1, 0, 0, 0))
-                }
-            }
-            pendingCapsReplay = r
-            mainHandler.postDelayed(r, capsDoubleTapTimeoutMs)
-        }
-
-        private fun cancelCapsReplay() {
-            pendingCapsReplay?.let { mainHandler.removeCallbacks(it) }
-            pendingCapsReplay = null
+            val t = android.os.SystemClock.uptimeMillis()
+            forwardKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta, -1, 0, 0, 0))
+            forwardKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta, -1, 0, 0, 0))
         }
 
         /**
@@ -2886,6 +2872,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // is no window to tear down: the decor motion channel belongs to the IME window and goes
         // away with it.
         if (flyTextSelectorInitialized) flyTextSelector.reset()
+        if (voiceShortcutHeldKeyCode != -1) {
+            voiceShortcutHeldKeyCode = -1
+            inputView?.releaseVoiceShortcut()
+        }
     }
 
     override fun onFinishInput() {
