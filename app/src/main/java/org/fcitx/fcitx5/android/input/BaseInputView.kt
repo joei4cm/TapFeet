@@ -109,6 +109,10 @@ abstract class BaseInputView(
         }
     }
 
+    private fun triggerCandidateAction(idx: Int, actionIdx: Int) {
+        fcitx.runIfReady { triggerCandidateAction(idx, actionIdx) }
+    }
+
     private var candidateActionMenu: PopupMenu? = null
 
     val themedContext = context.withTheme(R.style.Theme_InputViewTheme)

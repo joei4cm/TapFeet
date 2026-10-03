@@ -18,6 +18,7 @@ import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
+import splitties.views.dsl.core.lParams as linearLParams
 import splitties.views.dsl.core.verticalLayout
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
@@ -80,7 +81,7 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
     }
 
     override val root = ctx.verticalLayout {
-        add(chipStrip.root, lParams(matchParent, wrapContent))
-        add(candidateRow, lParams(matchParent, dp(40)))
+        add(chipStrip.root, linearLParams(matchParent, wrapContent))
+        add(candidateRow, linearLParams(matchParent, dp(40)))
     }
 }
