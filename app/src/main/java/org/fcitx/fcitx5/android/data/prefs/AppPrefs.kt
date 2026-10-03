@@ -26,6 +26,7 @@ import org.fcitx.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.EmojiModifier
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
+import org.fcitx.fcitx5.android.utils.DeviceInfo
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.vibrator
@@ -712,7 +713,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
         fun ensureInitialized() {
             if (seededKeys.any { sharedPreferences.contains(it.key) }) return
-            HardwareKeyProfiles.applyProfile(keyProfile.getValue(), this@AppPrefs)
+            val id = DeviceInfo.suggestedHardwareKeyProfile()
+            keyProfile.setValue(id)
+            HardwareKeyProfiles.applyProfile(id, this@AppPrefs)
         }
 
         init {

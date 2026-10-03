@@ -11,6 +11,7 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.os.Build
 import org.fcitx.fcitx5.android.BuildConfig
+import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 
 // Adapted from https://gist.github.com/hendrawd/01f215fd332d84793e600e7f82fc154b
 object DeviceInfo {
@@ -134,4 +135,19 @@ object DeviceInfo {
         appendLine("Build Time: ${iso8601UTCDateTime(BuildConfig.BUILD_TIME)}")
         appendLine("Build Git Hash: ${BuildConfig.BUILD_GIT_HASH}")
     }
+
+    /**
+     * Hardware-keyboard preset that matches this phone. Delegates matching to
+     * [org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles.detectSuggestedId] so the
+     * rules stay unit-testable without `InputDevice`.
+     */
+    fun suggestedHardwareKeyProfile(): String =
+        HardwareKeyProfiles.detectSuggestedId(
+            manufacturer = Build.MANUFACTURER.orEmpty(),
+            brand = Build.BRAND.orEmpty(),
+            model = Build.MODEL.orEmpty(),
+            device = Build.DEVICE.orEmpty(),
+            product = Build.PRODUCT.orEmpty(),
+            hasKeyboardTouchSurface = hasKeyboardTouchSurface(),
+        )
 }

@@ -39,8 +39,10 @@ TapFeet（大脚输入法）是给**带实体全键盘的安卓手机**做的输
 |---|---|---|---|---|---|
 | 黑莓 Q25 | 左 Shift | `0` | 空格 | SYM（右 Alt） | 右 Shift |
 | Titan2 | 左 Shift | Control | 空格  | Tab | 右 Alt |
-| Titan2 Elite | 左 Shift | 返回 | 空格 | Fn | 右 Shift |
+| Titan2 Elite | Alt | 左 Shift | 空格 | Fn | 右 Shift |
 | Titan2 Elite（改键后） | `0` | 返回 | 空格 | Ctrl | Fn |
+
+默认 Elite 预设**不用返回键选字**（对齐大崔输入法 Titan2 Elite 布局，避免输入时把系统返回吃掉）。键盘触摸面左右滑仍可翻页。
 
 > **Titan2 Elite 完整巨硬键位（非默认，需改键位映射）**
 > Titan2 Elite 底排两端的 ⭕️（Home）与 ⬛️（多任务）是系统键，IME 默认收不到——系统层在窗口之前就把它们消费掉了，任何输入法都拿不到这两个键。要让它们参与选字，先在设备的「**系统设置 → 快捷键 → 按键设置**」里把这两个键改成可被 IME 识别的普通键：**⭕️ → `0`、⬛️ → `Ctrl`**。

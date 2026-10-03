@@ -7,7 +7,7 @@
 > 本项目基于 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 二次开发，**专为 Android 物理全键盘手机打造的中文输入法**。   
 > 原项目将 [Fcitx5](https://github.com/fcitx/fcitx5) 输入法框架及各类引擎移植到 Android 平台，本仓库在此基础上针对实体键盘输入场景做了深度优化。
 > 
-> 诞生于 Q25（BlackBerry Classic Q20 复刻机）的适配需求，现已扩展支持 **Unihertz Titan 2**、**BlackBerry KEY 系列** 等主流物理键盘 Android 设备。 
+> 诞生于 Q25（BlackBerry Classic Q20 复刻机）的适配需求，现已扩展支持 **Unihertz Titan 2 / Titan 2 Elite**、**BlackBerry KEY 系列** 等主流物理键盘 Android 设备。首次安装会按机型自动套用对应键盘预设。 
 
 ---
 
@@ -39,7 +39,9 @@
 
 - **Q25 / BlackBerry KEY**：5 大金刚键（⬆️ 0️⃣ 🈳 sym ⬆️）对应候选词 1~5
 - **Unihertz Titan 2**：顶部导航键 + 空格键快捷选词
-- **Unihertz Titan 2 Elite**：底排可用键按巨硬居中（4-2-1-3-5）映射 —— 空格=候选1、返回=候选2、fn=候选3、左Shift=候选4、右Shift=候选5，翻页用方向键左右。（底排的 home / 后台任务 是系统键，在系统层就被消费，任何输入法都收不到，故不参与映射）
+- **Unihertz Titan 2 Elite**：巨硬居中（4-2-1-3-5）为 Alt / 左Shift / 空格 / Fn / 右Shift，翻页用 Sym / Alt+Sym。不占用返回键。Home / 多任务仍是系统键，IME 收不到。
+
+首次安装会按 `Build` 机型（以及键盘触摸面）自动套用预设；仍可在「选项 → 物理键盘 → 键盘布局预设」里改。
 
 ### Alt + 数字组合键选词
 
@@ -50,7 +52,7 @@
 
 ### 物理键盘布局切换
 
-使用物理键盘前，需在设置中手动启用：
+使用物理键盘前，确认预设与机型一致（首次安装会自动选）：
 
 1. 进入 **选项 → 物理键盘**
 2. 选择 **键盘布局预设**，切换为对应的实体键盘布局

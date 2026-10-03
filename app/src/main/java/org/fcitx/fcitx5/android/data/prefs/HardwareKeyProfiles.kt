@@ -86,29 +86,29 @@ object HardwareKeyProfiles {
     )
 
     /**
-     * Titan2 Elite. Its bottom row (`TitanKey.kl` ROW4) is
-     * `左Shift / 返回 / home / 空格 / 后台任务 / fn / 右Shift`, but **home and 后台任务 cannot be
-     * bound at all**: they report `KEYCODE_HOME` / `KEYCODE_APP_SWITCH`, which the window policy
-     * consumes before any window — including the IME window — so no input method ever receives them
-     * (measured: pressing either produces zero events on the IME side, while their keyCodes are
-     * already present in the shortcut tables).
+     * Titan2 Elite. `TitanKey.kl` ROW4 is
+     * `左Shift / 返回 / home / 空格 / 后台任务 / fn / 右Shift`. Home and 后台任务 never reach the
+     * IME (`KEYCODE_HOME` / `KEYCODE_APP_SWITCH` are eaten by the window policy). **返回 is not
+     * used for 巨硬 either**: it is still Android Back, and stealing it while composing traps the
+     * user in the editor. BigCui IME v0.85's `TITAN2_ELITE` layout does the same — its five
+     * selection keys are `SPACE, LSHIFT, FN, ALT, RSHIFT`.
      *
-     * What remains is exactly five bottom-row keys, symmetric around 空格, so the full 巨硬
-     * (4-2-1-3-5) row still works: `左Shift=4th, 返回=2nd, 空格=1st (centre), fn=3rd, 右Shift=5th`.
-     *
-     * Paging therefore moves off the Shifts (they are candidate keys now) onto DPAD left/right —
-     * pending a measurement of whether DPAD events reach the input method on this keyboard.
-     * `altLatchKey` is a bare `Alt_L` because this keyboard has no right Alt (only `KEY_LEFTALT`).
+     * 巨硬 visual order (4-2-1-3-5) is therefore
+     * `Alt | 左Shift | 空格 | Fn | 右Shift`. Paging stays on the unused Sym key
+     * (`Sym` / `Alt+Sym`). Fn is both candidate 3 and the symbol-picker key; tap-hold
+     * ([HardwareChord]) keeps those two gestures apart. `altLatchKey` is `Alt_L` because this
+     * keyboard has no right Alt — while candidates are visible a tap selects candidate 4; latch
+     * still works when idle.
      */
     private val titan2EliteValues = listOf(
         "space",        // candidate1Key     空格 —— 巨硬首选字（居中）
-        "NavBack",      // candidate2Key     返回
+        "Shift_L",      // candidate2Key     左Shift（巨硬内左，对齐 BigCui LSHIFT）
         "NavFn",        // candidate3Key     fn
-        "Shift_L",      // candidate4Key     左Shift
+        "Alt_L",        // candidate4Key     左 Alt（巨硬最左；不占用返回键）
         "Shift_R",      // candidate5Key     右Shift
-        "Sym",        // pageNextKey       
-        "Alt+Sym",         // pagePrevKey       
-        "NavFn",          // symbolPickerKey   SYM 键
+        "Sym",          // pageNextKey
+        "Alt+Sym",      // pagePrevKey
+        "NavFn",        // symbolPickerKey   Fn 轻按开符号窗口（tap-hold）
         "Alt+space",    // toggleImeKey
         "Shift+space",  // pickerKey
         "Alt_L",        // altLatchKey       本机只有左 Alt
@@ -118,7 +118,8 @@ object HardwareKeyProfiles {
      * Titan2 Elite（改键）. 与 [titan2EliteValues] 同硬件、同符号窗口/Fn/Alt 这套，只是把
      * 「选字」和「翻页」的键位重排（对应操作手册里的「Titan2 Elite（改键后）」布局）：
      *
-     *  - 巨硬选字五键改为 `0 | 返回 | 空格 | Ctrl | Fn`（原 `左Shift | 返回 | 空格 | Fn | 右Shift`）。
+     *  - 巨硬选字五键改为 `0 | 返回 | 空格 | Ctrl | Fn`（相对默认 Elite 的
+     *    `Alt | 左Shift | 空格 | Fn | 右Shift`）。
      *    其中 `0` 与 `Ctrl` 来自用户在系统设置里把 ⭕️Home、`⬛️`多任务 两个被窗口策略吃掉的键
      *    分别重映射成 `0` / `Ctrl` —— 这两个键 IME 收不到，不重映射就空着。
      *  - 翻页从 `Sym` / `Alt+Sym` 改到 `右Shift`(下一页) / `左Shift`(上一页)，把原本占着选字位的
@@ -146,6 +147,24 @@ object HardwareKeyProfiles {
         TITAN2_ELITE -> titan2EliteValues
         TITAN2_ELITE_MOD -> titan2EliteModValues
         else -> blackberryValues
+    }
+
+    /**
+     * Pick a hardware-keyboard preset from device identity. Used only on first run
+     * ([AppPrefs.HardwareKeyboard.ensureInitialized]); afterwards the stored `keyProfile` wins.
+     */
+    fun detectSuggestedId(
+        manufacturer: String,
+        brand: String,
+        model: String,
+        device: String,
+        product: String,
+        hasKeyboardTouchSurface: Boolean,
+    ): String {
+        val id = HardwareKeyProfileDetect.suggestedId(
+            manufacturer, brand, model, device, product, hasKeyboardTouchSurface
+        )
+        return if (id in ids()) id else BLACKBERRY
     }
 
     /**

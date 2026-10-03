@@ -63,7 +63,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
 
         hw = AppPrefs.getInstance().hardwareKeyboard
 
-        // On a fresh install, persist the default (BlackBerry) profile so the individual key
+        // On a fresh install, persist the device-detected profile so the individual key
         // bindings match what selecting that preset would produce. No-op once already initialised.
         hw.ensureInitialized()
 
