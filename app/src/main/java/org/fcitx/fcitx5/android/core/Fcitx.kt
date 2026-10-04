@@ -20,6 +20,7 @@ import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeyboardPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
+import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.utils.ImmutableGraph
 import org.fcitx.fcitx5.android.utils.Locales
 import org.fcitx.fcitx5.android.utils.appContext
@@ -37,6 +38,11 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     @Keep
     private val onAndroidKeyboardPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
         lifecycle.launchWhenReady { this@Fcitx.syncAndroidKeyboardPrefs() }
+    }
+
+    @Keep
+    private val onPinyinEngineChange = ManagedPreference.OnChangeListener<PinyinEngineKind> { _, value ->
+        lifecycle.launchWhenReady { this@Fcitx.syncChinesePinyinEngine(value.useRime) }
     }
 
     override val eventFlow = eventFlow_.asSharedFlow()
@@ -209,6 +215,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         val hw = AppPrefs.getInstance().hardwareKeyboard
         hw.englishWordHint.registerOnChangeListener(onAndroidKeyboardPrefChange)
         hw.englishInsertSpace.registerOnChangeListener(onAndroidKeyboardPrefChange)
+        hw.pinyinEngine.registerOnChangeListener(onPinyinEngineChange)
     }
 
 
@@ -473,6 +480,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             }
             lifecycle.launchWhenReady {
                 this@Fcitx.syncAndroidKeyboardPrefs()
+                this@Fcitx.syncChinesePinyinEngine(
+                    AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue().useRime
+                )
             }
         }
 

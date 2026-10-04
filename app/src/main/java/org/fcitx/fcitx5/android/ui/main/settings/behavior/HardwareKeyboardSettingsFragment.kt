@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.preference.ListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import com.google.android.material.tabs.TabLayout
@@ -16,6 +17,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.InputFeedbacks.SoundScheme
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
+import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
 import org.fcitx.fcitx5.android.ui.main.settings.DialogSeekBarPreference
@@ -87,6 +89,25 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             true
         }
         profileScreen.addPreference(profileList)
+
+        // One switch: 小企鹅拼音 ↔ bundled 中州韵. English (keyboard-us) stays in the cycle.
+        val pinyinEnginePref = ListPreference(context).apply {
+            key = hw.pinyinEngine.key
+            title = getString(R.string.pinyin_engine)
+            entries = PinyinEngineKind.entries.map { getString(it.stringRes) }.toTypedArray()
+            entryValues = PinyinEngineKind.entries.map { it.name }.toTypedArray()
+            setDefaultValue(hw.pinyinEngine.defaultValue.name)
+            value = hw.pinyinEngine.getValue().name
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                val current = pref.entry?.toString().orEmpty()
+                listOf(current, getString(R.string.pinyin_engine_summary))
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n")
+            }
+        }
+        profileScreen.addPreference(pinyinEnginePref)
 
         // 底排物理键快速选字开关：仅控制"物理键是否选词"，与候选栏排列顺序无关
         // （排列顺序在"候选栏选项 → Candidate arrangement"中设置）。

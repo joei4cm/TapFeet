@@ -1,0 +1,47 @@
+# Rime default settings for TapFeet
+# encoding: utf-8
+#
+# One schema only: 朙月拼音·简化字. Schema switching (F4) is not used.
+# Shift is left to TapFeet (巨硬 / 中英切换), not Rime ascii mode.
+
+config_version: '0.40'
+
+schema_list:
+  - schema: luna_pinyin_simp
+
+switcher:
+  caption: 〔方案選單〕
+  hotkeys: []
+  fold_options: true
+  abbreviate_options: true
+  option_list_separator: '／'
+
+menu:
+  page_size: 5
+
+punctuator:
+  full_shape:
+    __include: punctuation:/full_shape
+  half_shape:
+    __include: punctuation:/half_shape
+
+key_binder:
+  bindings:
+    __patch:
+      - key_bindings:/paging_with_minus_equal
+
+recognizer:
+  patterns:
+    email: "^[A-Za-z][-_.0-9A-Za-z]*@.*$"
+    uppercase: "[A-Z][-_+.'0-9A-Za-z]*$"
+    url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$"
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Shift_L: noop
+    Shift_R: noop
+    Control_L: noop
+    Control_R: noop
+    Caps_Lock: clear
+    Eisu_toggle: clear
