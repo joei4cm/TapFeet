@@ -76,4 +76,22 @@ class HardwareKeyProfilesShortcutTest {
         assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.BLACKBERRY))
         assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TT2))
     }
+
+    @Test
+    fun eliteOpensSymbolPickerOnSymNotFn() {
+        val v = HardwareKeyProfiles.factoryValues(HardwareKeyProfiles.TITAN2_ELITE)
+        assertEquals("NavFn", v[2])
+        assertEquals("", v[5])
+        assertEquals("", v[6])
+        assertEquals("Sym", v[7])
+    }
+
+    @Test
+    fun eliteModOpensSymbolPickerOnSymNotFn() {
+        val v = HardwareKeyProfiles.factoryValues(HardwareKeyProfiles.TITAN2_ELITE_MOD)
+        assertEquals("NavFn", v[4])
+        assertEquals("Shift_R", v[5])
+        assertEquals("Shift_L", v[6])
+        assertEquals("Sym", v[7])
+    }
 }

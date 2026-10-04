@@ -788,7 +788,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
 
         fun ensureInitialized() {
-            if (seededKeys.any { sharedPreferences.contains(it.key) }) return
+            if (seededKeys.any { sharedPreferences.contains(it.key) }) {
+                HardwareKeyProfiles.applyEliteSymSymbolPicker(this)
+                return
+            }
             val id = DeviceInfo.suggestedHardwareKeyProfile()
             keyProfile.setValue(id)
             HardwareKeyProfiles.applyProfile(id, this@AppPrefs)

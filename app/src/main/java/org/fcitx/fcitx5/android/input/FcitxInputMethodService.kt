@@ -1955,9 +1955,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // they are not. Global actions keep falling through to InputView as before.
             // In VIRTUAL mode only InputView is consulted (CandidatesView isn't the surface).
             val handled = if (!inputDeviceMgr.isVirtualKeyboard) {
-                // 和弦修饰键兼符号键的按下必须**先于候选面**挂起：Elite 的 Fn 同时也是
-                // candidate3Key（Q25 的 Alt_R 同理），让候选面先看到这次按下的话，「按住 Fn + 字母」
-                // 在打字途中会先把第 3 个候选选掉 —— 匹配逻辑再对也只会打成错字。
+                // 和弦修饰键兼符号键的按下必须**先于候选面**挂起：Elite 的 SYM、Q25 的 Alt_R
+                // （兼 candidate3Key）都是修饰键。让候选面先看到这次按下的话，「按住修饰键 + 字母」
+                // 在打字途中会先把候选选掉 —— 匹配逻辑再对也只会打成错字。
                 // 挂起后松手时补发（见 onKeyUp 的 tap-hold 收尾），两个角色都不丢。
                 inputView?.handleHardwareChordTapHold(effectiveEvent) == true ||
                     // Floating CandidatesView is the primary surface in physical mode.
@@ -2051,8 +2051,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // 之前**：挂起那次按下是被消费掉的（已记进那个集合），放在它之后的话 up 会先被吞掉，
         // 轻按就永远补不发出来。
         //
-        // 补发顺序 = 这个键在按下时本该走的顺序：先当候选键（Elite 的 Fn 兼 candidate3），
-        // 候选面不接（没显示候选 / 候选数不够）才切符号窗口。
+        // 补发顺序 = 这个键在按下时本该走的顺序：先当候选键（Q25 的 Alt_R 兼 candidate3），
+        // 候选面不接（没显示候选 / 候选数不够 / Elite 的 SYM 不是选字键）才切符号窗口。
         if (HardwareChord.consumeSymbolTap(keyCode)) {
             if (candidatesView?.handleChordTapRelease(event) != true) {
                 inputView?.onHardwareSymbolTapReleased()
