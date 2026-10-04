@@ -16,6 +16,7 @@ import android.view.ViewTreeObserver.OnPreDrawListener
 import android.view.WindowInsets
 import android.widget.TextView
 import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
+import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
 import androidx.annotation.Size
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
@@ -288,6 +289,14 @@ class CandidatesView(
             pageCandidates(paging)
             return true
         }
+
+        val count = visibleCandidateCount()
+        NumberKeyCandidatePick.index(
+            event.keyCode,
+            event.metaState,
+            count,
+            VMode.isActive(inputPanel.preedit.toString()),
+        )?.let { return selectAtVisiblePosition(it) }
 
         return selectBySequence(event)
     }

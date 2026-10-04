@@ -104,6 +104,32 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(quickPickSwitch)
 
+        val englishWordHintSwitch = SwitchPreference(context).apply {
+            key = hw.englishWordHint.key
+            title = getString(R.string.hw_english_word_hint)
+            summary = getString(R.string.hw_english_word_hint_summary)
+            setDefaultValue(hw.englishWordHint.defaultValue)
+            isChecked = hw.englishWordHint.getValue()
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+        }
+        val englishInsertSpaceSwitch = SwitchPreference(context).apply {
+            key = hw.englishInsertSpace.key
+            title = getString(R.string.hw_english_insert_space)
+            summary = getString(R.string.hw_english_insert_space_summary)
+            setDefaultValue(hw.englishInsertSpace.defaultValue)
+            isChecked = hw.englishInsertSpace.getValue()
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isEnabled = englishWordHintSwitch.isChecked
+        }
+        englishWordHintSwitch.setOnPreferenceChangeListener { _, newValue ->
+            englishInsertSpaceSwitch.isEnabled = newValue as Boolean
+            true
+        }
+        profileScreen.addPreference(englishWordHintSwitch)
+        profileScreen.addPreference(englishInsertSpaceSwitch)
+
         // —— 飞字独立 Tab ——
         // 飞字不依赖任何硬件能力闸门：任意设备都开放。无键盘触摸面的机型只是收不到触摸事件、
         // 功能自然不触发，但设置项始终可用（service 侧 flyTextOn 也不再以此能力做门）。

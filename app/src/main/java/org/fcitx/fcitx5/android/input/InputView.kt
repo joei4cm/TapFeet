@@ -35,6 +35,7 @@ import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
+import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareChord
 import org.fcitx.fcitx5.android.data.prefs.HardwareSpecialKeys
@@ -52,6 +53,7 @@ import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
+import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.HiddenKeyboardWindow
@@ -66,6 +68,7 @@ import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
+import org.fcitx.fcitx5.android.input.vmode.VMode
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.normalizeKeyString
 import org.fcitx.fcitx5.android.utils.unset
@@ -619,6 +622,11 @@ class InputView(
         kawaiiBar.toggleVoiceInput()
     }
 
+    /** 键盘面按住说话：按下开录。 */
+    fun pressVoiceInput() {
+        kawaiiBar.pressVoiceInput()
+    }
+
     /**
      * 动作执行体。开关类动作都是"翻转一个偏好 + 弹一句回执"：偏好一落盘，`AppPrefs` 注册的
      * 全局监听就把变更广播给各消费者（KawaiiBar 可见性 / 特效覆盖层 / 音效闸门…），所以这里
@@ -710,6 +718,14 @@ class InputView(
             ShortcutAction.ToggleIme -> {
                 service.postFcitxJob { toggleIme() }
                 toast(R.string.shortcut_toast_ime_toggled)
+            }
+
+            ShortcutAction.CommitLatin -> service.commitLatinOrDismiss(allowSwitchIme = false)
+
+            ShortcutAction.PasteLastClipboard -> {
+                ClipboardManager.lastEntry?.text?.takeIf { it.isNotEmpty() }?.let {
+                    service.commitText(it)
+                }
             }
 
             // 文本编辑类：全选 / 复制 / 剪切 / 粘贴 / 全删 / 撤销 / 光标四向；
@@ -991,6 +1007,17 @@ class InputView(
 
         val count = horizontalCandidate.visibleCandidateCount()
         if (count <= 0) return false
+
+        val panel = fcitx.runImmediately { inputPanelCached.preedit.toString() }
+        NumberKeyCandidatePick.index(
+            event.keyCode, event.metaState, count, VMode.isActive(panel)
+        )?.let { idx ->
+            val number = idx + 1
+            val sel = horizontalCandidate.selectionIndexForLocalNumber(number) ?: return@let
+            horizontalCandidate.prepareFlyAnimationForLocalNumber(number)
+            service.postFcitxJob { select(sel) }
+            return true
+        }
 
         // Plain candidate1 (no combo modifier): selects the "first-pick" candidate.
         // The visible position of the first-pick depends on the display mode:

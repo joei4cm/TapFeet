@@ -23,12 +23,15 @@ enum class FlyTextAction(override val stringRes: Int) : ManagedPreferenceEnum {
     Backspace(R.string.flytext_action_backspace),
     HideBar(R.string.flytext_action_hide_bar),
     VoiceInput(R.string.flytext_action_voice),
+    PasteClipboard(R.string.flytext_action_paste_clipboard),
     None(R.string.flytext_action_none),
     ;
 
     /** True when this action should keep the keyboard-surface channel armed with no candidates. */
     fun keepsChannelWithoutCandidates(): Boolean = when (this) {
-        CommitLatinOrDismiss, SwitchImeNext, SwitchImePrev, HideBar, Backspace, VoiceInput -> true
+        CommitLatinOrDismiss, SwitchImeNext, SwitchImePrev, HideBar, Backspace, VoiceInput,
+        PasteClipboard,
+        -> true
         else -> false
     }
 }

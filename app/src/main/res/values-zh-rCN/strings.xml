@@ -79,7 +79,7 @@
     <string name="hw_long_press_symbol_threshold">长按输入符号时长</string>
     <string name="hw_long_press_symbol_threshold_summary">输入符号所需的按住时长。</string>
     <string name="hw_keyboard_flytext">键盘飞字</string>
-    <string name="hw_keyboard_flytext_summary">键盘面上滑选中文，下滑上屏拼音/英文，左右滑翻页。每个方向可改动作。</string>
+    <string name="hw_keyboard_flytext_summary">键盘面上滑选中文，下滑上屏拼音/英文（空闲下滑切拼音/英文），左右滑翻页。按住不放说话。每个方向可改动作。</string>
     <string name="flytext_up_action">上滑</string>
     <string name="flytext_down_action">下滑</string>
     <string name="flytext_left_action">左滑</string>
@@ -95,6 +95,7 @@
     <string name="flytext_action_backspace">退格</string>
     <string name="flytext_action_hide_bar">开关空闲栏</string>
     <string name="flytext_action_voice">语音输入</string>
+    <string name="flytext_action_paste_clipboard">粘贴最近剪贴板</string>
     <string name="flytext_action_none">无动作</string>
     <string name="hw_flytext_swap_page">翻页方向互换</string>
     <string name="hw_flytext_swap_page_summary">左滑上一页、右滑下一页（默认相反）。</string>
@@ -130,6 +131,10 @@
     <string name="hw_special_shift_r">右Shift</string>
     <string name="hw_enable_candidate_quick_pick">巨硬模式</string>
     <string name="hw_enable_candidate_quick_pick_summary">物理键选词：%1$s</string>
+    <string name="hw_english_word_hint">英文单词联想</string>
+    <string name="hw_english_word_hint_summary">打英文时按前缀出候选（the / there / then…），用巨硬选字键或数字 1–5 选词。空格或回车上屏已输入的字母。这是补全，不是空格后的下一词预测。</string>
+    <string name="hw_english_insert_space">选词后自动空格</string>
+    <string name="hw_english_insert_space_summary">选中英文联想词后自动加空格，接着打下一个词。</string>
     <!-- 「快捷键」模块：动作 → 物理键 的自定义绑定（动作表见 ShortcutAction） -->
     <string name="shortcut_keys">快捷键</string>
     <string name="shortcut_tab_editing">编辑</string>
@@ -142,10 +147,12 @@
     <string name="shortcut_cycle_sound_mode">循环音效模式</string>
     <string name="shortcut_voice_input">语音输入</string>
     <string name="shortcut_toggle_ime">切换拼音/英文</string>
+    <string name="shortcut_commit_latin">上屏拼音/英文（或收起联想）</string>
     <string name="shortcut_select_all">全选</string>
     <string name="shortcut_copy">复制</string>
     <string name="shortcut_cut">剪切</string>
     <string name="shortcut_paste">粘贴</string>
+    <string name="shortcut_paste_last_clipboard">粘贴最近一条剪贴板</string>
     <string name="shortcut_clear_all">全删</string>
     <string name="shortcut_undo">撤销操作</string>
     <string name="shortcut_cursor_left">左移光标</string>
@@ -192,6 +199,7 @@
     <string name="enable_ime_hint">在“语言和输入法设置”中启用&lt;b>%1$s&lt;/b></string>
     <string name="select_ime">选择输入法</string>
     <string name="select_ime_hint">选择&lt;b>%1$s&lt;/b>作为默认输入法</string>
+    <string name="select_ime_elite_hint">&lt;br/&gt;&lt;br/&gt;Titan2 Elite 出候选时，&lt;b&gt;左 Shift / 左 Alt / 空格&lt;/b&gt;是巨硬选词键（4-2-1-3-5），不是切输入法；&lt;b&gt;Alt+空格&lt;/b&gt;也会被左 Alt 抢走。切拼音/英文请用 &lt;b&gt;Sym+N&lt;/b&gt;，或空闲时在键盘面上单指下滑。数字 1–5 可选当前页候选。</string>
     <string name="next">下一步</string>
     <string name="prev">上一步</string>
     <string name="done">完成</string>

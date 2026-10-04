@@ -571,6 +571,22 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.hw_enable_candidate_quick_pick_summary
         )
 
+        // English prefix completion (spell dictionary). Default ON so QWERTY is not typewriter-direct.
+        val englishWordHint = switch(
+            R.string.hw_english_word_hint,
+            "hw_english_word_hint",
+            true,
+            R.string.hw_english_word_hint_summary
+        )
+
+        // After picking an English completion, insert a space before the next word. Default ON.
+        val englishInsertSpace = switch(
+            R.string.hw_english_insert_space,
+            "hw_english_insert_space",
+            true,
+            R.string.hw_english_insert_space_summary
+        ) { englishWordHint.getValue() }
+
         // Double-tap the latch key to lock the Alt modifier. Default ON.
         val altLatchEnabled = bool("hw_alt_latch_enabled", true)
 

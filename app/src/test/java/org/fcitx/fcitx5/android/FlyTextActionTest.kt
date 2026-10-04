@@ -19,6 +19,7 @@ class FlyTextActionTest {
         assertTrue(FlyTextAction.VoiceInput.keepsChannelWithoutCandidates())
         assertTrue(FlyTextAction.HideBar.keepsChannelWithoutCandidates())
         assertTrue(FlyTextAction.Backspace.keepsChannelWithoutCandidates())
+        assertTrue(FlyTextAction.PasteClipboard.keepsChannelWithoutCandidates())
         assertFalse(FlyTextAction.SelectCandidate.keepsChannelWithoutCandidates())
         assertFalse(FlyTextAction.PageNext.keepsChannelWithoutCandidates())
         assertFalse(FlyTextAction.None.keepsChannelWithoutCandidates())

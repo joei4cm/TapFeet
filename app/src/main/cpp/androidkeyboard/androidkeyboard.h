@@ -31,15 +31,13 @@ FCITX_CONFIGURATION(
         Option<bool>
             enableWordHint{this, "EnableWordHint", _("Enable word hint"), true};
         Option<bool>
-            hintOnPhysicalKeyboard{this, "WordHintOnPhysicalKeyboard", _("Enable word hint when using physical keyboard"), false};
-        Option<bool>
             editorControlledWordHint{this, "EditorControlledWordHint", _("Disable word hint based on editor attributes"), true};
         Option<int, IntConstrain>
             pageSize{this, "PageSize", _("Word hint page size"), 5, IntConstrain(3, 10)};
         OptionWithAnnotation<ChooseModifier, ChooseModifierI18NAnnotation>
             chooseModifier{this, "ChooseModifier", _("Choose key modifier"), ChooseModifier::Alt};
         Option<bool>
-            insertSpace{this, "InsertSpace", _("Insert space between words"), false};
+            insertSpace{this, "InsertSpace", _("Insert space between words"), true};
 )
 
 class AndroidKeyboardEngine;

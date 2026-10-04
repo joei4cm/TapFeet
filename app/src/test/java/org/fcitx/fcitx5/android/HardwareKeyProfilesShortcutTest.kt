@@ -8,8 +8,8 @@ package org.fcitx.fcitx5.android
 import org.fcitx.fcitx5.android.data.prefs.HardwareChord
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
-import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,7 +52,28 @@ class HardwareKeyProfilesShortcutTest {
     }
 
     @Test
-    fun flyTextVoiceKeepsChannelWithoutCandidates() {
-        assertTrue(FlyTextAction.VoiceInput.keepsChannelWithoutCandidates())
+    fun commitLatinDefaultsToSymWOnElite() {
+        val values = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.TITAN2_ELITE)
+        assertEquals(
+            HardwareChord.compose(HardwareChord.SYM, "w"),
+            values[ShortcutAction.CommitLatin]
+        )
+    }
+
+    @Test
+    fun pasteLastClipboardDefaultsToFnIOnElite() {
+        val values = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.TITAN2_ELITE)
+        assertEquals(
+            HardwareChord.compose(HardwareChord.FN, "i"),
+            values[ShortcutAction.PasteLastClipboard]
+        )
+    }
+
+    @Test
+    fun eliteSetupHintOnlyOnEliteProfiles() {
+        assertTrue(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TITAN2_ELITE))
+        assertTrue(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TITAN2_ELITE_MOD))
+        assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.BLACKBERRY))
+        assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TT2))
     }
 }
