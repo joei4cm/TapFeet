@@ -107,8 +107,6 @@
     <string name="hw_flytext_cursor_move_updn_summary">没有候选字时，上下滑移动光标。默认关闭。</string>
     <string name="hw_flytext_shift_select">滑动扩选文字</string>
     <string name="hw_flytext_shift_select_summary">双击锁定 Alt 后滑动，选中文字。</string>
-    <string name="hw_flytext_hold_voice">键盘面按住说话</string>
-    <string name="hw_flytext_hold_voice_summary">手指在键盘面上按住 1 秒开始录音，松手识别。太容易误触，默认关。快捷键 Sym+R 不受影响。</string>
     <string name="hw_flytext_sensitivity">飞字灵敏度</string>
     <string name="hw_flytext_guard_ms">防误触时长</string>
     <string name="hw_key_sound">物理按键音</string>

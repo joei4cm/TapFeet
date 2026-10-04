@@ -6,8 +6,6 @@
 package org.fcitx.fcitx5.android.input.swipe
 
 import android.graphics.Rect
-import android.os.Handler
-import android.os.Looper
 import android.view.MotionEvent
 import kotlin.math.hypot
 import timber.log.Timber
@@ -31,9 +29,6 @@ import timber.log.Timber
  *    is reserved — a contact that begins there never pages or picks a candidate, so a graze near the
  *    physical backspace key cannot mangle the candidate strip. This is the gesture's primary mis-touch
  *    filter; the typing guard and the commit slop below are additional belt-and-braces.
- *  - **Hold-to-talk**: a still finger for [HoldVoiceTracker.HOLD_MS] starts voice; lift stops.
- *    Travel past the base slop before that cancels the pending hold. Once recording, MOVE is
- *    ignored so a wobble cannot become a swipe.
  *  - **Cursor-move** (only when there are no candidates, [cursorModeProvider]): the four-way swipe
  *    drives the text caret — [onCursor] with the dominant [SwipeDirection]. Uses the longest commit
  *    slop ([SWIPE_CURSOR_SLOP_DP]) so a graze can't shove the caret; the corner reservation still
@@ -119,15 +114,6 @@ class KeyboardFlyTextSelector(
      * false for left (previous IME).
      */
     private val onTwoFingerHorizontal: (forward: Boolean) -> Unit = {},
-    /**
-     * Still-finger hold-to-talk on the keyboard surface. Off: DOWN never schedules the hold.
-     * Start fires after [HoldVoiceTracker.HOLD_MS] without travel past the base slop; stop fires
-     * on UP/CANCEL (or reset) if recording had started. A swipe past slop cancels a pending hold
-     * but does not interrupt an already-started PTT session (wobble must not become a swipe).
-     */
-    private val holdVoiceEnabled: () -> Boolean = { false },
-    private val onHoldVoiceStart: () -> Unit = {},
-    private val onHoldVoiceStop: () -> Unit = {},
 ) {
     private var downX = 0f
     private var downY = 0f
@@ -165,13 +151,6 @@ class KeyboardFlyTextSelector(
      */
     private var twoFingerArmed = false
     private var lastEventTime = 0L
-    private val holdVoice = HoldVoiceTracker()
-    private val holdHandler = Handler(Looper.getMainLooper())
-    private val holdRunnable = Runnable {
-        if (holdVoice.elapsed() == HoldVoiceTracker.Command.Start) {
-            onHoldVoiceStart()
-        }
-    }
 
     /**
      * True while a finger is down on the keyboard surface (between DOWN and UP/CANCEL).
@@ -229,7 +208,6 @@ class KeyboardFlyTextSelector(
                 // Some surfaces deliver the second finger as part of the same DOWN. Treat it as
                 // two-finger immediately so a two-thumb rest cannot page/select as one finger.
                 if (twoFingerEnabled() && event.pointerCount >= 2) armTwoFinger(event)
-                else scheduleHoldVoice()
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (typingGuard()) {
@@ -250,8 +228,6 @@ class KeyboardFlyTextSelector(
                     reset()
                     return
                 }
-                // PTT lock: once hold-to-talk started, wobble must not become a swipe.
-                if (holdVoice.started) return
                 // Late two-finger: some drivers skip POINTER_DOWN and only raise pointerCount on
                 // MOVE. Arm before one-finger classification so a second thumb cannot page/select.
                 if (!twoFingerArmed && twoFingerEnabled() && event.pointerCount >= 2 && !cursorDragging) {
@@ -302,7 +278,6 @@ class KeyboardFlyTextSelector(
                     pendingDir = null
                     return
                 }
-                cancelPendingHoldVoice()
                 // Lock the direction as soon as the travel is clearly one axis (below the higher
                 // commit slop). From here the direction is fixed; a wobble cannot reclassify it.
                 if (pendingDir == null) pendingDir = swipeAxis(dx, dy, d)
@@ -391,9 +366,6 @@ class KeyboardFlyTextSelector(
 
     /** Clear in-flight gesture state. Safe to call any time (e.g. on input finish). */
     fun reset() {
-        holdHandler.removeCallbacks(holdRunnable)
-        if (holdVoice.started) onHoldVoiceStop()
-        holdVoice.reset()
         downX = 0f
         downY = 0f
         downTime = 0L
@@ -406,25 +378,11 @@ class KeyboardFlyTextSelector(
         cursorOriginY = 0f
     }
 
-    private fun scheduleHoldVoice() {
-        if (!holdVoiceEnabled() || twoFingerArmed || cornerDeleteArmed) return
-        holdVoice.down()
-        holdHandler.postDelayed(holdRunnable, HoldVoiceTracker.HOLD_MS)
-    }
-
-    private fun cancelPendingHoldVoice() {
-        holdHandler.removeCallbacks(holdRunnable)
-        if (holdVoice.cancel() == HoldVoiceTracker.Command.Stop) {
-            onHoldVoiceStop()
-        }
-    }
-
     /**
      * Switch this in-flight gesture to two-finger IME-switch. Re-origins at the current centroid
      * so the first finger's travel does not count as a leftover one-finger page/select.
      */
     private fun armTwoFinger(event: MotionEvent) {
-        cancelPendingHoldVoice()
         twoFingerArmed = true
         cornerDeleteArmed = false
         pendingDir = null
