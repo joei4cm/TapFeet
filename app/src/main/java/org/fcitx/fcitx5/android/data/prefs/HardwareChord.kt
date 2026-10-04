@@ -24,8 +24,8 @@ import android.view.KeyEvent
  * ⚠️ 两端约定：
  * - 状态由 [org.fcitx.fcitx5.android.input.FcitxInputMethodService] 的按下/抬起喂进来
  *   （[onKeyDown] / [onKeyUp]），会话结束必须 [reset]；
- * - 读取方是**两份**按键解析拷贝（[org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver]
- *   与 `InputView`），项目铁律：改匹配两处同改。
+ * - 读取方只有 [org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver]
+ *   （InputView / CandidatesView 都委托它解析匹配），不要再抄第二份。
  *
  * ⚠️ 本对象只存**运行期状态**，不落盘。状态僵死比不生效危险得多 —— 一个卡住的「Fn 按住」会把
  * 每次按字母都判成和弦（按 E 就切特效）。所以：抬起即清、会话收尾即清，绝不引入「只能靠超时才

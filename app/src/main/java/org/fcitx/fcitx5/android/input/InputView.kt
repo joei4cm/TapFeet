@@ -27,23 +27,15 @@ import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxEvent
-import org.fcitx.fcitx5.android.core.FcitxKeyMapping
-import org.fcitx.fcitx5.android.core.Key
-import org.fcitx.fcitx5.android.core.KeyState
-import org.fcitx.fcitx5.android.core.KeyStates
-import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
-import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareChord
-import org.fcitx.fcitx5.android.data.prefs.HardwareSpecialKeys
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
-import org.fcitx.fcitx5.android.input.bar.ui.CandidateUi
 import org.fcitx.fcitx5.android.input.candidates.horizontal.CandidateArrangementMode
 import org.fcitx.fcitx5.android.input.keyboard.KeyAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyActionListener
@@ -70,7 +62,6 @@ import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
 import org.fcitx.fcitx5.android.input.vmode.VMode
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
-import org.fcitx.fcitx5.android.utils.normalizeKeyString
 import org.fcitx.fcitx5.android.utils.unset
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
@@ -225,26 +216,9 @@ class InputView(
         }
     }
 
-    // ---- Hardware shortcut key resolution -------------------------------------
-    // Parsing / matching now lives in [HardwareShortcutResolver]; the two helpers below are thin
-    // adapters so the rest of InputView keeps calling by the same names.
-
-    private fun parseKeyString(keyString: String): HardwareShortcutResolver.ParsedKey? =
-        HardwareShortcutResolver.parseKeyString(keyString)
-
-    private fun matchesParsedKey(
-        event: KeyEvent,
-        parsed: HardwareShortcutResolver.ParsedKey?
-    ): Boolean = HardwareShortcutResolver.matchesParsedKey(event, parsed)
-
+    // Hardware shortcut parse/match lives in [HardwareShortcutResolver] — do not copy it here.
 
     private val hardwareKeyboardPrefs = AppPrefs.getInstance().hardwareKeyboard
-
-    // Hold the ManagedPreference<String> directly (no `by` delegate) so we can call
-    // .getValue() to branch on the active candidate display mode (巨硬 vs 普通) when picking
-    // a candidate via candidate1Key (Space). With `by`, the property would be the unwrapped
-    // String and the method would not resolve — see the same fix in HorizontalCandidateComponent.
-    private val candidateArrangementModePref = AppPrefs.getInstance().candidateBar.arrangementMode
 
     val keyboardView: View
 
@@ -478,10 +452,6 @@ class InputView(
         kawaiiBar.onSystemAltStickyChanged(sticky)
     }
 
-    /** Match by KeySym only (any modifiers) — used to detect a physical key regardless of modifiers. */
-    private fun isSameKeySymString(event: KeyEvent, keyString: String): Boolean =
-        HardwareShortcutResolver.isSameKeySymString(event, keyString)
-
     private fun selectCandidateAtVisiblePosition(position: Int): Boolean {
         val count = horizontalCandidate.visibleCandidateCount()
         if (count <= 0 || position !in 0 until count) return false
@@ -576,9 +546,6 @@ class InputView(
         return true
     }
 
-    private fun resolveShortcutPosition(event: KeyEvent, count: Int): Int? =
-        HardwareShortcutResolver.resolveShortcutPosition(event, count)
-
     /**
      * Side-effect-free check: does [event] match any configured hardware shortcut key
      * (candidate / symbol / paging / global action / action shortcut)?
@@ -617,14 +584,9 @@ class InputView(
         kawaiiBar.releaseVoiceInput()
     }
 
-    /** 飞字等非按住手势：点一下开始 / 再点结束。 */
+    /** 飞字等非按住手势：点一下开始 / 再点结束。物理快捷键是按住说话，不走这里。 */
     fun toggleVoiceInput() {
         kawaiiBar.toggleVoiceInput()
-    }
-
-    /** 键盘面按住说话：按下开录。 */
-    fun pressVoiceInput() {
-        kawaiiBar.pressVoiceInput()
     }
 
     /**
@@ -723,9 +685,7 @@ class InputView(
             ShortcutAction.CommitLatin -> service.commitLatinOrDismiss(allowSwitchIme = false)
 
             ShortcutAction.PasteLastClipboard -> {
-                ClipboardManager.lastEntry?.text?.takeIf { it.isNotEmpty() }?.let {
-                    service.commitText(it)
-                }
+                service.pasteLastClipboard()
             }
 
             // 文本编辑类：全选 / 复制 / 剪切 / 粘贴 / 全删 / 撤销 / 光标四向；
@@ -988,16 +948,15 @@ class InputView(
         // 避免污染引擎分页模式。
         if (physicalKeyboardMode) return false
 
-        val hw = hardwareKeyboardPrefs
-        val c1 = hw.candidate1Key.getValue()
-        val c1Parsed = parseKeyString(c1)
-        val candidate1HasModifier = (c1Parsed as? HardwareShortcutResolver.ParsedKey.Ref)?.key?.states != 0
-
-        // candidate1 组合键（配置带 modifier）：精确匹配后直接选居中候选（优先于符号切换）
-        if (candidate1HasModifier && matchesParsedKey(event, c1Parsed)) {
+        // candidate1 组合键（配置带 modifier）：精确匹配后直接选首选字（优先于符号切换）
+        if (HardwareShortcutResolver.matchesCandidate1WithModifier(event)) {
             if (kawaiiBar.isCandidateUiShowing()) {
                 val count = horizontalCandidate.visibleCandidateCount()
-                if (count > 0) return selectCandidateAtVisiblePosition((count - 1) / 2)
+                if (count > 0) {
+                    return selectCandidateAtVisiblePosition(
+                        HardwareShortcutResolver.firstPickPosition(count)
+                    )
+                }
             }
         }
 
@@ -1019,24 +978,16 @@ class InputView(
             return true
         }
 
-        // Plain candidate1 (no combo modifier): selects the "first-pick" candidate.
-        // The visible position of the first-pick depends on the display mode:
-        //  - Macrohard: candidates are laid out centered/outward, so the first-pick sits at the
-        //    middle visible position — i.e. (count - 1) / 2.
-        //  - Linear: candidates are laid out left-to-right, so the first-pick sits at position 0.
-        // Reading the preference on every press is fine — it is a single SharedPreferences get
-        // and keeps the picker stateless against mode changes that happen in the settings screen.
-        if (!candidate1HasModifier && isSameKeySymString(event, c1)) {
-            val firstPickPosition = when (
-                candidateArrangementModePref.getValue()
-            ) {
-                CandidateArrangementMode.Macrohard -> (count - 1) / 2
-                CandidateArrangementMode.Linear -> 0
-            }
-            return selectCandidateAtVisiblePosition(firstPickPosition)
+        // Plain candidate1 (no combo modifier): selects the first-pick candidate.
+        // Position comes from [HardwareShortcutResolver.firstPickPosition] so 巨硬 / 线性
+        // 与组合键路径共用同一套，避免两处各算一次漂移。
+        if (HardwareShortcutResolver.matchesCandidate1Plain(event)) {
+            return selectCandidateAtVisiblePosition(
+                HardwareShortcutResolver.firstPickPosition(count)
+            )
         }
 
-        val position = resolveShortcutPosition(event, count) ?: return false
+        val position = HardwareShortcutResolver.resolveShortcutPosition(event, count) ?: return false
         return selectCandidateAtVisiblePosition(position)
     }
 
@@ -1044,13 +995,11 @@ class InputView(
     // 配置为空串表示未绑定。这两个动作原先硬绑在 candidate1Key 的 Alt/Shift 组合上，现独立出来。
     private fun handleHardwareGlobalAction(event: KeyEvent): Boolean {
         val hw = hardwareKeyboardPrefs
-        val toggleKey = hw.toggleImeKey.getValue()
-        val pickerKeyStr = hw.pickerKey.getValue()
-        if (toggleKey.isNotEmpty() && matchesParsedKey(event, parseKeyString(toggleKey))) {
+        if (HardwareShortcutResolver.matchesBoundKey(event, hw.toggleImeKey.getValue())) {
             service.postFcitxJob { toggleIme() }
             return true
         }
-        if (pickerKeyStr.isNotEmpty() && matchesParsedKey(event, parseKeyString(pickerKeyStr))) {
+        if (HardwareShortcutResolver.matchesBoundKey(event, hw.pickerKey.getValue())) {
             commonKeyActionListener.listener.onKeyAction(
                 KeyAction.ShowInputMethodPickerAction,
                 KeyActionListener.Source.Keyboard,
@@ -1061,10 +1010,7 @@ class InputView(
     }
 
     private fun handleHardwareSymToggle(event: KeyEvent): Boolean {
-        val hw = hardwareKeyboardPrefs
-        val symKeyCombined = hw.symbolPickerKey.getValue()
-        val isSymToggleKey = matchesParsedKey(event, parseKeyString(symKeyCombined))
-        if (!isSymToggleKey) return false
+        if (!matchesSymbolKey(event)) return false
 
         // Candidate total can be stale from previous sessions. Use visible UI state instead.
         val noActiveInput = preeditEmptyState.isEmpty &&
@@ -1276,7 +1222,7 @@ class InputView(
 
     /** 这个事件是不是配置的「符号窗口」键（[AppPrefs.HardwareKeyboard.symbolPickerKey]）。 */
     private fun matchesSymbolKey(event: KeyEvent): Boolean =
-        matchesParsedKey(event, parseKeyString(hardwareKeyboardPrefs.symbolPickerKey.getValue()))
+        HardwareShortcutResolver.matchesBoundKey(event, hardwareKeyboardPrefs.symbolPickerKey.getValue())
 
     /**
      * 符号键「轻按」的动作体：有序面板循环（关闭 → 排序1 → … → 关闭）。
@@ -1320,25 +1266,8 @@ class InputView(
     fun handleHardwarePickerSelection(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         val picker = currentPickerWindow() ?: return false
-        val hw = hardwareKeyboardPrefs
-        val symKey = hw.symbolPickerKey.getValue()
-        if (matchesParsedKey(event, parseKeyString(symKey))) return false
-        // 翻页：复用候选分页快捷键（pageNextKey / pagePrevKey）。
-        // 组合键（带 modifier）优先于同物理键的纯键绑定，
-        // 例如 "Alt+grave"(上一页) 不被纯 "grave"(下一页) 抢走。
-        val nextParsed = parseKeyString(hw.pageNextKey.getValue())
-        val prevParsed = parseKeyString(hw.pagePrevKey.getValue())
-        val nextMatches = matchesParsedKey(event, nextParsed)
-        val prevMatches = matchesParsedKey(event, prevParsed)
-        if (nextMatches || prevMatches) {
-            val prevHasModifier = (prevParsed as? HardwareShortcutResolver.ParsedKey.Ref)?.key?.states != 0
-            val nextHasModifier = (nextParsed as? HardwareShortcutResolver.ParsedKey.Ref)?.key?.states != 0
-            val direction = when {
-                prevMatches && prevHasModifier -> -1
-                nextMatches && nextHasModifier -> 1
-                prevMatches -> -1
-                else -> 1
-            }
+        if (matchesSymbolKey(event)) return false
+        HardwareShortcutResolver.resolvePaging(event)?.let { direction ->
             picker.page(direction)
             return true
         }
@@ -1360,25 +1289,8 @@ class InputView(
             else -> null
         }
 
-    // 物理键 → 候选位置的映射已重构为数据驱动表，见上方 preciseShortcuts() / wideShortcuts() / resolveShortcutPosition()。
-
     private fun handleHardwareCandidatePaging(event: KeyEvent): Boolean {
-        val hw = hardwareKeyboardPrefs
-        val nextParsed = parseKeyString(hw.pageNextKey.getValue())
-        val prevParsed = parseKeyString(hw.pagePrevKey.getValue())
-        val nextMatches = matchesParsedKey(event, nextParsed)
-        val prevMatches = matchesParsedKey(event, prevParsed)
-        if (!nextMatches && !prevMatches) return false
-        // A combo (modifier) binding takes precedence over a plain binding on the same physical key,
-        // so e.g. "Alt+grave" (prev) is not stolen by a plain "grave" (next) binding.
-        val prevHasModifier = (prevParsed as? HardwareShortcutResolver.ParsedKey.Ref)?.key?.states != 0
-        val nextHasModifier = (nextParsed as? HardwareShortcutResolver.ParsedKey.Ref)?.key?.states != 0
-        val direction = when {
-            prevMatches && prevHasModifier -> -1
-            nextMatches && nextHasModifier -> 1
-            prevMatches -> -1
-            else -> 1
-        }
+        val direction = HardwareShortcutResolver.resolvePaging(event) ?: return false
         horizontalCandidate.page(direction)
         return true
     }

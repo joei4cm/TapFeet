@@ -691,7 +691,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private fun flyTextHandleDown(): Boolean = commitLatinOrDismiss(allowSwitchIme = true)
 
-    private fun pasteLastClipboard(): Boolean {
+    internal fun pasteLastClipboard(): Boolean {
         val text = ClipboardManager.lastEntry?.text ?: return false
         if (text.isEmpty()) return false
         playHardwareSound(InputFeedbacks.SoundEffect.Standard)

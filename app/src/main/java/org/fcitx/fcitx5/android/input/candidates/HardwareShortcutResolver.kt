@@ -196,18 +196,50 @@ object HardwareShortcutResolver {
 
     private fun candidate1Parsed(): ParsedKey? = parseKeyString(hardwareKeyboardPrefs.candidate1Key.getValue())
 
-    fun candidate1HasModifier(): Boolean = (candidate1Parsed() as? ParsedKey.Ref)?.key?.states != 0
+    private fun hasModifier(parsed: ParsedKey?): Boolean =
+        (parsed as? ParsedKey.Ref)?.key?.states != 0
 
-    /** candidate1 bound to a combo (e.g. "Alt+space") pressed → caller should select the centre/first-pick. */
+    /**
+     * Match a stored binding string against [event]. Empty string = unbound (never matches).
+     * InputView / CandidatesView must not re-parse key strings themselves.
+     */
+    fun matchesBoundKey(event: KeyEvent, keyString: String): Boolean {
+        if (keyString.isEmpty()) return false
+        return matchesParsedKey(event, parseKeyString(keyString))
+    }
+
+    private fun candidate1HasModifier(): Boolean = hasModifier(candidate1Parsed())
+
+    /** candidate1 bound to a combo (e.g. "Alt+space") pressed → caller should select the first-pick. */
     fun matchesCandidate1WithModifier(event: KeyEvent): Boolean {
         val parsed = candidate1Parsed() ?: return false
-        return (parsed as? ParsedKey.Ref)?.key?.states != 0 && matchesParsedKey(event, parsed)
+        return hasModifier(parsed) && matchesParsedKey(event, parsed)
     }
 
     /** Plain candidate1 (no modifier) pressed → caller should select the first-pick candidate. */
     fun matchesCandidate1Plain(event: KeyEvent): Boolean {
         if (candidate1HasModifier()) return false
         return isSameKeySymString(event, hardwareKeyboardPrefs.candidate1Key.getValue())
+    }
+
+    /**
+     * Combo (modifier) paging binding beats a plain binding on the same physical key,
+     * so e.g. "Alt+grave" (prev) is not stolen by a plain "grave" (next).
+     * Returns -1 (previous), 1 (next), or null when neither key matched.
+     */
+    fun pagingDirection(
+        nextMatches: Boolean,
+        prevMatches: Boolean,
+        nextHasModifier: Boolean,
+        prevHasModifier: Boolean,
+    ): Int? {
+        if (!nextMatches && !prevMatches) return null
+        return when {
+            prevMatches && prevHasModifier -> -1
+            nextMatches && nextHasModifier -> 1
+            prevMatches -> -1
+            else -> 1
+        }
     }
 
     /**
@@ -218,23 +250,19 @@ object HardwareShortcutResolver {
         val hw = hardwareKeyboardPrefs
         val nextParsed = parseKeyString(hw.pageNextKey.getValue())
         val prevParsed = parseKeyString(hw.pagePrevKey.getValue())
-        val nextMatches = matchesParsedKey(event, nextParsed)
-        val prevMatches = matchesParsedKey(event, prevParsed)
-        if (!nextMatches && !prevMatches) return null
-        // A combo (modifier) binding takes precedence over a plain binding on the same physical key,
-        // so e.g. "Alt+grave" (prev) is not stolen by a plain "grave" (next) binding.
-        val prevHasModifier = (prevParsed as? ParsedKey.Ref)?.key?.states != 0
-        val nextHasModifier = (nextParsed as? ParsedKey.Ref)?.key?.states != 0
-        return when {
-            prevMatches && prevHasModifier -> -1
-            nextMatches && nextHasModifier -> 1
-            prevMatches -> -1
-            else -> 1
-        }
+        return pagingDirection(
+            nextMatches = matchesParsedKey(event, nextParsed),
+            prevMatches = matchesParsedKey(event, prevParsed),
+            nextHasModifier = hasModifier(nextParsed),
+            prevHasModifier = hasModifier(prevParsed),
+        )
     }
 
     /** Visible position of the "first-pick" candidate given the current candidate count. */
-    fun firstPickPosition(count: Int): Int = when (arrangementModePref.getValue()) {
+    fun firstPickPosition(count: Int): Int =
+        firstPickPosition(count, arrangementModePref.getValue())
+
+    fun firstPickPosition(count: Int, arrangement: CandidateArrangementMode): Int = when (arrangement) {
         CandidateArrangementMode.Macrohard -> (count - 1) / 2
         CandidateArrangementMode.Linear -> 0
     }
