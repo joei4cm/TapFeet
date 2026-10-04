@@ -54,6 +54,7 @@ AndroidKeyboardEngine::AndroidKeyboardEngine(Instance *instance)
         config_.enableWordHint.setValue(enabled);
         wordHintAction_.setChecked(enabled);
         wordHintAction_.update(ic);
+        save();
     });
     instance_->userInterfaceManager().registerAction("androidkeyboard-word-hint", &wordHintAction_);
 }
@@ -207,6 +208,7 @@ void AndroidKeyboardEngine::setConfig(const RawConfig &config) {
     config_.load(config, true);
     safeSaveAsIni(config_, ConfPath);
     reloadConfig();
+    wordHintAction_.setChecked(*config_.enableWordHint);
 }
 
 void AndroidKeyboardEngine::activate(const InputMethodEntry &entry, InputContextEvent &event) {
@@ -299,7 +301,6 @@ bool AndroidKeyboardEngine::updateBuffer(InputContext *inputContext, const KeyEv
     auto *state = inputContext->propertyFor(&factory_);
     // word hint is disabled, input is password, or language not supported
     if (!*config_.enableWordHint ||
-        (!*config_.hintOnPhysicalKeyboard && !event.isVirtual()) ||
         (*config_.editorControlledWordHint && inputContext->capabilityFlags().test(CapabilityFlag::NoSpellCheck)) ||
         inputContext->capabilityFlags().test(CapabilityFlag::Password) ||
         !supportHint(entry->languageCode())) {

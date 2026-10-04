@@ -17,7 +17,9 @@ import org.fcitx.fcitx5.android.FcitxApplication
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeyboardPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.utils.ImmutableGraph
 import org.fcitx.fcitx5.android.utils.Locales
 import org.fcitx.fcitx5.android.utils.appContext
@@ -31,6 +33,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
     private val lifecycleRegistry = FcitxLifecycleRegistry()
+
+    @Keep
+    private val onAndroidKeyboardPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+        lifecycle.launchWhenReady { this@Fcitx.syncAndroidKeyboardPrefs() }
+    }
 
     override val eventFlow = eventFlow_.asSharedFlow()
 
@@ -199,6 +206,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     init {
         if (lifecycle.currentState != FcitxLifecycle.State.STOPPED)
             throw IllegalAccessException("Fcitx5 has already been created!")
+        val hw = AppPrefs.getInstance().hardwareKeyboard
+        hw.englishWordHint.registerOnChangeListener(onAndroidKeyboardPrefChange)
+        hw.englishInsertSpace.registerOnChangeListener(onAndroidKeyboardPrefChange)
     }
 
 
@@ -460,6 +470,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
                 lifecycle.launchWhenReady {
                     SubtypeManager.syncWith(enabledIme())
                 }
+            }
+            lifecycle.launchWhenReady {
+                this@Fcitx.syncAndroidKeyboardPrefs()
             }
         }
 

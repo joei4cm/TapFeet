@@ -135,6 +135,10 @@
     <string name="hw_candidate_display_mode_linear">Linear</string>
     <string name="hw_enable_candidate_quick_pick">Bottom-row quick-pick</string>
     <string name="hw_enable_candidate_quick_pick_summary">Physical keys pick candidates: %1$s</string>
+    <string name="hw_english_word_hint">English word completion</string>
+    <string name="hw_english_word_hint_summary">While typing English, show prefix completions (the, there, then…). Pick with the candidate keys or 1–5. Space or Enter commits what you typed. This is completion, not next-word prediction after a space.</string>
+    <string name="hw_english_insert_space">Insert space after English word</string>
+    <string name="hw_english_insert_space_summary">After picking a completion, insert a space so the next word starts immediately.</string>
     <!-- Shortcut module: bind a physical key to an action (see ShortcutAction) -->
     <string name="shortcut_keys">Shortcut keys</string>
     <string name="shortcut_tab_editing">Editing</string>
