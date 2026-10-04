@@ -17,13 +17,46 @@ import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
 import org.fcitx.fcitx5.android.utils.normalizeKeyString
 
 /**
+ * Prefs-free paging / first-pick arithmetic. [HardwareShortcutResolver] binds these to the
+ * user's key strings; InputView and CandidatesView must not reimplement them.
+ */
+object HardwareShortcutLogic {
+
+    /**
+     * Combo (modifier) paging binding beats a plain binding on the same physical key,
+     * so e.g. "Alt+grave" (prev) is not stolen by a plain "grave" (next).
+     * Returns -1 (previous), 1 (next), or null when neither key matched.
+     */
+    fun pagingDirection(
+        nextMatches: Boolean,
+        prevMatches: Boolean,
+        nextHasModifier: Boolean,
+        prevHasModifier: Boolean,
+    ): Int? {
+        if (!nextMatches && !prevMatches) return null
+        return when {
+            prevMatches && prevHasModifier -> -1
+            nextMatches && nextHasModifier -> 1
+            prevMatches -> -1
+            else -> 1
+        }
+    }
+
+    fun firstPickPosition(count: Int, arrangement: CandidateArrangementMode): Int = when (arrangement) {
+        CandidateArrangementMode.Macrohard -> (count - 1) / 2
+        CandidateArrangementMode.Linear -> 0
+    }
+}
+
+/**
  * View-independent resolution of physical-keyboard candidate shortcuts.
  *
  * The virtual keyboard's horizontal candidate bar ([org.fcitx.fcitx5.android.input.InputView])
  * and the physical-keyboard floating candidate window
  * ([org.fcitx.fcitx5.android.input.CandidatesView]) both need to map a pressed physical key to a
  * candidate position, and both share the key-string parsing, paging and memoization caches here
- * so the two views don't each duplicate ~150 lines of shortcut logic.
+ * so the two views don't each duplicate shortcut logic. Paging direction and first-pick index
+ * live in [HardwareShortcutLogic] so they stay unit-testable without [AppPrefs].
  *
  * The two surfaces differ in how a position is resolved:
  * - The horizontal bar is arrangement-aware: it uses a BlackBerry slot table and a centre
@@ -196,12 +229,24 @@ object HardwareShortcutResolver {
 
     private fun candidate1Parsed(): ParsedKey? = parseKeyString(hardwareKeyboardPrefs.candidate1Key.getValue())
 
-    fun candidate1HasModifier(): Boolean = (candidate1Parsed() as? ParsedKey.Ref)?.key?.states != 0
+    private fun hasModifier(parsed: ParsedKey?): Boolean =
+        (parsed as? ParsedKey.Ref)?.key?.states != 0
 
-    /** candidate1 bound to a combo (e.g. "Alt+space") pressed → caller should select the centre/first-pick. */
+    /**
+     * Match a stored binding string against [event]. Empty string = unbound (never matches).
+     * InputView / CandidatesView must not re-parse key strings themselves.
+     */
+    fun matchesBoundKey(event: KeyEvent, keyString: String): Boolean {
+        if (keyString.isEmpty()) return false
+        return matchesParsedKey(event, parseKeyString(keyString))
+    }
+
+    private fun candidate1HasModifier(): Boolean = hasModifier(candidate1Parsed())
+
+    /** candidate1 bound to a combo (e.g. "Alt+space") pressed → caller should select the first-pick. */
     fun matchesCandidate1WithModifier(event: KeyEvent): Boolean {
         val parsed = candidate1Parsed() ?: return false
-        return (parsed as? ParsedKey.Ref)?.key?.states != 0 && matchesParsedKey(event, parsed)
+        return hasModifier(parsed) && matchesParsedKey(event, parsed)
     }
 
     /** Plain candidate1 (no modifier) pressed → caller should select the first-pick candidate. */
@@ -218,26 +263,17 @@ object HardwareShortcutResolver {
         val hw = hardwareKeyboardPrefs
         val nextParsed = parseKeyString(hw.pageNextKey.getValue())
         val prevParsed = parseKeyString(hw.pagePrevKey.getValue())
-        val nextMatches = matchesParsedKey(event, nextParsed)
-        val prevMatches = matchesParsedKey(event, prevParsed)
-        if (!nextMatches && !prevMatches) return null
-        // A combo (modifier) binding takes precedence over a plain binding on the same physical key,
-        // so e.g. "Alt+grave" (prev) is not stolen by a plain "grave" (next) binding.
-        val prevHasModifier = (prevParsed as? ParsedKey.Ref)?.key?.states != 0
-        val nextHasModifier = (nextParsed as? ParsedKey.Ref)?.key?.states != 0
-        return when {
-            prevMatches && prevHasModifier -> -1
-            nextMatches && nextHasModifier -> 1
-            prevMatches -> -1
-            else -> 1
-        }
+        return HardwareShortcutLogic.pagingDirection(
+            nextMatches = matchesParsedKey(event, nextParsed),
+            prevMatches = matchesParsedKey(event, prevParsed),
+            nextHasModifier = hasModifier(nextParsed),
+            prevHasModifier = hasModifier(prevParsed),
+        )
     }
 
     /** Visible position of the "first-pick" candidate given the current candidate count. */
-    fun firstPickPosition(count: Int): Int = when (arrangementModePref.getValue()) {
-        CandidateArrangementMode.Macrohard -> (count - 1) / 2
-        CandidateArrangementMode.Linear -> 0
-    }
+    fun firstPickPosition(count: Int): Int =
+        HardwareShortcutLogic.firstPickPosition(count, arrangementModePref.getValue())
 
     // 1~5 候选的精细映射：物理键 → 可见位置。映射取决于候选栏排列模式（巨硬居中展开 / 普通线性），
     // 必须与 CandidateArrangementMode 保持一致，否则物理键会选到错误的候选。
@@ -250,7 +286,7 @@ object HardwareShortcutResolver {
         val rules = when (arrangement) {
             CandidateArrangementMode.Macrohard -> {
                 // 巨硬：以"居中候选"为基准，左右物理键按相对偏移定位（候选数 2/3/4 时两侧键也能选到对应候选）
-                val center = (count - 1) / 2
+                val center = HardwareShortcutLogic.firstPickPosition(count, CandidateArrangementMode.Macrohard)
                 mutableListOf<ShortcutRule>().apply {
                     (center - 1).takeIf { it in 0 until count }
                         ?.let { add(ShortcutRule(parseKeyString(hw.candidate2Key.getValue()), it)) }

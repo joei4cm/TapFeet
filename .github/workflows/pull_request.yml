@@ -34,10 +34,10 @@ jobs:
 
       - name: Setup Android environment
         uses: android-actions/setup-android@v3
-
-      - name: Install Android NDK
-        run: |
-          sdkmanager --install "cmake;3.31.6"
+        with:
+          # Default packages include obsolete "tools", which Google no longer publishes
+          # (sdkmanager: Failed to find package 'tools'). Match production-apk.yml.
+          packages: platform-tools cmake;3.31.6
 
       - name: Install system dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
