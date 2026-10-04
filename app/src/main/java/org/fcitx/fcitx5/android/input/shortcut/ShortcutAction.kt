@@ -95,6 +95,12 @@ enum class ShortcutAction(
      */
     ToggleIme("shortcut_toggle_ime_key", R.string.shortcut_toggle_ime),
 
+    /**
+     * 把输入面板上的拼音码 / 英文原样上屏，或在只有联想、没有正在输入时收起候选。
+     * 空闲（没拼音也没候选）不切输入法——那是飞字下滑和 [ToggleIme] 的事。
+     */
+    CommitLatin("shortcut_commit_latin_key", R.string.shortcut_commit_latin),
+
     // —— 文本编辑类（chord=FN；作用在焦点编辑器上，经 InputConnection；
     // 编辑器自身给出可见反馈，不弹 Toast）——
     // 字母取自用户敲定的那套 `Fn+字母` 键位表（A/C/X/V/Q/Z + 光标簇 S/F/E/D + 选字簇 U/J/H/K），
@@ -111,6 +117,9 @@ enum class ShortcutAction(
 
     /** 粘贴剪贴板内容。 */
     Paste("shortcut_paste_key", R.string.shortcut_paste, ShortcutChord.FN),
+
+    /** 粘贴输入法剪贴板历史里最近一条（[org.fcitx.fcitx5.android.data.clipboard.ClipboardManager.lastEntry]）。 */
+    PasteLastClipboard("shortcut_paste_last_clipboard_key", R.string.shortcut_paste_last_clipboard, ShortcutChord.FN),
 
     /** 全删：全选后整段删掉。 */
     ClearAll("shortcut_clear_all_key", R.string.shortcut_clear_all, ShortcutChord.FN),

@@ -79,7 +79,7 @@
     <string name="hw_long_press_symbol_threshold">Long-press symbol duration</string>
     <string name="hw_long_press_symbol_threshold_summary">Hold time before the keycap symbol is input.</string>
     <string name="hw_keyboard_flytext">Keyboard fly-text</string>
-    <string name="hw_keyboard_flytext_summary">Swipe up to pick Chinese, down to commit pinyin/English, left/right to page. Each direction is configurable.</string>
+    <string name="hw_keyboard_flytext_summary">Swipe up to pick Chinese, down to commit pinyin/English (idle down-swipe switches IME), left/right to page. Hold still to talk. Each direction is configurable.</string>
     <string name="flytext_up_action">Up swipe</string>
     <string name="flytext_down_action">Down swipe</string>
     <string name="flytext_left_action">Left swipe</string>
@@ -95,6 +95,7 @@
     <string name="flytext_action_backspace">Backspace</string>
     <string name="flytext_action_hide_bar">Toggle idle bar</string>
     <string name="flytext_action_voice">Voice input</string>
+    <string name="flytext_action_paste_clipboard">Paste latest clipboard</string>
     <string name="flytext_action_none">Do nothing</string>
     <string name="hw_flytext_swap_page">Swap page swipe direction</string>
     <string name="hw_flytext_swap_page_summary">Swipe left = previous, right = next (default is reversed).</string>
@@ -146,10 +147,12 @@
     <string name="shortcut_cycle_sound_mode">Cycle key sound mode</string>
     <string name="shortcut_voice_input">Voice input</string>
     <string name="shortcut_toggle_ime">Switch pinyin / English</string>
+    <string name="shortcut_commit_latin">Commit pinyin/English (or dismiss prediction)</string>
     <string name="shortcut_select_all">Select all</string>
     <string name="shortcut_copy">Copy</string>
     <string name="shortcut_cut">Cut</string>
     <string name="shortcut_paste">Paste</string>
+    <string name="shortcut_paste_last_clipboard">Paste latest clipboard entry</string>
     <string name="shortcut_clear_all">Delete all text</string>
     <string name="shortcut_undo">Undo</string>
     <string name="shortcut_cursor_left">Move cursor left</string>
@@ -196,6 +199,7 @@
     <string name="enable_ime_hint">Enable &lt;b>%1$s&lt;/b> in Language and input settings</string>
     <string name="select_ime">Select Input Method</string>
     <string name="select_ime_hint">Select &lt;b>%1$s&lt;/b> as your default input method</string>
+    <string name="select_ime_elite_hint">&lt;br/&gt;&lt;br/&gt;On Titan2 Elite, &lt;b&gt;left Shift / left Alt / Space&lt;/b&gt; pick candidates (Macrohard 4-2-1-3-5) while the strip is visible — they do not switch IME, and Alt+Space is stolen by left Alt. Switch pinyin/English with &lt;b&gt;Sym+N&lt;/b&gt;, or a single-finger down-swipe on the idle keyboard surface. Number keys 1–5 also pick the current page.</string>
     <string name="next">Next</string>
     <string name="prev">Prev</string>
     <string name="done">Done</string>

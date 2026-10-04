@@ -30,6 +30,7 @@ import org.fcitx.fcitx5.android.input.swipe.FlyTextDownAction
 import org.fcitx.fcitx5.android.input.swipe.KeyboardFlyTextSelector
 import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
 import org.fcitx.fcitx5.android.input.swipe.cornerDeleteRegion
+import org.fcitx.fcitx5.android.input.swipe.commitLatinOrDismissAction
 import org.fcitx.fcitx5.android.input.swipe.flyTextDownAction
 import org.fcitx.fcitx5.android.utils.DeviceInfo
 import android.view.View
@@ -73,6 +74,7 @@ import org.fcitx.fcitx5.android.core.SubtypeManager
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.data.InputFeedbacks
+import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareChord
 import org.fcitx.fcitx5.android.data.prefs.HardwareSpecialKeys
@@ -628,19 +630,27 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     /**
-     * Down-swipe: commit the input-panel preedit as latin (pinyin codes / English letters), or
-     * dismiss 联想 prediction when there is nothing to commit. Reads the panel preedit — not the
-     * client preedit — so 拼音 yields `nihao` rather than the first Chinese candidate.
+     * Commit the input-panel preedit as latin (pinyin codes / English letters), or dismiss 联想
+     * prediction when there is nothing to commit. Reads the panel preedit — not the client
+     * preedit — so 拼音 yields `nihao` rather than the first Chinese candidate.
      *
      * Pinyin/English `reset()` only clears the panel; table engines commit on reset, so those
      * backspace the preedit first (same split as long-press symbol).
+     *
+     * [allowSwitchIme] is the idle keyboard-surface path: empty preedit and no candidates → cycle
+     * 拼音/英语. The physical CommitLatin shortcut keeps this false so idle does not leave pinyin.
      */
-    private fun flyTextHandleDown(): Boolean {
+    fun commitLatinOrDismiss(allowSwitchIme: Boolean = false): Boolean {
         if (inputView?.isPickerWindowOpen() == true) return false
         val panel = fcitx.runImmediately { inputPanelCached.preedit.toString() }
         val hasCandidates = lastPagedCandidateData.candidates.isNotEmpty() ||
                 lastCandidateListData.candidates.isNotEmpty()
-        return when (flyTextDownAction(panel, hasCandidates)) {
+        val action = if (allowSwitchIme) {
+            flyTextDownAction(panel, hasCandidates)
+        } else {
+            commitLatinOrDismissAction(panel, hasCandidates)
+        }
+        return when (action) {
             FlyTextDownAction.CommitLatin -> {
                 playHardwareSound(InputFeedbacks.SoundEffect.Standard)
                 val table = isTableIme()
@@ -670,8 +680,23 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 postFcitxJob { reset() }
                 true
             }
+            FlyTextDownAction.SwitchIme -> {
+                playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+                postFcitxJob { toggleIme() }
+                true
+            }
             FlyTextDownAction.None -> false
         }
+    }
+
+    private fun flyTextHandleDown(): Boolean = commitLatinOrDismiss(allowSwitchIme = true)
+
+    private fun pasteLastClipboard(): Boolean {
+        val text = ClipboardManager.lastEntry?.text ?: return false
+        if (text.isEmpty()) return false
+        playHardwareSound(InputFeedbacks.SoundEffect.Standard)
+        commitText(text)
+        return true
     }
 
     /** Two-finger horizontal swipe: cycle enabled IMEs (拼音 ↔ 英语). */
@@ -727,6 +752,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 playHardwareSound(InputFeedbacks.SoundEffect.Standard)
                 inputView?.toggleVoiceInput()
             }
+            FlyTextAction.PasteClipboard -> return pasteLastClipboard()
         }
         return true
     }
@@ -1133,7 +1159,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     /**
      * Extra keyboard-surface gestures that should keep the channel armed without visible
-     * candidates: configurable down-swipe, two-finger IME switch, hide-bar, backspace.
+     * candidates: configurable down-swipe, two-finger IME switch, hide-bar, backspace, and
+     * still-finger hold-to-talk (which has no direction binding).
      */
     private val flyTextBilingualOn: Boolean
         get() {
@@ -1141,8 +1168,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             val hw = AppPrefs.getInstance().hardwareKeyboard
             return hw.flyTextDownAction.getValue().keepsChannelWithoutCandidates() ||
                 hw.flyTextTwoFingerLeftAction.getValue().keepsChannelWithoutCandidates() ||
-                hw.flyTextTwoFingerRightAction.getValue().keepsChannelWithoutCandidates()
+                hw.flyTextTwoFingerRightAction.getValue().keepsChannelWithoutCandidates() ||
+                hw.flyTextUpAction.getValue().keepsChannelWithoutCandidates() ||
+                hw.flyTextLeftAction.getValue().keepsChannelWithoutCandidates() ||
+                hw.flyTextRightAction.getValue().keepsChannelWithoutCandidates()
         }
+
+    /** Hold-to-talk on the keyboard surface needs the channel even with no candidates. */
+    private val flyTextHoldVoiceOn: Boolean
+        get() = flyTextPrefOn
 
     /**
      * Whether the keyboard-surface motion channels (decor listener + service fallback) should feed
@@ -1157,7 +1191,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val flyTextChannelArmed: Boolean
         get() = flyTextSelectorInitialized &&
                 (flyTextOn || flyTextPickerPagingOn ||
-                        ((flyTextCornerDeleteOn || flyTextCursorOn || flyTextBilingualOn) &&
+                        ((flyTextCornerDeleteOn || flyTextCursorOn || flyTextBilingualOn ||
+                                flyTextHoldVoiceOn) &&
                                 !inputDeviceMgr.isNullInputType()) ||
                         flyTextSelector.gestureActive)
     /** Tracks the last logged [flyTextOn] value; arm/disarm transitions are logged once each. */
@@ -1386,7 +1421,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                         if (forward) hw.flyTextTwoFingerRightAction.getValue()
                         else hw.flyTextTwoFingerLeftAction.getValue()
                     )
-                }
+                },
+                holdVoiceEnabled = { true },
+                onHoldVoiceStart = { inputView?.pressVoiceInput() },
+                onHoldVoiceStop = { inputView?.releaseVoiceShortcut() },
             )
             flyTextSelectorInitialized = true
         }

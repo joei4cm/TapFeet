@@ -33,6 +33,10 @@ object HardwareKeyProfiles {
     /** All available profile ids, in display order. */
     fun ids(): List<String> = listOf(BLACKBERRY, TT2, TITAN2_ELITE, TITAN2_ELITE_MOD)
 
+    /** First-run Select page appends the 巨硬 candidate-key hint on Elite (and Elite 改键). */
+    fun showsEliteCandidateHint(profileId: String): Boolean =
+        profileId == TITAN2_ELITE || profileId == TITAN2_ELITE_MOD
+
     /**
      * 预设显示名。下拉框的 entries 与「恢复推荐键位」的摘要都从这里取，
      * 不各写一份 id → 名字的映射（同一个映射抄两份必然漂移）。
@@ -174,11 +178,12 @@ object HardwareKeyProfiles {
      * 统一挂到 `Shift_R`** 上（见 [shortcutValuesFor]），同一个修饰键下字母撞了就真的抢键，
      * 所以这里**全局唯一**：
      *  - 编辑类（Fn/Alt_R）：A/C/X/V/Q/Z 编辑、S/F/E/D 光标簇、U/J/H/K 选字簇（U=上 J=下 H=左 K=右）；
-     *  - 开关类（Sym/Alt_R）：拼音助记 特效 t、音 y、排列 p、fLy l、Bar b、Mode m、录音 r、英 n。
+     *  - 开关类（Sym/Alt_R）：拼音助记 特效 t、音 y、排列 p、fLy l、Bar b、Mode m、录音 r、英 n、
+     *    上屏拼音/英文 w；编辑类再加粘贴最近剪贴板 i。
      *
      * `when` 显式穷举 [ShortcutAction]：以后加动作若忘了给字母会直接编译不过，
      * 不会静默漏一个（「加了枚举项却没有绑定」正是本项目最怕的那类静默失效）。
-     * ⚠️ 新字母必须先核对与上表 20 个字母不重 —— 黑莓下没有前缀可以救你。
+     * ⚠️ 新字母必须先核对与上表字母不重 —— 黑莓下没有前缀可以救你。
      */
     private fun leaderFor(action: ShortcutAction): String = when (action) {
         ShortcutAction.ToggleEffects -> "t"
@@ -189,10 +194,12 @@ object HardwareKeyProfiles {
         ShortcutAction.CycleSoundMode -> "m"
         ShortcutAction.VoiceInput -> "r"
         ShortcutAction.ToggleIme -> "n"
+        ShortcutAction.CommitLatin -> "w"
         ShortcutAction.SelectAll -> "a"
         ShortcutAction.Copy -> "c"
         ShortcutAction.Cut -> "x"
         ShortcutAction.Paste -> "v"
+        ShortcutAction.PasteLastClipboard -> "i"
         ShortcutAction.ClearAll -> "q"
         ShortcutAction.Undo -> "z"
         ShortcutAction.CursorLeft -> "s"

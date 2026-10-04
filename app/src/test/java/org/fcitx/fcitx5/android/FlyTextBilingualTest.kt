@@ -6,6 +6,7 @@
 package org.fcitx.fcitx5.android
 
 import org.fcitx.fcitx5.android.input.swipe.FlyTextDownAction
+import org.fcitx.fcitx5.android.input.swipe.commitLatinOrDismissAction
 import org.fcitx.fcitx5.android.input.swipe.flyTextDownAction
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -17,6 +18,10 @@ class FlyTextBilingualTest {
         assertEquals(
             FlyTextDownAction.CommitLatin,
             flyTextDownAction("nihao", hasCandidates = true)
+        )
+        assertEquals(
+            FlyTextDownAction.CommitLatin,
+            commitLatinOrDismissAction("nihao", hasCandidates = true)
         )
     }
 
@@ -37,10 +42,18 @@ class FlyTextBilingualTest {
     }
 
     @Test
-    fun idleSurfaceDoesNothing() {
+    fun idleSurfaceSwitchesIme() {
+        assertEquals(
+            FlyTextDownAction.SwitchIme,
+            flyTextDownAction("", hasCandidates = false)
+        )
+    }
+
+    @Test
+    fun idleCommitLatinShortcutDoesNotSwitchIme() {
         assertEquals(
             FlyTextDownAction.None,
-            flyTextDownAction("", hasCandidates = false)
+            commitLatinOrDismissAction("", hasCandidates = false)
         )
     }
 }
