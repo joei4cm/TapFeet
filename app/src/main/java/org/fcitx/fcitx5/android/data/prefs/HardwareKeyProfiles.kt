@@ -98,11 +98,11 @@ object HardwareKeyProfiles {
      * selection keys are `SPACE, LSHIFT, FN, ALT, RSHIFT`.
      *
      * 巨硬 visual order (4-2-1-3-5) is therefore
-     * `Alt | 左Shift | 空格 | Fn | 右Shift`. Paging stays on the unused Sym key
-     * (`Sym` / `Alt+Sym`). Fn is both candidate 3 and the symbol-picker key; tap-hold
-     * ([HardwareChord]) keeps those two gestures apart. `altLatchKey` is `Alt_L` because this
-     * keyboard has no right Alt — while candidates are visible a tap selects candidate 4; latch
-     * still works when idle.
+     * `Alt | 左Shift | 空格 | Fn | 右Shift`. The labeled **Sym** key opens the symbol
+     * window (tap-hold so `Sym+字母` shortcuts still work). Candidate paging is the
+     * keyboard-surface swipe, not Sym. `altLatchKey` is `Alt_L` because this keyboard has no
+     * right Alt — while candidates are visible a tap selects candidate 4; latch still works
+     * when idle.
      */
     private val titan2EliteValues = listOf(
         "space",        // candidate1Key     空格 —— 巨硬首选字（居中）
@@ -110,24 +110,24 @@ object HardwareKeyProfiles {
         "NavFn",        // candidate3Key     fn
         "Alt_L",        // candidate4Key     左 Alt（巨硬最左；不占用返回键）
         "Shift_R",      // candidate5Key     右Shift
-        "Sym",          // pageNextKey
-        "Alt+Sym",      // pagePrevKey
-        "NavFn",        // symbolPickerKey   Fn 轻按开符号窗口（tap-hold）
+        "",             // pageNextKey       翻页走飞字左右滑，Sym 留给符号窗口
+        "",             // pagePrevKey
+        "Sym",          // symbolPickerKey   轻按 SYM 开符号窗口（tap-hold）
         "Alt+space",    // toggleImeKey
         "Shift+space",  // pickerKey
         "Alt_L",        // altLatchKey       本机只有左 Alt
     )
 
     /**
-     * Titan2 Elite（改键）. 与 [titan2EliteValues] 同硬件、同符号窗口/Fn/Alt 这套，只是把
+     * Titan2 Elite（改键）. 与 [titan2EliteValues] 同硬件、同样轻按 SYM 开符号窗口，只是把
      * 「选字」和「翻页」的键位重排（对应操作手册里的「Titan2 Elite（改键后）」布局）：
      *
      *  - 巨硬选字五键改为 `0 | 返回 | 空格 | Ctrl | Fn`（相对默认 Elite 的
      *    `Alt | 左Shift | 空格 | Fn | 右Shift`）。
      *    其中 `0` 与 `Ctrl` 来自用户在系统设置里把 ⭕️Home、`⬛️`多任务 两个被窗口策略吃掉的键
      *    分别重映射成 `0` / `Ctrl` —— 这两个键 IME 收不到，不重映射就空着。
-     *  - 翻页从 `Sym` / `Alt+Sym` 改到 `右Shift`(下一页) / `左Shift`(上一页)，把原本占着选字位的
-     *    左右 Shift 让出来给选字。
+     *  - 翻页用 `右Shift`(下一页) / `左Shift`(上一页)，把原本占着选字位的
+     *    左右 Shift 让出来给选字。默认 Elite 翻页走飞字左右滑。
      *
      * `Ctrl` 用 `Control_L`：系统重映射一般发 `KEYCODE_CTRL_LEFT`（→ XK_Control_L）。若你的重映射器
      * 发的是 `KEYCODE_CTRL_RIGHT`，把这一行改成 `"Control_R"` 即可。
@@ -140,7 +140,7 @@ object HardwareKeyProfiles {
         "NavFn",        // candidate5Key     Fn
         "Shift_R",      // pageNextKey       右 Shift（下一页）
         "Shift_L",      // pagePrevKey       左 Shift（上一页）
-        "NavFn",        // symbolPickerKey   Fn 键（轻按开符号窗口）
+        "Sym",          // symbolPickerKey   轻按 SYM 开符号窗口（tap-hold）
         "Alt+space",    // toggleImeKey
         "Shift+space",  // pickerKey
         "Alt_L",        // altLatchKey       本机只有左 Alt
@@ -151,6 +151,28 @@ object HardwareKeyProfiles {
         TITAN2_ELITE -> titan2EliteValues
         TITAN2_ELITE_MOD -> titan2EliteModValues
         else -> blackberryValues
+    }
+
+    /**
+     * Canonical order matches [keyBindings]: candidate1–5, pageNext, pagePrev,
+     * symbolPicker, toggleIme, picker, altLatch.
+     */
+    fun factoryValues(name: String): List<String> = valuesFor(name)
+
+    /**
+     * Elite used to open the symbol window on Fn and page candidates on Sym. Move the
+     * labeled Sym key onto the picker; leave a user-rebound picker alone.
+     */
+    fun applyEliteSymSymbolPicker(hw: AppPrefs.HardwareKeyboard) {
+        val profile = hw.keyProfile.getValue()
+        if (profile != TITAN2_ELITE && profile != TITAN2_ELITE_MOD) return
+        if (hw.symbolPickerKey.getValue() == "NavFn") {
+            hw.symbolPickerKey.setValue("Sym")
+        }
+        if (profile == TITAN2_ELITE && hw.pageNextKey.getValue() == "Sym") {
+            hw.pageNextKey.setValue("")
+            if (hw.pagePrevKey.getValue() == "Alt+Sym") hw.pagePrevKey.setValue("")
+        }
     }
 
     /**

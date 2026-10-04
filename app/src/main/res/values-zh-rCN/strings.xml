@@ -107,6 +107,8 @@
     <string name="hw_flytext_cursor_move_updn_summary">没有候选字时，上下滑移动光标。默认关闭。</string>
     <string name="hw_flytext_shift_select">滑动扩选文字</string>
     <string name="hw_flytext_shift_select_summary">双击锁定 Alt 后滑动，选中文字。</string>
+    <string name="hw_flytext_hold_voice">键盘面按住说话</string>
+    <string name="hw_flytext_hold_voice_summary">手指在键盘面上按住 1 秒开始录音，松手识别。太容易误触，默认关。快捷键 Sym+R 不受影响。</string>
     <string name="hw_flytext_sensitivity">飞字灵敏度</string>
     <string name="hw_flytext_guard_ms">防误触时长</string>
     <string name="hw_key_sound">物理按键音</string>
@@ -132,7 +134,7 @@
     <string name="hw_enable_candidate_quick_pick">巨硬模式</string>
     <string name="hw_enable_candidate_quick_pick_summary">物理键选词：%1$s</string>
     <string name="hw_english_word_hint">英文单词联想</string>
-    <string name="hw_english_word_hint_summary">打英文时按前缀出候选（the / there / then…），用巨硬选字键或数字 1–5 选词。空格或回车上屏已输入的字母。这是补全，不是空格后的下一词预测。</string>
+    <string name="hw_english_word_hint_summary">先用 Sym+N 切到英文输入法，按前缀出候选（the / there / then…），用巨硬选字键或数字 1–5 选词。空格或回车上屏已输入的字母。微信等「不要建议」的输入框也能联想。这是补全，不是空格后的下一词预测。</string>
     <string name="hw_english_insert_space">选词后自动空格</string>
     <string name="hw_english_insert_space_summary">选中英文联想词后自动加空格，接着打下一个词。</string>
     <string name="pinyin_engine">中文拼音引擎</string>

@@ -38,4 +38,9 @@ class HoldVoiceTrackerTest {
         t.down()
         assertEquals(HoldVoiceTracker.Command.None, t.up())
     }
+
+    @Test
+    fun holdIsOneSecondNotARest() {
+        assertEquals(1000L, HoldVoiceTracker.HOLD_MS)
+    }
 }

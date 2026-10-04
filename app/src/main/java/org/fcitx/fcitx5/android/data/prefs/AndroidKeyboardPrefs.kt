@@ -13,6 +13,10 @@ import timber.log.Timber
  *
  * Prefix completion (spell `en_dict.fscd`) plus optional auto-space after picking a word.
  * This is not Gboard-style next-word prediction.
+ *
+ * WeChat and many editors set TYPE_TEXT_FLAG_NO_SUGGESTIONS; Android maps that to
+ * CapabilityFlag.NoSpellCheck. androidkeyboard ignores that flag for prefix completion
+ * (password fields still block).
  */
 object AndroidKeyboardPrefs {
     const val ADDON_NAME = "androidkeyboard"

@@ -39,6 +39,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     private lateinit var flyTextCursorMoveSwitch: SwitchPreference
     private lateinit var flyTextCursorMoveUpDnSwitch: SwitchPreference
     private lateinit var flyTextShiftSelectSwitch: SwitchPreference
+    private lateinit var flyTextHoldVoiceSwitch: SwitchPreference
     private val flyTextActionPrefs = mutableListOf<ListPreference>()
 
     /**
@@ -268,6 +269,17 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             isEnabled = hw.keyboardFlyText.getValue()
         }
         flyTextScreen.addPreference(flyTextShiftSelectSwitch)
+        flyTextHoldVoiceSwitch = SwitchPreference(context).apply {
+            key = hw.keyboardFlyTextHoldVoice.key
+            title = getString(R.string.hw_flytext_hold_voice)
+            summary = getString(R.string.hw_flytext_hold_voice_summary)
+            setDefaultValue(hw.keyboardFlyTextHoldVoice.defaultValue)
+            isChecked = hw.keyboardFlyTextHoldVoice.getValue()
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isEnabled = hw.keyboardFlyText.getValue()
+        }
+        flyTextScreen.addPreference(flyTextHoldVoiceSwitch)
         flyTextScreen.addPreference(flyTextSensitivityPref)
 
         // Typing-guard window: how long after a hardware key event a surface contact is treated
@@ -295,6 +307,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             flyTextCursorMoveSwitch.isEnabled = on
             flyTextCursorMoveUpDnSwitch.isEnabled = on
             flyTextShiftSelectSwitch.isEnabled = on
+            flyTextHoldVoiceSwitch.isEnabled = on
             flyTextSensitivityPref.isEnabled = on
             flyTextGuardPref.isEnabled = on
             true

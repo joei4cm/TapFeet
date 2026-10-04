@@ -107,6 +107,8 @@
     <string name="hw_flytext_cursor_move_updn_summary">With no candidates, swipe up/down to move the cursor. Off by default.</string>
     <string name="hw_flytext_shift_select">Swipe selects text</string>
     <string name="hw_flytext_shift_select_summary">Hold Alt (or double-tap to latch) and swipe to select text.</string>
+    <string name="hw_flytext_hold_voice">Hold keyboard to talk</string>
+    <string name="hw_flytext_hold_voice_summary">Rest a finger on the keyboard for 1 second to start recording; lift to stop. Off by default because it is easy to trigger by accident. Sym+R still works.</string>
     <string name="hw_flytext_sensitivity">Fly-text sensitivity</string>
     <string name="hw_flytext_guard_ms">Mis-touch guard duration</string>
     <string name="hw_key_sound">Physical key sound</string>
@@ -136,7 +138,7 @@
     <string name="hw_enable_candidate_quick_pick">Bottom-row quick-pick</string>
     <string name="hw_enable_candidate_quick_pick_summary">Physical keys pick candidates: %1$s</string>
     <string name="hw_english_word_hint">English word completion</string>
-    <string name="hw_english_word_hint_summary">While typing English, show prefix completions (the, there, then…). Pick with the candidate keys or 1–5. Space or Enter commits what you typed. This is completion, not next-word prediction after a space.</string>
+    <string name="hw_english_word_hint_summary">Switch to the English IME with Sym+N, then type a prefix (the / there / then…). Pick with the candidate keys or 1–5. Space or Enter commits what you typed. Works in WeChat and other “no suggestions” fields. This is completion, not next-word prediction after a space.</string>
     <string name="hw_english_insert_space">Insert space after English word</string>
     <string name="hw_english_insert_space_summary">After picking a completion, insert a space so the next word starts immediately.</string>
     <string name="pinyin_engine">Chinese pinyin engine</string>
