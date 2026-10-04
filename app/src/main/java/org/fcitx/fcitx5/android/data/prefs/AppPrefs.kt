@@ -734,6 +734,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         // the Fn cursor/selection chords keep their own bindings.
         val keyboardFlyTextAltSelect = bool("hw_keyboard_flytext_alt_select", true)
 
+        // Keyboard-surface hold-to-talk. Off by default: a resting thumb on a capacitive
+        // QWERTY fires it too easily (it also races cursor-move). Opt in; hold is 1s.
+        val keyboardFlyTextHoldVoice = bool("hw_keyboard_flytext_hold_voice", false)
+
         val flyTextUpAction = enumList(
             R.string.flytext_up_action, "hw_flytext_up_action", FlyTextAction.SelectCandidate
         ) { keyboardFlyText.getValue() }

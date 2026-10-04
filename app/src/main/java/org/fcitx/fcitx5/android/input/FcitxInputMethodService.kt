@@ -1176,7 +1176,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     /** Hold-to-talk on the keyboard surface needs the channel even with no candidates. */
     private val flyTextHoldVoiceOn: Boolean
-        get() = flyTextPrefOn
+        get() = flyTextPrefOn &&
+            AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextHoldVoice.getValue()
 
     /**
      * Whether the keyboard-surface motion channels (decor listener + service fallback) should feed
@@ -1318,6 +1319,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // corner-delete sub-toggle), so toggling either takes effect immediately, no re-focus.
             hw.keyboardFlyText.registerOnChangeListener(flyTextListener)
             hw.keyboardFlyTextCornerDelete.registerOnChangeListener(flyTextListener)
+            hw.keyboardFlyTextHoldVoice.registerOnChangeListener(flyTextListener)
             flyTextListenerRegistered = true
         }
         // Neither gate uses !isVirtualKeyboard: on this device the candidates-window mode
@@ -1422,7 +1424,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                         else hw.flyTextTwoFingerLeftAction.getValue()
                     )
                 },
-                holdVoiceEnabled = { true },
+                holdVoiceEnabled = {
+                    AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextHoldVoice.getValue()
+                },
                 onHoldVoiceStart = { inputView?.pressVoiceInput() },
                 onHoldVoiceStop = { inputView?.releaseVoiceShortcut() },
             )
