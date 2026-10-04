@@ -58,6 +58,6 @@ class HoldVoiceTracker {
     }
 
     companion object {
-        const val HOLD_MS = 350L
+        const val HOLD_MS = 1000L
     }
 }

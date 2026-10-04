@@ -299,9 +299,10 @@ bool AndroidKeyboardEngine::updateBuffer(InputContext *inputContext, const KeyEv
     }
 
     auto *state = inputContext->propertyFor(&factory_);
-    // word hint is disabled, input is password, or language not supported
+    // Ignore CapabilityFlag::NoSpellCheck. Android maps TYPE_TEXT_FLAG_NO_SUGGESTIONS
+    // (WeChat and many editors) to that flag; it means "no system suggestion strip",
+    // not "skip IME prefix completion". Password still blocks.
     if (!*config_.enableWordHint ||
-        (*config_.editorControlledWordHint && inputContext->capabilityFlags().test(CapabilityFlag::NoSpellCheck)) ||
         inputContext->capabilityFlags().test(CapabilityFlag::Password) ||
         !supportHint(entry->languageCode())) {
         return false;

@@ -1071,8 +1071,8 @@ class InputView(
                 (!kawaiiBar.isCandidateUiShowing() || horizontalCandidate.visibleCandidateCount() <= 0)
         if (!noActiveInput) return false
 
-        // tap-hold：本该在这里切窗口，但若这个键同时是伪修饰键（Elite 预设的 Fn：symbolPickerKey
-        // = "NavFn"），按下就切会让 Fn+字母 永远走不通 —— 挂起到松手，没被和弦用掉再切。
+        // tap-hold：本该在这里切窗口，但若这个键同时是伪修饰键（Elite 预设的 SYM：symbolPickerKey
+        // = "Sym"），按下就切会让 Sym+字母 永远走不通 —— 挂起到松手，没被和弦用掉再切。
         if (HardwareChord.armSymbolTap(event.keyCode)) return true
 
         toggleSymbolForKeyPress()
@@ -1234,9 +1234,9 @@ class InputView(
      * ([org.fcitx.fcitx5.android.input.FcitxInputMethodService]) against the live floating
      * CandidatesView state, not against InputView's frozen state.
      *
-     * ⚠️ tap-hold（Titan 系的 Fn 兼符号键时必需）：按下**先不切窗口**，只挂起
+     * ⚠️ tap-hold（Titan 系的 SYM 兼符号键时必需）：按下**先不切窗口**，只挂起
      * （[HardwareChord.armSymbolTap]），松手时若没被和弦用掉，再由 [onHardwareSymbolTapReleased]
-     * 补上 —— 否则「按住 Fn 再按字母」永远走不通，符号窗口会在 Fn 按下的瞬间抢走后面那个键。
+     * 补上 —— 否则「按住 SYM 再按字母」永远走不通，符号窗口会在 SYM 按下的瞬间抢走后面那个键。
      * 动作体收敛在 [toggleSymbolForKeyPress]，按下路径与松手路径共用一份三态循环。
      *
      * Because the symbol window attaches onto the (hidden) keyboard window in physical mode, we
@@ -1247,8 +1247,8 @@ class InputView(
      * keyboard.
      */
     fun handleHardwareSymKey(event: KeyEvent): Boolean {
-        // tap-hold：这个键同时是**和弦修饰键**（Elite 预设的 Fn、BlackBerry 的 Alt_R）时，
-        // 按下不能立刻切窗口 —— 否则 Fn+字母 永远走不通。挂起，交给松手时的
+        // tap-hold：这个键同时是**和弦修饰键**（Elite 预设的 SYM、BlackBerry 的 Alt_R）时，
+        // 按下不能立刻切窗口 —— 否则 Sym+字母 永远走不通。挂起，交给松手时的
         // [onHardwareSymbolTapReleased]；被和弦用掉了就不补（按下时已由 HardwareChord 作废挂起）。
         if (handleHardwareChordTapHold(event)) return true
         if (event.action != KeyEvent.ACTION_DOWN) return false
@@ -1260,9 +1260,9 @@ class InputView(
     /**
      * 和弦修饰键兼符号键的**按下挂起**入口。
      *
-     * 物理模式的派发链里，这个方法必须排在**候选面之前**调用：Elite 的 Fn 同时也是 `candidate3Key`
-     * （Q25 的 `Alt_R` 一样），若先让候选面看到这次按下，「按住 Fn + 字母」会在打字途中先把第 3 个
-     * 候选选掉 —— 快捷键配得再对也永远打成错字。挂起后由 [FcitxInputMethodService.onKeyUp] 的
+     * 物理模式的派发链里，这个方法必须排在**候选面之前**调用：Elite 的 SYM 是符号键，Q25 的
+     * `Alt_R` 同时是 `candidate3Key`。若先让候选面看到这次按下，「按住修饰键 + 字母」会在打字途中
+     * 先把候选选掉 —— 快捷键配得再对也永远打成错字。挂起后由 [FcitxInputMethodService.onKeyUp] 的
      * tap-hold 收尾补发（候选面不接就切符号窗口），所以两个角色都不会丢。
      *
      * 返回 true 表示已挂起并消费这次按下。不是符号键、或这个键不是和弦修饰键时返回 false，
