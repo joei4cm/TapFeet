@@ -5,7 +5,7 @@
 
 package org.fcitx.fcitx5.android
 
-import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
+import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutLogic
 import org.fcitx.fcitx5.android.input.candidates.horizontal.CandidateArrangementMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -15,20 +15,20 @@ class HardwareShortcutResolverTest {
 
     @Test
     fun pagingIgnoresUnmatchedKeys() {
-        assertNull(HardwareShortcutResolver.pagingDirection(false, false, false, false))
+        assertNull(HardwareShortcutLogic.pagingDirection(false, false, false, false))
     }
 
     @Test
     fun pagingPlainNextAndPrev() {
-        assertEquals(1, HardwareShortcutResolver.pagingDirection(true, false, false, false))
-        assertEquals(-1, HardwareShortcutResolver.pagingDirection(false, true, false, false))
+        assertEquals(1, HardwareShortcutLogic.pagingDirection(true, false, false, false))
+        assertEquals(-1, HardwareShortcutLogic.pagingDirection(false, true, false, false))
     }
 
     @Test
     fun pagingComboBeatsPlainOnSameKey() {
         assertEquals(
             -1,
-            HardwareShortcutResolver.pagingDirection(
+            HardwareShortcutLogic.pagingDirection(
                 nextMatches = true,
                 prevMatches = true,
                 nextHasModifier = false,
@@ -37,7 +37,7 @@ class HardwareShortcutResolverTest {
         )
         assertEquals(
             1,
-            HardwareShortcutResolver.pagingDirection(
+            HardwareShortcutLogic.pagingDirection(
                 nextMatches = true,
                 prevMatches = true,
                 nextHasModifier = true,
@@ -48,14 +48,14 @@ class HardwareShortcutResolverTest {
 
     @Test
     fun firstPickIsCenterInMacrohard() {
-        assertEquals(0, HardwareShortcutResolver.firstPickPosition(1, CandidateArrangementMode.Macrohard))
-        assertEquals(1, HardwareShortcutResolver.firstPickPosition(3, CandidateArrangementMode.Macrohard))
-        assertEquals(2, HardwareShortcutResolver.firstPickPosition(5, CandidateArrangementMode.Macrohard))
+        assertEquals(0, HardwareShortcutLogic.firstPickPosition(1, CandidateArrangementMode.Macrohard))
+        assertEquals(1, HardwareShortcutLogic.firstPickPosition(3, CandidateArrangementMode.Macrohard))
+        assertEquals(2, HardwareShortcutLogic.firstPickPosition(5, CandidateArrangementMode.Macrohard))
     }
 
     @Test
     fun firstPickIsLeftInLinear() {
-        assertEquals(0, HardwareShortcutResolver.firstPickPosition(1, CandidateArrangementMode.Linear))
-        assertEquals(0, HardwareShortcutResolver.firstPickPosition(5, CandidateArrangementMode.Linear))
+        assertEquals(0, HardwareShortcutLogic.firstPickPosition(1, CandidateArrangementMode.Linear))
+        assertEquals(0, HardwareShortcutLogic.firstPickPosition(5, CandidateArrangementMode.Linear))
     }
 }
