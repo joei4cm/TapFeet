@@ -1159,8 +1159,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     /**
      * Extra keyboard-surface gestures that should keep the channel armed without visible
-     * candidates: configurable down-swipe, two-finger IME switch, hide-bar, backspace, and
-     * still-finger hold-to-talk (which has no direction binding).
+     * candidates: configurable down-swipe, two-finger IME switch, hide-bar, backspace.
      */
     private val flyTextBilingualOn: Boolean
         get() {
@@ -1173,11 +1172,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 hw.flyTextLeftAction.getValue().keepsChannelWithoutCandidates() ||
                 hw.flyTextRightAction.getValue().keepsChannelWithoutCandidates()
         }
-
-    /** Hold-to-talk on the keyboard surface needs the channel even with no candidates. */
-    private val flyTextHoldVoiceOn: Boolean
-        get() = flyTextPrefOn &&
-            AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextHoldVoice.getValue()
 
     /**
      * Whether the keyboard-surface motion channels (decor listener + service fallback) should feed
@@ -1192,8 +1186,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val flyTextChannelArmed: Boolean
         get() = flyTextSelectorInitialized &&
                 (flyTextOn || flyTextPickerPagingOn ||
-                        ((flyTextCornerDeleteOn || flyTextCursorOn || flyTextBilingualOn ||
-                                flyTextHoldVoiceOn) &&
+                        ((flyTextCornerDeleteOn || flyTextCursorOn || flyTextBilingualOn) &&
                                 !inputDeviceMgr.isNullInputType()) ||
                         flyTextSelector.gestureActive)
     /** Tracks the last logged [flyTextOn] value; arm/disarm transitions are logged once each. */
@@ -1319,7 +1312,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // corner-delete sub-toggle), so toggling either takes effect immediately, no re-focus.
             hw.keyboardFlyText.registerOnChangeListener(flyTextListener)
             hw.keyboardFlyTextCornerDelete.registerOnChangeListener(flyTextListener)
-            hw.keyboardFlyTextHoldVoice.registerOnChangeListener(flyTextListener)
             flyTextListenerRegistered = true
         }
         // Neither gate uses !isVirtualKeyboard: on this device the candidates-window mode
@@ -1424,11 +1416,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                         else hw.flyTextTwoFingerLeftAction.getValue()
                     )
                 },
-                holdVoiceEnabled = {
-                    AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextHoldVoice.getValue()
-                },
-                onHoldVoiceStart = { inputView?.pressVoiceInput() },
-                onHoldVoiceStop = { inputView?.releaseVoiceShortcut() },
             )
             flyTextSelectorInitialized = true
         }
