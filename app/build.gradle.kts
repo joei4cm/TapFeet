@@ -35,7 +35,8 @@ android {
                     // android specific modules
                     "androidfrontend",
                     "androidkeyboard",
-                    "androidnotification"
+                    "androidnotification",
+                    "rime"
                 )
             }
         }
@@ -113,6 +114,20 @@ fcitxComponent {
         "usr/share/fcitx5/inputmethod/$it.conf"
     }
     installPrebuiltAssets = true
+    modifyFiles = mapOf(
+        "usr/share/fcitx5/inputmethod/rime.conf" to { file ->
+            val text = file.readText()
+            file.writeText(
+                text.replace("Name=Rime", "Name=中州韵拼音")
+                    .replace("Label=ㄓ", "Label=韵")
+            )
+        }
+    )
+}
+
+generateDataDescriptor {
+    // librime looks for OpenCC data under rime-data/opencc; the app already ships OpenCC.
+    symlinks.put("usr/share/rime-data/opencc", "usr/share/opencc")
 }
 
 ksp {

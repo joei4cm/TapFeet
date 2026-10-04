@@ -135,6 +135,10 @@
     <string name="hw_english_word_hint_summary">打英文时按前缀出候选（the / there / then…），用巨硬选字键或数字 1–5 选词。空格或回车上屏已输入的字母。这是补全，不是空格后的下一词预测。</string>
     <string name="hw_english_insert_space">选词后自动空格</string>
     <string name="hw_english_insert_space_summary">选中英文联想词后自动加空格，接着打下一个词。</string>
+    <string name="pinyin_engine">中文拼音引擎</string>
+    <string name="pinyin_engine_fcitx">小企鹅拼音</string>
+    <string name="pinyin_engine_rime">中州韵（朙月简拼）</string>
+    <string name="pinyin_engine_summary">默认小企鹅拼音。中州韵是内置的朙月拼音·简化字，不用另装插件。Sym+N 仍在中文和英文之间切换。</string>
     <!-- 「快捷键」模块：动作 → 物理键 的自定义绑定（动作表见 ShortcutAction） -->
     <string name="shortcut_keys">快捷键</string>
     <string name="shortcut_tab_editing">编辑</string>

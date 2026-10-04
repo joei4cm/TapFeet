@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fcitx.fcitx5.android.input.effects.EffectMode
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.input.keyboard.SpaceLongPressBehavior
 import org.fcitx.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
@@ -586,6 +587,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             true,
             R.string.hw_english_insert_space_summary
         ) { englishWordHint.getValue() }
+
+        // 小企鹅拼音 ↔ bundled 中州韵. Default Fcitx. English stays in the IME cycle.
+        val pinyinEngine = enumList(
+            R.string.pinyin_engine,
+            "hw_pinyin_engine",
+            PinyinEngineKind.Fcitx
+        )
 
         // Double-tap the latch key to lock the Alt modifier. Default ON.
         val altLatchEnabled = bool("hw_alt_latch_enabled", true)
