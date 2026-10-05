@@ -322,8 +322,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         init { category(R.string.cat_candidates_window) }
         val mode = enumList(
             R.string.show_candidates_window,
-            "show_candidates_window",
-            FloatingCandidatesMode.InputDevice
+            "candidates_window_mode",
+            FloatingCandidatesMode.Disabled
         )
 
         val orientation = enumList(

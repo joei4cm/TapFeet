@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
@@ -27,6 +28,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.KeyCaptureUi
 class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
 
     private lateinit var hw: AppPrefs.HardwareKeyboard
+    private lateinit var profileList: ListPreference
     private val keyPrefs = mutableListOf<KeyCapturePreference>()
 
     /** The 巨硬 quick-pick master switch; its summary shows the LIVE key bindings (task: 键位描述). */
@@ -73,7 +75,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         // Preset profile dropdown: choosing a profile overrides every individual key binding —
         // and seeds the matching shortcut set (Fn / Alt chords, see HardwareKeyProfiles).
         val profileIds = HardwareKeyProfiles.ids()
-        val profileList = ListPreference(context).apply {
+        profileList = ListPreference(context).apply {
             key = hw.keyProfile.key
             title = getString(R.string.hw_key_profile)
             entries = profileIds.map { getString(HardwareKeyProfiles.labelResFor(it)) }.toTypedArray()
@@ -88,6 +90,20 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             true
         }
         profileScreen.addPreference(profileList)
+
+        // One tap after the user remaps Home→0 and App-switch→Ctrl in system settings.
+        val applyEliteMod = Preference(context).apply {
+            key = "hw_apply_elite_mod"
+            title = getString(R.string.hw_apply_elite_mod)
+            summary = getString(R.string.hw_apply_elite_mod_summary)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setOnPreferenceClickListener {
+                applyEliteRemappedLayout()
+                true
+            }
+        }
+        profileScreen.addPreference(applyEliteMod)
 
         // One switch: 小企鹅拼音 ↔ bundled 中州韵. English (keyboard-us) stays in the cycle.
         val pinyinEnginePref = ListPreference(context).apply {
@@ -546,6 +562,19 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         keyPrefs.forEach { it.refresh() }
         setCandidateShortcutVisibility(hw.enableCandidateQuickPick.getValue())
         updateQuickPickSummary()
+    }
+
+    /**
+     * Write the Titan2 Elite（改键） 巨硬 layout. Home and App-switch never reach the IME until
+     * the user remaps them in system settings (⭕️→0, ⬛️→Ctrl); this button only applies TapFeet's
+     * matching key map.
+     */
+    private fun applyEliteRemappedLayout() {
+        val name = HardwareKeyProfiles.TITAN2_ELITE_MOD
+        hw.keyProfile.setValue(name)
+        applyProfile(name)
+        profileList.value = name
+        Toast.makeText(requireContext(), R.string.hw_apply_elite_mod_done, Toast.LENGTH_SHORT).show()
     }
 
     /**

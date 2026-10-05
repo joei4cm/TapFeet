@@ -119,6 +119,9 @@
     <string name="hw_profile_tt2">Titan2</string>
     <string name="hw_profile_titan2_elite">Titan2 Elite</string>
     <string name="hw_profile_titan2_elite_mod">Titan2 Elite (改键)</string>
+    <string name="hw_apply_elite_mod">Apply Elite remapped 巨硬 layout</string>
+    <string name="hw_apply_elite_mod_summary">First remap ⭕️ Home to 0 and ⬛️ App-switch to Ctrl in system key settings, then tap here to write Titan2 Elite (改键): 0 / Back / Space / Ctrl / Fn for 巨硬, Shift for paging.</string>
+    <string name="hw_apply_elite_mod_done">Applied Titan2 Elite (改键) layout</string>
     <string name="main_header_subtitle">%1$s · %2$s</string>
     <string name="switch_keyboard_preset">Switch keyboard preset</string>
     <!-- Labels for pseudo keys (see HardwareSpecialKeys): physical function keys that have no
@@ -156,6 +159,8 @@
     <string name="shortcut_voice_input">Voice input</string>
     <string name="shortcut_toggle_ime">Switch pinyin / English</string>
     <string name="shortcut_commit_latin">Commit pinyin/English (or dismiss prediction)</string>
+    <string name="shortcut_quick_phrase">Quick phrase</string>
+    <string name="shortcut_open_clipboard">Open clipboard history</string>
     <string name="shortcut_select_all">Select all</string>
     <string name="shortcut_copy">Copy</string>
     <string name="shortcut_cut">Cut</string>

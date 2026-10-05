@@ -36,9 +36,6 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
-import org.fcitx.fcitx5.android.input.candidates.horizontal.CandidateArrangementMode
-import org.fcitx.fcitx5.android.input.keyboard.KeyAction
-import org.fcitx.fcitx5.android.input.keyboard.KeyActionListener
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
@@ -46,10 +43,14 @@ import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
 import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
+import org.fcitx.fcitx5.android.input.candidates.horizontal.CandidateArrangementMode
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
-import org.fcitx.fcitx5.android.input.keyboard.HiddenKeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
+import org.fcitx.fcitx5.android.input.keyboard.HiddenKeyboardWindow
+import org.fcitx.fcitx5.android.input.keyboard.KeyAction
+import org.fcitx.fcitx5.android.input.keyboard.KeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
@@ -686,6 +687,17 @@ class InputView(
             }
 
             ShortcutAction.CommitLatin -> service.commitLatinOrDismiss(allowSwitchIme = false)
+
+            ShortcutAction.QuickPhrase -> commonKeyActionListener.listener.onKeyAction(
+                KeyAction.QuickPhraseAction,
+                KeyActionListener.Source.Keyboard,
+            )
+
+            ShortcutAction.OpenClipboard -> {
+                revealPanelInputViewIfHidden()
+                windowManager.setKeyboardWindowVisible(true)
+                windowManager.attachWindow(ClipboardWindow())
+            }
 
             ShortcutAction.PasteLastClipboard -> {
                 service.pasteLastClipboard()

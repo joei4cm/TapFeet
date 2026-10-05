@@ -201,7 +201,7 @@ object HardwareKeyProfiles {
      * 所以这里**全局唯一**：
      *  - 编辑类（Fn/Alt_R）：A/C/X/V/Q/Z 编辑、S/F/E/D 光标簇、U/J/H/K 选字簇（U=上 J=下 H=左 K=右）；
      *  - 开关类（Sym/Alt_R）：拼音助记 特效 t、音 y、排列 p、fLy l、Bar b、Mode m、录音 r、英 n、
-     *    上屏拼音/英文 w；编辑类再加粘贴最近剪贴板 i。
+     *    上屏拼音/英文 w、短语 g、剪贴板历史 o；编辑类再加粘贴最近剪贴板 i。
      *
      * `when` 显式穷举 [ShortcutAction]：以后加动作若忘了给字母会直接编译不过，
      * 不会静默漏一个（「加了枚举项却没有绑定」正是本项目最怕的那类静默失效）。
@@ -217,6 +217,8 @@ object HardwareKeyProfiles {
         ShortcutAction.VoiceInput -> "r"
         ShortcutAction.ToggleIme -> "n"
         ShortcutAction.CommitLatin -> "w"
+        ShortcutAction.QuickPhrase -> "g"
+        ShortcutAction.OpenClipboard -> "o"
         ShortcutAction.SelectAll -> "a"
         ShortcutAction.Copy -> "c"
         ShortcutAction.Cut -> "x"
