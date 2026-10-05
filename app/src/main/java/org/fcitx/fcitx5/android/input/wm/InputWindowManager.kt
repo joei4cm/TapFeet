@@ -40,6 +40,8 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
     private var keyboardVisibilityListener: ((Boolean) -> Unit)? = null
 
     private var currentWindow: InputWindow? = null
+
+    fun attachedWindow(): InputWindow? = currentWindow
     private var currentView: View? = null
 
     /**

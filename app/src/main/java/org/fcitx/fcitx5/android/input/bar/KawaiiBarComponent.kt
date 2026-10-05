@@ -76,6 +76,7 @@ import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.PanelModule
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.shortcut.VoiceShortcut
@@ -912,7 +913,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     override fun onWindowDetached(window: InputWindow) {
-        if (window is ClipboardWindow || window is TextEditingWindow || window is StatusAreaWindow) {
+        if (window is ClipboardWindow || window is TextEditingWindow || window is StatusAreaWindow ||
+            window is QuickPhraseWindow
+        ) {
             hideKeyboardOnNextKeyboardAttach = true
         }
         barStateMachine.push(WindowDetached)

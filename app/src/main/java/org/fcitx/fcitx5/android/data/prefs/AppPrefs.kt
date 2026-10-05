@@ -588,7 +588,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.hw_english_insert_space_summary
         ) { englishWordHint.getValue() }
 
-        // 小企鹅拼音 ↔ bundled 中州韵. Default Fcitx. English stays in the IME cycle.
+        // Bundled Chinese IM to enable+activate (pinyin / shuangpin / rime / wbx). Default Fcitx.
         val pinyinEngine = enumList(
             R.string.pinyin_engine,
             "hw_pinyin_engine",

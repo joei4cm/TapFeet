@@ -102,8 +102,7 @@ enum class ShortcutAction(
     CommitLatin("shortcut_commit_latin_key", R.string.shortcut_commit_latin),
 
     /**
-     * 打开 fcitx 快捷短语（QuickPhrase）。执行体与虚拟键盘 `QuickPhraseAction` 同一条：
-     * 先上屏/复位再 `triggerQuickPhrase()`。
+     * 打开应用内快捷短语窗口（拼音/声母/汉字都能搜）。默认 Titan 系 `Sym+G`，黑莓 `右Shift+G`。
      */
     QuickPhrase("shortcut_quick_phrase_key", R.string.shortcut_quick_phrase),
 
