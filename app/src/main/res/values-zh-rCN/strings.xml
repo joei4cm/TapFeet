@@ -341,7 +341,9 @@
     <string name="candidate_font_bold">候选词加粗</string>
     <string name="candidate_letter_spacing">候选词字距</string>
     <string name="candidate_font_import">导入候选字体</string>
+    <string name="candidate_font_import_summary">默认内置 Noto Sans SC。导入的字体只改候选栏；按键仍用内置字体。</string>
     <string name="candidate_font_clear">清除候选字体</string>
+    <string name="candidate_font_clear_summary">去掉导入的文件，候选栏回到内置 Noto Sans SC。</string>
     <string name="candidate_pin_phrase">置顶</string>
     <string name="candidate_delete_phrase">删除自定义词</string>
     <string name="popup_on_key_press">按键时弹出显示字符</string>

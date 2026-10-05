@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -16,6 +17,7 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.TextView
 import androidx.core.graphics.withSave
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -25,9 +27,9 @@ import kotlin.math.roundToInt
 /**
  * Single-line text that can shrink to fit its width.
  *
- * Drawing goes through [StaticLayout] so Android's CJK fallback fonts apply. The previous
- * [Canvas.drawText] path used only the primary typeface, which turns Han characters into tofu
- * boxes on devices whose default face is Latin-first (Unihertz Titan Elite).
+ * Drawing goes through [StaticLayout] so fallback fonts apply. The default face is bundled
+ * Noto Sans SC ([CandidateFont.uiTypeface]) so Elite-class ROMs without system CJK still render
+ * 汉字. Do not call [setTypeface] with a style int: [Typeface.create] drops the fallback chain.
  */
 @SuppressLint("AppCompatCustomView")
 class AutoScaleTextView @JvmOverloads constructor(
@@ -54,6 +56,10 @@ class AutoScaleTextView @JvmOverloads constructor(
 
     var scaleMode = Mode.None
 
+    init {
+        context?.let { typeface = CandidateFont.uiTypeface(it) }
+    }
+
     private var needsMeasureText = true
     private val fontMetrics = Paint.FontMetrics()
     private val textBounds = Rect()
@@ -72,6 +78,22 @@ class AutoScaleTextView @JvmOverloads constructor(
             requestLayout()
             invalidate()
         }
+    }
+
+    override fun setTypeface(tf: Typeface?) {
+        needsMeasureText = true
+        needsCalculateTransform = true
+        super.setTypeface(tf)
+        requestLayout()
+        invalidate()
+    }
+
+    override fun setTypeface(tf: Typeface?, style: Int) {
+        needsMeasureText = true
+        needsCalculateTransform = true
+        super.setTypeface(tf, style)
+        requestLayout()
+        invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

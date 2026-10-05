@@ -101,6 +101,7 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         )
         text.typeface = face
         comment.typeface = face
+        index.typeface = face
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
         val hint = if (showComment) candidate.displayComment() else ""
         if (hint.isNotBlank()) {

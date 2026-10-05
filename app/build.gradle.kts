@@ -18,6 +18,8 @@ android {
     // every device (a compressed res/raw asset can return sample id 0 on some ROMs).
     aaptOptions {
         noCompress.add("wav")
+        // Font.Builder(AssetManager) needs an uncompressed OTF so it can mmap the bundled CJK face.
+        noCompress.add("otf")
     }
 
     defaultConfig {

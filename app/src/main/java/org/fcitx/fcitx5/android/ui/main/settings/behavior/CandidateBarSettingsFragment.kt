@@ -33,6 +33,7 @@ class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInsta
         screen.addPreference(Preference(ctx).apply {
             key = "candidate_font_import"
             title = getString(R.string.candidate_font_import)
+            summary = getString(R.string.candidate_font_import_summary)
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 fontPicker.launch(arrayOf("font/ttf", "font/otf", "application/font-sfnt", "*/*"))
@@ -42,6 +43,7 @@ class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInsta
         screen.addPreference(Preference(ctx).apply {
             key = "candidate_font_clear"
             title = getString(R.string.candidate_font_clear)
+            summary = getString(R.string.candidate_font_clear_summary)
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 CandidateFont.clear(requireContext())

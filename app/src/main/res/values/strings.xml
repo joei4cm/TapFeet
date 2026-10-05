@@ -345,7 +345,9 @@
     <string name="candidate_font_bold">Bold candidate text</string>
     <string name="candidate_letter_spacing">Candidate letter spacing</string>
     <string name="candidate_font_import">Import candidate font</string>
+    <string name="candidate_font_import_summary">Default is bundled Noto Sans SC. An imported file replaces the candidate face; keys still use the bundled font.</string>
     <string name="candidate_font_clear">Clear candidate font</string>
+    <string name="candidate_font_clear_summary">Remove the imported file and go back to bundled Noto Sans SC.</string>
     <string name="candidate_pin_phrase">Pin to top</string>
     <string name="candidate_delete_phrase">Remove custom phrase</string>
     <string name="popup_on_key_press">Popup on key press</string>

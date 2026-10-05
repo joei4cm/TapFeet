@@ -220,6 +220,8 @@ Android SDK 平台、Build-Tools、NDK 和 CMake 请通过 Android Studio 的 SD
 
 本项目继承原项目的 LGPL-2.1 许可证，详见根目录下的 LICENSE 文件。
 
+内置候选/按键字体为 [Noto Sans SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License 1.1），文件与许可证在 `app/src/main/assets/fonts/`。
+
 根据 LGPL-2.1 的要求：
 
 - 若对本项目核心库代码进行了修改，修改部分必须以相同的 LGPL-2.1 许可证公开。
