@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 package org.fcitx.fcitx5.android.input
 
@@ -9,6 +9,9 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.TextView
@@ -19,6 +22,13 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+/**
+ * Single-line text that can shrink to fit its width.
+ *
+ * Drawing goes through [StaticLayout] so Android's CJK fallback fonts apply. The previous
+ * [Canvas.drawText] path used only the primary typeface, which turns Han characters into tofu
+ * boxes on devices whose default face is Latin-first (Unihertz Titan Elite).
+ */
 @SuppressLint("AppCompatCustomView")
 class AutoScaleTextView @JvmOverloads constructor(
     context: Context?,
@@ -65,6 +75,7 @@ class AutoScaleTextView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        needsMeasureText = true
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val widthSize = MeasureSpec.getSize(widthMeasureSpec)
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
@@ -85,21 +96,32 @@ class AutoScaleTextView @JvmOverloads constructor(
         else -> calculatedSize
     }
 
+    private fun layoutFor(src: String): StaticLayout {
+        val tp = paint as TextPaint
+        return StaticLayout.Builder
+            .obtain(src, 0, src.length, tp, LAYOUT_WIDTH)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setIncludePad(false)
+            .setMaxLines(1)
+            .build()
+    }
+
     private fun measureTextBounds(): Rect {
         if (needsMeasureText) {
             val paint = paint
             paint.getFontMetrics(fontMetrics)
-            val codePointCount = Character.codePointCount(text, 0, text.length)
-            if (codePointCount == 1) {
-                // use actual text bounds when there is only one "character",
-                // e.g. full-width punctuation
-                paint.getTextBounds(text.toString(), 0, text.length, textBounds)
+            val src = text.toString()
+            if (src.isEmpty()) {
+                textBounds.setEmpty()
             } else {
+                val layout = layoutFor(src)
+                val left = floor(layout.getLineLeft(0)).toInt()
+                val right = ceil(layout.getLineRight(0)).toInt()
                 textBounds.set(
-                    /* left = */ 0,
-                    /* top = */ floor(fontMetrics.top).toInt(),
-                    /* right = */ ceil(paint.measureText(text.toString())).toInt(),
-                    /* bottom = */ ceil(fontMetrics.bottom).toInt()
+                    left,
+                    floor(fontMetrics.top).toInt(),
+                    right,
+                    ceil(fontMetrics.bottom).toInt()
                 )
             }
             needsMeasureText = false
@@ -188,17 +210,26 @@ class AutoScaleTextView @JvmOverloads constructor(
             calculateTransform(width, height)
             needsCalculateTransform = false
         }
-        val paint = paint
-        paint.color = currentTextColor
+        val src = text.toString()
+        if (src.isEmpty()) return
+        val layout = layoutFor(src)
+        val tp = paint as TextPaint
+        tp.color = currentTextColor
         canvas.withSave {
             translate(scrollX.toFloat(), scrollY.toFloat())
             translate(baselineX, baselineY)
             scale(textScaleX, textScaleY)
-            drawText(text.toString(), 0.0f, 0.0f, paint)
+            translate(-layout.getLineLeft(0), -layout.getLineBaseline(0).toFloat())
+            layout.draw(this)
         }
     }
 
     override fun getBaseline(): Int {
         return paddingTop + baselineY.roundToInt()
+    }
+
+    companion object {
+        /** Wide enough that a single line never wraps; StaticLayout still measures real glyph width. */
+        private const val LAYOUT_WIDTH = 1 shl 20
     }
 }

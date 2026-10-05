@@ -52,6 +52,11 @@ object QuickPhraseManager {
         }
     }
 
+    /** Write 拼音/首字母 alias keys, then the caller reloads the quickphrase addon. */
+    fun syncPinyinAlias() {
+        QuickPhrasePinyinAlias.syncTo(customQuickPhraseDir)
+    }
+
     fun importFromInputStream(stream: InputStream, fileName: String): Result<CustomQuickPhrase> {
         return stream.use { i ->
             withTempDir { dir ->
@@ -69,7 +74,9 @@ object QuickPhraseManager {
         dir.listFiles()
             ?.mapNotNull { file ->
                 file.name.takeIf { name ->
-                    name.endsWith(".${QuickPhrase.EXT}") || name.endsWith(".${QuickPhrase.EXT}.${QuickPhrase.DISABLE}")
+                    name != QuickPhrasePinyinAlias.FILE_NAME &&
+                        (name.endsWith(".${QuickPhrase.EXT}") ||
+                            name.endsWith(".${QuickPhrase.EXT}.${QuickPhrase.DISABLE}"))
                 }
                     ?.let { block(file) }
             } ?: listOf()

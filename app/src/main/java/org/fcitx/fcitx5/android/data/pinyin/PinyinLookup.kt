@@ -118,4 +118,21 @@ object PinyinLookup {
         }
         return if (sb.isEmpty()) null else sb.toString()
     }
+
+    /**
+     * First letter of each Han character's reading (`早上好` → `zsh`).
+     * Null when there are fewer than two Han characters (a single initial is just a prefix
+     * of the full pinyin and is not worth a separate QuickPhrase key).
+     */
+    fun initialsOf(text: String): String? {
+        if (!isAvailable()) return null
+        val sb = StringBuilder()
+        for (cp in text.codePoints().toArray()) {
+            if (cp < CJK_START || cp > CJK_END) continue
+            val py = table[cp] ?: return null
+            if (py.isEmpty()) return null
+            sb.append(py[0])
+        }
+        return if (sb.length < 2) null else sb.toString()
+    }
 }

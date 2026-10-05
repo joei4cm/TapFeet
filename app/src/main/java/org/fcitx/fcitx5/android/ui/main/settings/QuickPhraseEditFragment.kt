@@ -16,6 +16,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.quickphrase.QuickPhrase
 import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseData
 import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseEntry
+import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseManager
 import org.fcitx.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fcitx.fcitx5.android.ui.common.OnItemChangedListener
 import org.fcitx.fcitx5.android.utils.NaiveDustman
@@ -149,6 +150,7 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 quickPhrase.saveData(QuickPhraseData(ui.entries))
+                QuickPhraseManager.syncPinyinAlias()
             }
             // tell parent that we need to reload
             parentFragmentManager.setFragmentResult(

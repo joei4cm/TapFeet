@@ -7,16 +7,24 @@ package org.fcitx.fcitx5.android.data.theme
 
 import android.content.Context
 import android.graphics.Typeface
+import android.graphics.fonts.Font
+import android.graphics.fonts.FontFamily
 import android.net.Uri
+import android.os.Build
 import java.io.File
 
 /**
  * User-imported TTF/OTF for candidate text. One file in app storage; weight is a Typeface
  * style (normal / bold), tracking is [android.widget.TextView.setLetterSpacing].
+ *
+ * The default face is the `sans-serif` **family**, not [Typeface.DEFAULT] wrapped with
+ * [Typeface.create]: the latter drops Android's CJK fallback chain and Han glyphs become tofu.
+ * An imported file on API 29+ also chains `sans-serif` so a Latin-only TTF still renders 汉字.
  */
 object CandidateFont {
 
     private const val FILE = "candidate_font.ttf"
+    private const val FAMILY = "sans-serif"
 
     @Volatile
     private var cached: Typeface? = null
@@ -40,24 +48,40 @@ object CandidateFont {
     }
 
     fun typeface(context: Context, bold: Boolean): Typeface {
+        val style = if (bold) Typeface.BOLD else Typeface.NORMAL
         val f = file(context)
-        val base = if (f.isFile && f.length() > 0) {
-            val mod = f.lastModified()
-            val len = f.length()
-            val hit = cached
-            if (hit != null && cachedMod == mod && cachedLen == len) {
-                hit
-            } else {
-                Typeface.createFromFile(f).also {
-                    cached = it
-                    cachedMod = mod
-                    cachedLen = len
-                }
-            }
-        } else {
-            Typeface.DEFAULT
+        if (f.isFile && f.length() > 0) {
+            return importedTypeface(f, style)
         }
-        return Typeface.create(base, if (bold) Typeface.BOLD else Typeface.NORMAL)
+        return Typeface.create(FAMILY, style)
+    }
+
+    private fun importedTypeface(f: File, style: Int): Typeface {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val font = Font.Builder(f).apply {
+                if (style == Typeface.BOLD) setWeight(700)
+            }.build()
+            val family = FontFamily.Builder(font).build()
+            return Typeface.CustomFallbackBuilder(family)
+                .setSystemFallback(FAMILY)
+                .build()
+        }
+        val base = cachedFileTypeface(f)
+        return Typeface.create(base, style)
+    }
+
+    private fun cachedFileTypeface(f: File): Typeface {
+        val mod = f.lastModified()
+        val len = f.length()
+        val hit = cached
+        if (hit != null && cachedMod == mod && cachedLen == len) {
+            return hit
+        }
+        return Typeface.createFromFile(f).also {
+            cached = it
+            cachedMod = mod
+            cachedLen = len
+        }
     }
 
     private fun invalidate() {
