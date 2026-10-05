@@ -12,6 +12,7 @@ import android.graphics.fonts.FontFamily
 import android.net.Uri
 import android.os.Build
 import java.io.File
+import java.io.IOException
 import timber.log.Timber
 
 /**
@@ -25,6 +26,8 @@ import timber.log.Timber
 object CandidateFont {
 
     private const val FILE = "candidate_font.ttf"
+    private const val BUNDLED_FILE = "NotoSansSC-Regular.otf"
+    private const val MIN_BUNDLED_BYTES = 1_000_000L
     private const val FAMILY = "sans-serif"
     const val ASSET = "fonts/NotoSansSC-Regular.otf"
 
@@ -32,9 +35,6 @@ object CandidateFont {
     private var cached: Typeface? = null
     private var cachedMod = 0L
     private var cachedLen = -1L
-
-    @Volatile
-    private var bundledAsset: Typeface? = null
 
     @Volatile
     private var bundledNormal: Typeface? = null
@@ -46,6 +46,17 @@ object CandidateFont {
     private var bundledFamily: Any? = null
 
     fun file(context: Context): File = File(context.filesDir, FILE)
+
+    fun isImported(context: Context): Boolean {
+        val f = file(context)
+        return f.isFile && f.length() > 0
+    }
+
+    fun isBundledReady(context: Context): Boolean = try {
+        bundledFile(context).length() > MIN_BUNDLED_BYTES
+    } catch (_: Exception) {
+        false
+    }
 
     fun import(context: Context, uri: Uri): Boolean {
         val dest = file(context)
@@ -94,17 +105,43 @@ object CandidateFont {
         return Typeface.create(base, style)
     }
 
+    private fun bundledFile(context: Context): File {
+        val dest = File(context.filesDir, BUNDLED_FILE)
+        if (dest.isFile && dest.length() > MIN_BUNDLED_BYTES) return dest
+        val part = File(context.filesDir, "$BUNDLED_FILE.part")
+        try {
+            context.assets.open(ASSET).use { input ->
+                part.outputStream().use { input.copyTo(it) }
+            }
+            if (part.length() <= MIN_BUNDLED_BYTES) {
+                val size = part.length()
+                part.delete()
+                throw IOException("extracted CJK font too small: $size")
+            }
+            dest.delete()
+            if (!part.renameTo(dest)) {
+                part.copyTo(dest, overwrite = true)
+                part.delete()
+            }
+        } catch (e: Exception) {
+            part.delete()
+            throw e
+        }
+        return dest
+    }
+
     private fun buildBundled(context: Context, style: Int): Typeface {
         return try {
+            val file = bundledFile(context)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val font = Font.Builder(context.assets, ASSET).apply {
+                val font = Font.Builder(file).apply {
                     if (style == Typeface.BOLD) setWeight(700)
                 }.build()
                 Typeface.CustomFallbackBuilder(FontFamily.Builder(font).build())
                     .setSystemFallback(FAMILY)
                     .build()
             } else {
-                val base = bundledAssetTypeface(context)
+                val base = Typeface.createFromFile(file)
                 if (style == Typeface.NORMAL) base else Typeface.create(base, style)
             }
         } catch (e: Exception) {
@@ -113,16 +150,11 @@ object CandidateFont {
         }
     }
 
-    private fun bundledAssetTypeface(context: Context): Typeface {
-        bundledAsset?.let { return it }
-        return Typeface.createFromAsset(context.assets, ASSET).also { bundledAsset = it }
-    }
-
     private fun bundledFontFamily(context: Context): FontFamily? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         (bundledFamily as? FontFamily)?.let { return it }
         return try {
-            FontFamily.Builder(Font.Builder(context.assets, ASSET).build()).build().also {
+            FontFamily.Builder(Font.Builder(bundledFile(context)).build()).build().also {
                 bundledFamily = it
             }
         } catch (e: Exception) {

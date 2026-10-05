@@ -24,6 +24,8 @@ import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
 import org.fcitx.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fcitx.fcitx5.android.ui.main.settings.KeyCapturePreference
 import org.fcitx.fcitx5.android.ui.main.settings.KeyCaptureUi
+import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
+import org.fcitx.fcitx5.android.utils.navigateWithAnim
 
 class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
 
@@ -105,24 +107,69 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(applyEliteMod)
 
-        // One switch: 小企鹅拼音 ↔ bundled 中州韵. English (keyboard-us) stays in the cycle.
-        val pinyinEnginePref = ListPreference(context).apply {
-            key = hw.pinyinEngine.key
-            title = getString(R.string.pinyin_engine)
-            entries = PinyinEngineKind.entries.map { getString(it.stringRes) }.toTypedArray()
-            entryValues = PinyinEngineKind.entries.map { it.name }.toTypedArray()
-            setDefaultValue(hw.pinyinEngine.defaultValue.name)
-            value = hw.pinyinEngine.getValue().name
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
-                val current = pref.entry?.toString().orEmpty()
-                listOf(current, getString(R.string.pinyin_engine_summary))
-                    .filter { it.isNotBlank() }
-                    .joinToString("\n")
+        // Bundled Chinese IMs: each row is tappable to enable+activate. No download for these four.
+        val enginePrefs = mutableListOf<Preference>()
+        fun refreshEngineSummaries() {
+            val current = hw.pinyinEngine.getValue()
+            enginePrefs.forEach { pref ->
+                val kind = PinyinEngineKind.entries.first { "pinyin_engine_pick_${it.name}" == pref.key }
+                pref.summary = getString(
+                    if (kind == current) R.string.pinyin_engine_in_use
+                    else R.string.pinyin_engine_tap_to_load
+                )
             }
         }
-        profileScreen.addPreference(pinyinEnginePref)
+        profileScreen.addPreference(Preference(context).apply {
+            key = "pinyin_engine_help"
+            title = getString(R.string.pinyin_engine)
+            summary = getString(R.string.pinyin_engine_summary)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isSelectable = false
+        })
+        PinyinEngineKind.entries.forEach { kind ->
+            val row = Preference(context).apply {
+                key = "pinyin_engine_pick_${kind.name}"
+                title = getString(kind.stringRes)
+                isIconSpaceReserved = false
+                isSingleLineTitle = false
+                setOnPreferenceClickListener {
+                    hw.pinyinEngine.setValue(kind)
+                    refreshEngineSummaries()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.pinyin_engine_loaded, getString(kind.stringRes)),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    true
+                }
+            }
+            enginePrefs += row
+            profileScreen.addPreference(row)
+        }
+        refreshEngineSummaries()
+        profileScreen.addPreference(Preference(context).apply {
+            key = "pinyin_engine_im_list"
+            title = getString(R.string.pinyin_engine_more_im)
+            summary = getString(R.string.pinyin_engine_more_im_summary)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setOnPreferenceClickListener {
+                navigateWithAnim(SettingsRoute.InputMethodList)
+                true
+            }
+        })
+        profileScreen.addPreference(Preference(context).apply {
+            key = "pinyin_engine_plugins"
+            title = getString(R.string.pinyin_engine_plugins)
+            summary = getString(R.string.pinyin_engine_plugins_summary)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setOnPreferenceClickListener {
+                navigateWithAnim(SettingsRoute.Plugin)
+                true
+            }
+        })
 
         // 底排物理键快速选字开关：仅控制"物理键是否选词"，与候选栏排列顺序无关
         // （排列顺序在"候选栏选项 → Candidate arrangement"中设置）。

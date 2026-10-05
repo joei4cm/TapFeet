@@ -43,7 +43,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
     @Keep
     private val onPinyinEngineChange = ManagedPreference.OnChangeListener<PinyinEngineKind> { _, value ->
-        lifecycle.launchWhenReady { this@Fcitx.syncChinesePinyinEngine(value.useRime) }
+        lifecycle.launchWhenReady { this@Fcitx.syncChinesePinyinEngine(value, forceActivate = true) }
     }
 
     override val eventFlow = eventFlow_.asSharedFlow()
@@ -483,7 +483,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             lifecycle.launchWhenReady {
                 this@Fcitx.syncAndroidKeyboardPrefs()
                 this@Fcitx.syncChinesePinyinEngine(
-                    AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue().useRime
+                    AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue()
                 )
             }
         }

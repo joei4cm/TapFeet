@@ -6,60 +6,61 @@
 package org.fcitx.fcitx5.android
 
 import org.fcitx.fcitx5.android.core.ChinesePinyinEngine
+import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChinesePinyinEngineTest {
 
     @Test
-    fun replacesPinyinWithRimeInPlace() {
+    fun bundledKindsMatchFcitxNames() {
+        assertEquals("pinyin", PinyinEngineKind.Fcitx.uniqueName)
+        assertEquals("shuangpin", PinyinEngineKind.Shuangpin.uniqueName)
+        assertEquals("rime", PinyinEngineKind.Rime.uniqueName)
+        assertEquals("wbx", PinyinEngineKind.Wubi.uniqueName)
+        assertTrue(ChinesePinyinEngine.bundledNames.containsAll(listOf("pinyin", "shuangpin", "rime", "wbx")))
+    }
+
+    @Test
+    fun addsSelectedEngineWithoutRemovingOthers() {
         assertEquals(
-            listOf("rime", "keyboard-us"),
-            ChinesePinyinEngine.applyEnabled(listOf("pinyin", "keyboard-us"), useRime = true),
+            listOf("rime", "pinyin", "keyboard-us"),
+            ChinesePinyinEngine.applyEnabled(listOf("rime", "keyboard-us"), "pinyin"),
         )
     }
 
     @Test
-    fun replacesRimeWithPinyinInPlace() {
+    fun keepsAlreadyEnabledEngine() {
         assertEquals(
             listOf("pinyin", "keyboard-us"),
-            ChinesePinyinEngine.applyEnabled(listOf("rime", "keyboard-us"), useRime = false),
+            ChinesePinyinEngine.applyEnabled(listOf("pinyin", "keyboard-us"), "pinyin"),
         )
     }
 
     @Test
-    fun keepsEnglishFirst() {
+    fun insertsAfterExistingChineseEngine() {
         assertEquals(
-            listOf("keyboard-us", "rime"),
-            ChinesePinyinEngine.applyEnabled(listOf("keyboard-us", "pinyin"), useRime = true),
+            listOf("keyboard-us", "pinyin", "shuangpin"),
+            ChinesePinyinEngine.applyEnabled(listOf("keyboard-us", "pinyin"), "shuangpin"),
         )
     }
 
     @Test
     fun insertsChineseWhenMissing() {
         assertEquals(
-            listOf("rime", "keyboard-us"),
-            ChinesePinyinEngine.applyEnabled(listOf("keyboard-us"), useRime = true),
+            listOf("wbx", "keyboard-us"),
+            ChinesePinyinEngine.applyEnabled(listOf("keyboard-us"), "wbx"),
         )
     }
 
     @Test
-    fun keepsOnlyOneChineseEngine() {
-        assertEquals(
-            listOf("rime", "keyboard-us"),
-            ChinesePinyinEngine.applyEnabled(
-                listOf("pinyin", "rime", "keyboard-us"),
-                useRime = true,
-            ),
-        )
-    }
-
-    @Test
-    fun activateOnlyWhenOnTheOtherEngine() {
-        assertEquals("rime", ChinesePinyinEngine.shouldActivate("pinyin", useRime = true))
-        assertEquals("pinyin", ChinesePinyinEngine.shouldActivate("rime", useRime = false))
-        assertNull(ChinesePinyinEngine.shouldActivate("keyboard-us", useRime = true))
-        assertNull(ChinesePinyinEngine.shouldActivate("rime", useRime = true))
+    fun activateWhenOnAnotherBundledEngine() {
+        assertEquals("pinyin", ChinesePinyinEngine.shouldActivate("rime", "pinyin"))
+        assertEquals("shuangpin", ChinesePinyinEngine.shouldActivate("pinyin", "shuangpin"))
+        assertNull(ChinesePinyinEngine.shouldActivate("keyboard-us", "rime"))
+        assertNull(ChinesePinyinEngine.shouldActivate("rime", "rime"))
+        assertEquals("wbx", ChinesePinyinEngine.shouldActivate("keyboard-us", "wbx", force = true))
     }
 }

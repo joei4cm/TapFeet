@@ -1927,6 +1927,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 }
                 return true
             }
+        }
+        if (inputView?.handleQuickPhraseWindowKey(effectiveEvent) == true) {
+            hardwareKeyDispatch.cancelLongPressSymbol(keyCode)
+            consumedHardwareCandidateShortcutKeys.add(keyCode)
+            return true
+        }
+        if (event.repeatCount == 0) {
             // Candidate-selection dispatch. The two surfaces handle different key sets:
             //  - Virtual keyboard mode: the horizontal candidate bar (InputView) is the surface.
             //  - Physical keyboard mode: the floating CandidatesView is the surface.

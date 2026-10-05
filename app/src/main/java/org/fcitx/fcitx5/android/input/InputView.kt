@@ -60,6 +60,7 @@ import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
+import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
 import org.fcitx.fcitx5.android.input.vmode.VMode
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
@@ -588,6 +589,19 @@ class InputView(
         kawaiiBar.releaseVoiceInput()
     }
 
+    private fun openQuickPhraseWindow() {
+        fcitx.launchOnReady { it.reset() }
+        revealPanelInputViewIfHidden()
+        windowManager.setKeyboardWindowVisible(true)
+        windowManager.attachWindow(QuickPhraseWindow())
+    }
+
+    /** Consume letter/digit/del/enter while the phrase search window is open. */
+    fun handleQuickPhraseWindowKey(event: KeyEvent): Boolean {
+        val window = windowManager.attachedWindow() as? QuickPhraseWindow ?: return false
+        return window.onHardwareKey(event)
+    }
+
     /** 飞字等非按住手势：点一下开始 / 再点结束。物理快捷键是按住说话，不走这里。 */
     fun toggleVoiceInput() {
         kawaiiBar.toggleVoiceInput()
@@ -688,10 +702,7 @@ class InputView(
 
             ShortcutAction.CommitLatin -> service.commitLatinOrDismiss(allowSwitchIme = false)
 
-            ShortcutAction.QuickPhrase -> commonKeyActionListener.listener.onKeyAction(
-                KeyAction.QuickPhraseAction,
-                KeyActionListener.Source.Keyboard,
-            )
+            ShortcutAction.QuickPhrase -> openQuickPhraseWindow()
 
             ShortcutAction.OpenClipboard -> {
                 revealPanelInputViewIfHidden()

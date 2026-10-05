@@ -22,14 +22,41 @@ import org.fcitx.fcitx5.android.ui.main.MainViewModel
 class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance().candidateBar) {
 
     private val viewModel: MainViewModel by activityViewModels()
+    private var fontStatusPref: Preference? = null
 
     private val fontPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) CandidateFont.import(requireContext(), uri)
+        if (uri != null) {
+            CandidateFont.import(requireContext(), uri)
+            refreshFontStatus()
+        }
+    }
+
+    private fun refreshFontStatus() {
+        val pref = fontStatusPref ?: return
+        pref.summary = when {
+            CandidateFont.isImported(requireContext()) ->
+                getString(R.string.candidate_font_status_imported)
+            CandidateFont.isBundledReady(requireContext()) ->
+                getString(R.string.candidate_font_status_bundled)
+            else ->
+                getString(R.string.candidate_font_status_missing)
+        }
     }
 
     override fun onPreferenceUiCreated(screen: PreferenceScreen) {
         val ctx = preferenceManager.context
         val bar = AppPrefs.getInstance().candidateBar
+        val fontStatus = Preference(ctx).apply {
+            key = "candidate_font_status"
+            title = getString(R.string.candidate_font_status)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isSelectable = false
+            isPersistent = false
+        }
+        fontStatusPref = fontStatus
+        refreshFontStatus()
+        screen.addPreference(fontStatus)
         screen.addPreference(Preference(ctx).apply {
             key = "candidate_font_import"
             title = getString(R.string.candidate_font_import)
@@ -47,6 +74,7 @@ class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInsta
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 CandidateFont.clear(requireContext())
+                refreshFontStatus()
                 true
             }
         })

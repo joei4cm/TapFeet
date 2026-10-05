@@ -36,6 +36,7 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyAction.SpaceLongPressAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyAction.UnicodeAction
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
+import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.switchToNextIME
 import org.mechdancer.dependency.Dependent
@@ -153,23 +154,38 @@ class CommonKeyActionListener :
     val listener by lazy {
         KeyActionListener { action, _ ->
             when (action) {
-                is FcitxKeyAction -> service.postFcitxJob {
-                    if (!handleLocalCandidateShortcut(action)) {
-                        sendKey(action.act, action.states.states, action.code)
+                is FcitxKeyAction -> {
+                    val qp = windowManager.attachedWindow() as? QuickPhraseWindow
+                    if (qp != null) {
+                        qp.consumeKey(action.act, KeyEvent.KEYCODE_UNKNOWN)
+                    } else {
+                        service.postFcitxJob {
+                            if (!handleLocalCandidateShortcut(action)) {
+                                sendKey(action.act, action.states.states, action.code)
+                            }
+                        }
                     }
                 }
-                is SymAction -> service.postFcitxJob {
-                    if (!handleLocalCandidateShortcut(action)) {
-                        sendKey(action.sym, action.states)
+                is SymAction -> {
+                    val qp = windowManager.attachedWindow() as? QuickPhraseWindow
+                    if (qp != null) {
+                        qp.consumeKey(null, action.sym.keyCode)
+                    } else {
+                        service.postFcitxJob {
+                            if (!handleLocalCandidateShortcut(action)) {
+                                sendKey(action.sym, action.states)
+                            }
+                        }
                     }
                 }
                 is CommitAction -> service.postFcitxJob {
                     commitAndReset()
                     service.lifecycleScope.launch { service.commitText(action.text) }
                 }
-                is QuickPhraseAction -> service.postFcitxJob {
-                    commitAndReset()
-                    triggerQuickPhrase()
+                is QuickPhraseAction -> {
+                    fcitx.launchOnReady { it.commitAndReset() }
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(QuickPhraseWindow())
                 }
                 is UnicodeAction -> service.postFcitxJob {
                     commitAndReset()
