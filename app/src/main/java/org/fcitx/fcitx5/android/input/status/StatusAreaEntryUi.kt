@@ -14,6 +14,7 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
@@ -52,19 +53,14 @@ class StatusAreaEntryUi(override val ctx: Context, private val theme: Theme) : U
 
     val textIcon = view(::AutoScaleTextView) {
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20f)
-        // keep original typeface, apply textStyle only
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            // 600 = Semi Bold, 700 = Bold which is too heavy
-            typeface = Typeface.create(typeface, 600, false)
-        } else {
-            setTypeface(typeface, Typeface.BOLD)
-        }
+        typeface = CandidateFont.uiTypeface(ctx, Typeface.BOLD)
     }
 
     val label = textView {
         textSize = 12f
         gravity = gravityCenter
         setTextColor(theme.keyTextColor)
+        typeface = CandidateFont.uiTypeface(ctx)
     }
 
     override val root = object : CustomGestureView(ctx) {

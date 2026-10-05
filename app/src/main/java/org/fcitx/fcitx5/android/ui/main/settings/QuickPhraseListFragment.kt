@@ -272,6 +272,9 @@ class QuickPhraseListFragment : Fragment(), OnItemChangedListener<QuickPhrase> {
                     .setProgress(100, 0, true)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .build().let { nm.notify(id, it) }
+                withContext(Dispatchers.IO) {
+                    QuickPhraseManager.syncPinyinAlias()
+                }
                 viewModel.fcitx.runOnReady {
                     reloadQuickPhrase()
                 }

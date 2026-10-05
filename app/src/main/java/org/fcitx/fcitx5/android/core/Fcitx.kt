@@ -17,6 +17,7 @@ import org.fcitx.fcitx5.android.FcitxApplication
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseManager
 import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeyboardPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
@@ -440,6 +441,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     private val dispatcher = FcitxDispatcher(object : FcitxDispatcher.FcitxController {
         override fun nativeStartup() {
             DataManager.sync()
+            QuickPhraseManager.syncPinyinAlias()
             val locale = Locales.fcitxLocale
             val dataDir = DataManager.dataDir.absolutePath
             val plugins = DataManager.getLoadedPlugins()

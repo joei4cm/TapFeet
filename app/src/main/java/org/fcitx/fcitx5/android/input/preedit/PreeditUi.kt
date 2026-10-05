@@ -16,6 +16,7 @@ import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.text.buildSpannedString
 import org.fcitx.fcitx5.android.core.FcitxEvent
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
@@ -47,6 +48,7 @@ open class PreeditUi(
     private fun createTextView() = textView {
         setTextColor(theme.keyTextColor)
         textSize = 16f
+        typeface = CandidateFont.uiTypeface(ctx)
         setupTextView?.invoke(this)
     }
 

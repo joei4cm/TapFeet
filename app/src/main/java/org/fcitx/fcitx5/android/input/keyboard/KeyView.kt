@@ -25,6 +25,7 @@ import androidx.annotation.FloatRange
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
@@ -258,8 +259,8 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
         text = def.displayText
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize)
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
-        // keep original typeface, apply textStyle only
-        setTypeface(typeface, def.textStyle)
+        // Do not use setTypeface(typeface, style): Typeface.create drops fallbacks.
+        setTypeface(CandidateFont.uiTypeface(ctx, def.textStyle))
         setTextColor(
             when (def.variant) {
                 Variant.Normal -> theme.keyTextColor
@@ -286,7 +287,7 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
         isFocusable = false
         // TODO hardcoded alt text size
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.666667f)
-        setTypeface(typeface, Typeface.BOLD)
+        setTypeface(CandidateFont.uiTypeface(ctx, Typeface.BOLD))
         text = def.altText
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         setTextColor(

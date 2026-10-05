@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
@@ -44,6 +45,7 @@ class ChipStripUi(override val ctx: Context, private val theme: Theme) : Ui {
         items.forEach { (label, click) ->
             row.addView(TextView(ctx).apply {
                 text = label
+                typeface = CandidateFont.uiTypeface(ctx)
                 setTextColor(theme.candidateTextColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                 padding = ctx.dp(8)
