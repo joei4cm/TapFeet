@@ -27,6 +27,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.fcitx.fcitx5.android.input.swipe.FlyTextDownAction
+import org.fcitx.fcitx5.android.input.swipe.FlyTextPaging
 import org.fcitx.fcitx5.android.input.swipe.KeyboardFlyTextSelector
 import org.fcitx.fcitx5.android.input.swipe.SwipeDirection
 import org.fcitx.fcitx5.android.input.swipe.cornerDeleteRegion
@@ -708,7 +709,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private fun executeFlyTextAction(
         action: FlyTextAction,
         selectPos: Int = -1,
-        pageDir: Int = 0,
     ): Boolean {
         when (action) {
             FlyTextAction.None -> return false
@@ -722,11 +722,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             FlyTextAction.CommitLatinOrDismiss -> return flyTextHandleDown()
             FlyTextAction.PageNext, FlyTextAction.PagePrev -> {
                 playHardwareSound(InputFeedbacks.SoundEffect.Standard)
-                var d = if (pageDir != 0) pageDir else 1
-                if (action == FlyTextAction.PagePrev) d = -d
-                if (AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextSwapPage.getValue()) {
-                    d = -d
-                }
+                val d = FlyTextPaging.delta(
+                    action,
+                    AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextSwapPage.getValue(),
+                ) ?: return false
                 if (inputView?.flyPagePicker(d) != true) {
                     if (inputView?.flyPageCandidates(d) != true) {
                         postFcitxJob { offsetCandidatePage(d) }
@@ -1357,7 +1356,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     val hw = AppPrefs.getInstance().hardwareKeyboard
                     val action = if (dir > 0) hw.flyTextLeftAction.getValue()
                     else hw.flyTextRightAction.getValue()
-                    executeFlyTextAction(action, pageDir = dir)
+                    executeFlyTextAction(action)
                 },
                 cornerRegionProvider = {
                     // The top-right corner of the keyboard surface, in display coordinates — the

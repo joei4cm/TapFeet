@@ -502,10 +502,13 @@ class InputView(
     /**
      * Keyboard fly-text paging: page the candidate bar locally ([HorizontalCandidateComponent.page]
      * handles the bar's local paging for bulk candidate lists, where the engine-level
-     * offsetCandidatePage has nothing to move). Returns false when the bar has no candidates so the
-     * caller can fall back to the engine-level paging for the floating CandidatesView.
+     * offsetCandidatePage has nothing to move). Physical-keyboard mode uses the floating
+     * [org.fcitx.fcitx5.android.input.CandidatesView]; paging the (hidden) bar here would swallow
+     * the gesture and leave the window stuck on the same page. Returns false so the caller can
+     * fall through to engine paging.
      */
     internal fun flyPageCandidates(direction: Int): Boolean {
+        if (physicalKeyboardMode) return false
         if (horizontalCandidate.visibleCandidateCount() <= 0) return false
         horizontalCandidate.page(direction)
         return true
