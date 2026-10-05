@@ -119,6 +119,9 @@
     <string name="hw_profile_tt2">Titan2</string>
     <string name="hw_profile_titan2_elite">Titan2 Elite</string>
     <string name="hw_profile_titan2_elite_mod">Titan2 Elite（改键）</string>
+    <string name="hw_apply_elite_mod">套用 Elite 改键巨硬布局</string>
+    <string name="hw_apply_elite_mod_summary">先在系统「快捷键 → 按键设置」把 ⭕️ Home 改成 0、⬛️ 多任务改成 Ctrl，再点这里写入 Titan2 Elite（改键）：巨硬为 0 / 返回 / 空格 / Ctrl / Fn，左右 Shift 翻页。</string>
+    <string name="hw_apply_elite_mod_done">已套用 Titan2 Elite（改键）布局</string>
     <string name="main_header_subtitle">%1$s · %2$s</string>
     <string name="switch_keyboard_preset">切换键盘预设</string>
     <!-- 伪按键显示名（见 HardwareSpecialKeys）：没有 fcitx5 KeySym 的物理功能键 -->
@@ -152,6 +155,8 @@
     <string name="shortcut_voice_input">语音输入</string>
     <string name="shortcut_toggle_ime">切换拼音/英文</string>
     <string name="shortcut_commit_latin">上屏拼音/英文（或收起联想）</string>
+    <string name="shortcut_quick_phrase">快捷短语</string>
+    <string name="shortcut_open_clipboard">打开剪贴板历史</string>
     <string name="shortcut_select_all">全选</string>
     <string name="shortcut_copy">复制</string>
     <string name="shortcut_cut">剪切</string>

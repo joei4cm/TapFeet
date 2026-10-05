@@ -70,6 +70,37 @@ class HardwareKeyProfilesShortcutTest {
     }
 
     @Test
+    fun quickPhraseDefaultsToSymGOnElite() {
+        val values = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.TITAN2_ELITE)
+        assertEquals(
+            HardwareChord.compose(HardwareChord.SYM, "g"),
+            values[ShortcutAction.QuickPhrase]
+        )
+    }
+
+    @Test
+    fun openClipboardDefaultsToSymOOnElite() {
+        val values = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.TITAN2_ELITE)
+        assertEquals(
+            HardwareChord.compose(HardwareChord.SYM, "o"),
+            values[ShortcutAction.OpenClipboard]
+        )
+    }
+
+    @Test
+    fun quickPhraseAndClipboardUseRightShiftOnBlackberry() {
+        val values = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.BLACKBERRY)
+        assertEquals(
+            HardwareChord.compose(HardwareChord.SHIFT_R, "g"),
+            values[ShortcutAction.QuickPhrase]
+        )
+        assertEquals(
+            HardwareChord.compose(HardwareChord.SHIFT_R, "o"),
+            values[ShortcutAction.OpenClipboard]
+        )
+    }
+
+    @Test
     fun eliteSetupHintOnlyOnEliteProfiles() {
         assertTrue(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TITAN2_ELITE))
         assertTrue(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TITAN2_ELITE_MOD))

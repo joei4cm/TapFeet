@@ -101,6 +101,17 @@ enum class ShortcutAction(
      */
     CommitLatin("shortcut_commit_latin_key", R.string.shortcut_commit_latin),
 
+    /**
+     * 打开 fcitx 快捷短语（QuickPhrase）。执行体与虚拟键盘 `QuickPhraseAction` 同一条：
+     * 先上屏/复位再 `triggerQuickPhrase()`。
+     */
+    QuickPhrase("shortcut_quick_phrase_key", R.string.shortcut_quick_phrase),
+
+    /**
+     * 打开输入法剪贴板历史窗口（与工具栏剪贴板按钮同一入口）。
+     */
+    OpenClipboard("shortcut_open_clipboard_key", R.string.shortcut_open_clipboard),
+
     // —— 文本编辑类（chord=FN；作用在焦点编辑器上，经 InputConnection；
     // 编辑器自身给出可见反馈，不弹 Toast）——
     // 字母取自用户敲定的那套 `Fn+字母` 键位表（A/C/X/V/Q/Z + 光标簇 S/F/E/D + 选字簇 U/J/H/K），
