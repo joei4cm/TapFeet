@@ -13,6 +13,7 @@ import androidx.preference.PreferenceManager
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
 import org.fcitx.fcitx5.android.data.InputFeedbacks.SoundScheme
+import org.fcitx.fcitx5.android.data.voice.VoiceAsrKind
 import org.fcitx.fcitx5.android.data.voice.VoiceLanguage
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
@@ -178,6 +179,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 R.string.local_voice_input, "built_in_voice_input", true,
                 R.string.local_voice_input_summary
             )
+        val voiceAsrKind = enumList(
+            R.string.voice_asr_kind, "voice_asr_kind", VoiceAsrKind.SenseVoice
+        ) { builtInVoiceInput.getValue() }
         val voiceAutoStop =
             switch(
                 R.string.voice_auto_stop, "voice_auto_stop", false,
@@ -189,7 +193,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) { voiceAutoStop.getValue() }
         val voiceLanguage = enumList(
             R.string.voice_language, "voice_language", VoiceLanguage.Auto
-        )
+        ) {
+            builtInVoiceInput.getValue() && voiceAsrKind.getValue() == VoiceAsrKind.SenseVoice
+        }
         val showVoiceInputButton =
             switch(R.string.show_voice_input_button, "show_voice_input_button", false)
         val preferredVoiceInput = voiceInputPreference(
