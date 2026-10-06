@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.transition.Slide
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
+import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.CustomKeyConfig
@@ -48,7 +49,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private val bar: KawaiiBarComponent by manager.must()
     private val returnKeyDrawable: ReturnKeyDrawableComponent by manager.must()
 
-    companion object : EssentialWindow.Key
+    companion object : EssentialWindow.Key {
+        const val PreferredText = "@text"
+    }
 
     override val key: EssentialWindow.Key
         get() = KeyboardWindow
@@ -71,15 +74,18 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private val keyboards: HashMap<String, BaseKeyboard> by lazy {
         hashMapOf(
             TextKeyboard.Name to TextKeyboard(context, theme),
-            NumberKeyboard.Name to NumberKeyboard(context, theme)
+            NumberKeyboard.Name to NumberKeyboard(context, theme),
+            NineKeyKeyboard.Name to NineKeyKeyboard(context, theme),
         )
     }
     private var currentKeyboardName = ""
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
 
+    private var lastImeUniqueName = ""
+
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
-    /** 当前布局名（TextKeyboard.Name / NumberKeyboard.Name / CustomKeyboard.Name 等），供上层判断状态 */
+    /** 当前布局名（TextKeyboard.Name / NineKeyKeyboard.Name / NumberKeyboard.Name / CustomKeyboard.Name 等） */
     val currentLayoutName: String get() = currentKeyboardName
 
     /**
@@ -100,6 +106,10 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     val isCustomKeyboardActive: Boolean
         get() = currentKeyboardName == CustomKeyboard.Name && windowManager.isAttached(this)
 
+    fun preferredTextLayout(): String {
+        return AppPrefs.getInstance().keyboard.virtualLayout.getValue().keyboardName
+    }
+
     /** 布局切换通知（InputView 用它刷新键盘窗口高度与触摸区域） */
     var onLayoutSwitched: (() -> Unit)? = null
 
@@ -118,7 +128,16 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         ManagedPreference.OnChangeListener<Boolean> { _, enabled ->
             if (!enabled && currentKeyboardName == CustomKeyboard.Name) {
                 symMode = SymMode.NONE
-                switchLayoutSync(TextKeyboard.Name, remember = false)
+                switchLayoutSync(preferredTextLayout(), remember = false)
+            }
+        }
+
+    @Keep
+    private val virtualLayoutListener =
+        ManagedPreference.OnChangeListener<VirtualLayout> { _, layout ->
+            val name = layout.keyboardName
+            if (VirtualLayout.isTextLayout(currentKeyboardName) && currentKeyboardName != name) {
+                switchLayoutSync(name, remember = false)
             }
         }
 
@@ -139,11 +158,12 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         keyboardView = context.frameLayout(R.id.keyboard_view)
         // 首帧布局跟随 [currentKeyboardName]（由 onStartInput / switchLayoutSync 预置），
         // 避免「先全高主键盘、后单行自定义」的闪烁
-        attachLayout(currentKeyboardName.ifEmpty { TextKeyboard.Name })
+        attachLayout(currentKeyboardName.ifEmpty { preferredTextLayout() })
         // 监听自定义键盘配置变化：保存后若正在显示自定义键盘，立即重建生效
         AppPrefs.getInstance().customKeyboard.keys.registerOnChangeListener(customKeyboardKeysListener)
         // 监听总开关：关闭时若正显示自定义键盘，立即切回主键盘
         AppPrefs.getInstance().customKeyboard.enabled.registerOnChangeListener(customKeyboardEnabledListener)
+        AppPrefs.getInstance().keyboard.virtualLayout.registerOnChangeListener(virtualLayoutListener)
         return keyboardView
     }
 
@@ -184,28 +204,35 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     private fun doSwitchLayout(target: String, remember: Boolean) {
+        val dest = if (target == PreferredText) preferredTextLayout() else target
         // 总开关兜底：关闭后任何入口（Sym 循环 / 状态栏⑩ / 符号键盘⑩ / 恢复上次态）都打不开自定义键盘
-        if (target == CustomKeyboard.Name && !AppPrefs.getInstance().customKeyboard.enabled.getValue()) {
+        if (dest == CustomKeyboard.Name && !AppPrefs.getInstance().customKeyboard.enabled.getValue()) {
             if (symMode == SymMode.CUSTOM) symMode = SymMode.NONE
             return
         }
-        if (keyboards.containsKey(target) || target == CustomKeyboard.Name) {
+        if (keyboards.containsKey(dest) || dest == CustomKeyboard.Name) {
             // 自定义键盘不进 lastSymbolType，保证 ?123 始终回符号选择器
-            if (remember && target != TextKeyboard.Name && target != CustomKeyboard.Name) {
-                lastSymbolType = target
+            if (remember && !VirtualLayout.isTextLayout(dest) && dest != CustomKeyboard.Name) {
+                lastSymbolType = dest
             }
             // 自定义键盘每次进入都重建（构造时读配置），同布局 toggle（收起再开）也要拿到最新配置
-            if (target == currentKeyboardName && target != CustomKeyboard.Name) return
+            if (dest == currentKeyboardName && dest != CustomKeyboard.Name) return
             // 切换布局时清掉可能残留的长按弹出层
             popup.dismissAll()
             detachCurrentLayout()
-            if (target == CustomKeyboard.Name) {
+            if (dest == CustomKeyboard.Name) {
                 // 用户配置在构造时读取，每次切换重建即拿到最新配置
                 keyboards[CustomKeyboard.Name] = CustomKeyboard(context, theme)
             }
-            attachLayout(target)
+            attachLayout(dest)
+            if (VirtualLayout.isTextLayout(dest)) {
+                AppPrefs.getInstance().keyboard.virtualLayout.setValue(
+                    VirtualLayout.fromKeyboardName(dest)
+                )
+                T9Session.clear()
+            }
             // 记录当前 Sym 三态：自定义键盘 → CUSTOM；主键盘 / 数字键盘 → NONE
-            symMode = if (target == CustomKeyboard.Name) SymMode.CUSTOM else SymMode.NONE
+            symMode = if (dest == CustomKeyboard.Name) SymMode.CUSTOM else SymMode.NONE
             if (windowManager.isAttached(this)) {
                 notifyBarLayoutChanged()
             }
@@ -239,7 +266,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                 val targetLayout = when (info.inputType and InputType.TYPE_MASK_CLASS) {
                     InputType.TYPE_CLASS_NUMBER -> NumberKeyboard.Name
                     InputType.TYPE_CLASS_PHONE -> NumberKeyboard.Name
-                    else -> TextKeyboard.Name
+                    else -> preferredTextLayout()
                 }
                 switchLayout(targetLayout, remember = false)
             }
@@ -247,7 +274,19 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
+        if (lastImeUniqueName != ime.uniqueName) {
+            lastImeUniqueName = ime.uniqueName
+            T9Session.clear()
+        }
         currentKeyboard?.onInputMethodUpdate(ime)
+    }
+
+    override fun onPreeditEmptyStateUpdate(empty: Boolean) {
+        T9Session.onPreeditEmpty(empty)
+    }
+
+    override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
+        T9Session.onPanelLatin(data.preedit.toString())
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {

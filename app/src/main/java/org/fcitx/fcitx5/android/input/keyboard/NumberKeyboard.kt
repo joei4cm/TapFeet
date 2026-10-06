@@ -43,7 +43,7 @@ class NumberKeyboard(
                 BackspaceKey()
             ),
             listOf(
-                LayoutSwitchKey("ABC", TextKeyboard.Name),
+                LayoutSwitchKey("ABC", KeyboardWindow.PreferredText),
                 NumPadKey(",", 0xffac, 23f, 0.1f, KeyDef.Appearance.Variant.Alternative),
                 PanelCycleKey("!?#", 0.13333f, KeyDef.Appearance.Variant.AltForeground),
                 NumPadKey("0", 0xffb0, 30f, 0.23334f),

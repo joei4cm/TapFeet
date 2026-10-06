@@ -44,7 +44,7 @@ class PickerLayout(
         context, theme,
         listOf(
             buildList {
-                add(LayoutSwitchKey("ABC", TextKeyboard.Name))
+                add(LayoutSwitchKey("ABC", KeyboardWindow.PreferredText))
                 add(commaKey)
                 add(switchKey)
                 // 总开关（AppPrefs.CustomKeyboard.enabled）关闭时不放⑩键；SpaceKey(0f) 自动吸收余宽，底排无空隙

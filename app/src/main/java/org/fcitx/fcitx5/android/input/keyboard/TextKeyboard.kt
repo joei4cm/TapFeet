@@ -66,7 +66,8 @@ class TextKeyboard(
                 BackspaceKey()
             ),
             listOf(
-                LayoutSwitchKey("?123", ""),
+                LayoutSwitchKey("9键", NineKeyKeyboard.Name, 0.12f),
+                LayoutSwitchKey("?123", "", 0.12f),
                 CommaKey(0.1f, KeyDef.Appearance.Variant.Alternative),
                 LanguageKey(),
                 SpaceKey(),

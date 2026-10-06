@@ -33,6 +33,9 @@ sealed class KeyAction {
 
     data class LayoutSwitchAction(val act: String = "") : KeyAction()
 
+    /** 9 键 2–9：中文智能拼音 / 英文多击。 */
+    data class T9DigitAction(val digit: Char) : KeyAction()
+
     data class MoveSelectionAction(val start: Int = 0, val end: Int = 0) : KeyAction()
 
     data class DeleteSelectionAction(val totalCnt: Int = 0) : KeyAction()
