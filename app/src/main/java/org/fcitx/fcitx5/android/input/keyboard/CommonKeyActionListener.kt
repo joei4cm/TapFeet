@@ -172,6 +172,12 @@ class CommonKeyActionListener :
                         qp.consumeKey(null, action.sym.keyCode)
                     } else {
                         service.postFcitxJob {
+                            val isBackspace =
+                                action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace ||
+                                    action.sym.keyCode == KeyEvent.KEYCODE_DEL
+                            if (isBackspace && T9Session.onBackspace(this)) {
+                                return@postFcitxJob
+                            }
                             if (!handleLocalCandidateShortcut(action)) {
                                 sendKey(action.sym, action.states)
                             }
@@ -254,6 +260,18 @@ class CommonKeyActionListener :
                     }
                 }
                 is PanelCycleAction -> onPanelCycle?.invoke()
+                is KeyAction.T9DigitAction -> {
+                    service.postFcitxJob {
+                        val zh = inputMethodEntryCached.languageCode.startsWith("zh")
+                        if (action.digit == '1') {
+                            commitAndReset()
+                            val punct = if (zh) "，" else ","
+                            service.lifecycleScope.launch { service.commitText(punct) }
+                        } else {
+                            T9Session.onDigit(action.digit, zh, this)
+                        }
+                    }
+                }
                 is SpaceLongPressAction -> {
                     when (spaceKeyLongPressBehavior) {
                         SpaceLongPressBehavior.None -> {}

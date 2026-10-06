@@ -53,6 +53,7 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.input.keyboard.VirtualLayout
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.picker.emojiPicker
 import org.fcitx.fcitx5.android.input.picker.emoticonPicker
@@ -239,11 +240,9 @@ class InputView(
         keyboardWindow.onLayoutSwitched = {
             updateKeyboardSize()
             service.requestInsetsUpdate()
-            // 物理键盘模式下，从符号/自定义会话返回主键盘（TextKeyboard）时收起虚拟键盘。
-            // 自 Sym 改为「符号↔自定义」二态循环后，Sym 不再回主键盘，故在此兜底收起，
-            // 覆盖符号面板 ABC 键、自定义键盘下滑返回等回主键盘路径。
+            // 物理键盘模式下，从符号/自定义会话返回主键盘（26 键或 9 键）时收起虚拟键盘。
             if (physicalKeyboardMode && isInputViewRevealed() &&
-                keyboardWindow.currentLayoutName == TextKeyboard.Name) {
+                VirtualLayout.isTextLayout(keyboardWindow.currentLayoutName)) {
                 visibility = View.GONE
             }
         }
@@ -1109,7 +1108,7 @@ class InputView(
                 if (!windowManager.isAttached(keyboardWindow)) {
                     windowManager.attachWindow(KeyboardWindow)
                 }
-                keyboardWindow.switchLayout(TextKeyboard.Name)
+                keyboardWindow.switchLayout(keyboardWindow.preferredTextLayout())
                 // 关闭：隐藏虚拟键盘（与状态栏「隐藏键盘」按钮同路，setKeyboardWindowVisible(false)），
                 // 让面板循环回到无软键盘态；物理键盘继续工作，IME 顶栏仍可见。
                 // 不复自行 GONE InputView——会连带藏掉顶栏，且 physicalKeyboardMode 在 Disabled 默认下恒 false 误判。

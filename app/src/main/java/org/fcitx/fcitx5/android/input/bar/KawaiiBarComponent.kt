@@ -75,7 +75,7 @@ import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
-import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.input.keyboard.VirtualLayout
 import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.PanelModule
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
@@ -535,12 +535,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
             keyboardToggleButton.setOnClickListener {
                 // 主键盘开关：显示中且是主键盘 → 关闭；否则 → 打开主键盘
-                if (windowManager.isKeyboardWindowVisible() && keyboardWindow.currentLayoutName == TextKeyboard.Name) {
+                if (windowManager.isKeyboardWindowVisible() &&
+                    VirtualLayout.isTextLayout(keyboardWindow.currentLayoutName)
+                ) {
                     noteUserHide()
                     windowManager.setKeyboardWindowVisible(false)
                 } else {
                     windowManager.setKeyboardWindowVisible(true)
-                    keyboardWindow.switchLayoutSync(TextKeyboard.Name)
+                    keyboardWindow.switchLayoutSync(keyboardWindow.preferredTextLayout())
                 }
                 updateKeyboardToggleButton()
             }
@@ -616,12 +618,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
             keyboardToggleButton.setOnClickListener {
                 // 主键盘开关：显示中且是主键盘 → 关闭；否则 → 打开主键盘
-                if (windowManager.isKeyboardWindowVisible() && keyboardWindow.currentLayoutName == TextKeyboard.Name) {
+                if (windowManager.isKeyboardWindowVisible() &&
+                    VirtualLayout.isTextLayout(keyboardWindow.currentLayoutName)
+                ) {
                     noteUserHide()
                     windowManager.setKeyboardWindowVisible(false)
                 } else {
                     windowManager.setKeyboardWindowVisible(true)
-                    keyboardWindow.switchLayoutSync(TextKeyboard.Name)
+                    keyboardWindow.switchLayoutSync(keyboardWindow.preferredTextLayout())
                 }
                 updateKeyboardToggleButton()
             }

@@ -23,6 +23,7 @@ import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fcitx.fcitx5.android.input.effects.EffectMode
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fcitx.fcitx5.android.input.keyboard.VirtualLayout
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.input.keyboard.SpaceLongPressBehavior
 import org.fcitx.fcitx5.android.input.keyboard.SwipeSymbolDirection
@@ -155,6 +156,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             soundOnKeyPress.getValue() != InputFeedbackMode.Disabled
         }
         init { category(R.string.cat_keyboard_layout) }
+        val virtualLayout = enumList(
+            R.string.virtual_layout, "virtual_layout", VirtualLayout.Qwerty
+        )
         val focusChangeResetKeyboard =
             switch(R.string.reset_keyboard_on_focus_change, "reset_keyboard_on_focus_change", true)
         val autoShowKeyboardWeChat = switch(

@@ -4,10 +4,10 @@
 # TapFeet IME · 大脚输入法
 
 
-> 本项目基于 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 二次开发，**专为 Android 物理全键盘手机打造的中文输入法**。   
-> 原项目将 [Fcitx5](https://github.com/fcitx/fcitx5) 输入法框架及各类引擎移植到 Android 平台，本仓库在此基础上针对实体键盘输入场景做了深度优化。
+> 本项目基于 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 二次开发，**一套 APK 同时支持实体全键盘手机和普通全触摸安卓手机**。   
+> 原项目将 [Fcitx5](https://github.com/fcitx/fcitx5) 输入法框架及各类引擎移植到 Android 平台，本仓库在此基础上针对实体键盘做了深度优化，并提供屏幕全键盘 / 九键（中英）。
 > 
-> 诞生于 Q25（BlackBerry Classic Q20 复刻机）的适配需求，现已扩展支持 **Unihertz Titan 2 / Titan 2 Elite**、**BlackBerry KEY 系列** 等主流物理键盘 Android 设备。首次安装会按机型自动套用对应键盘预设。 
+> 诞生于 Q25（BlackBerry Classic Q20 复刻机）的适配需求，现已支持 **Unihertz Titan 2 / Titan 2 Elite**、**BlackBerry KEY 系列**，以及任意全触摸 Android 手机。实体键盘机首次安装会按机型自动套用对应键盘预设。 
 
 ---
 
@@ -24,8 +24,22 @@
 | **Q25** | Q25 (BlackBerry Classic 复刻) | ✅ 深度适配 |
 | **Unihertz Titan 系列** | Titan 2 / Titan 2 Elite / Titan Slim / Titan Pocket | ✅ 已适配 |
 | **BlackBerry KEY 系列** | KEYone / KEY2 / KEY2 LE | ✅ 已适配 |
+| **普通全触摸安卓** | 任意无实体键盘的手机 / 平板 | ✅ 屏幕 26 键 / 九键 |
 
-> 理论上支持所有搭载实体 QWERTY 键盘的 Android 设备。以上为已实测型号，其他设备欢迎 [提交反馈](https://github.com/izilooong/TapFeet/issues)。
+> 实体 QWERTY 机与普通触摸机共用同一 APK。以上为已实测的物理键盘型号；触摸机用默认屏幕键盘即可，其他设备欢迎 [提交反馈](https://github.com/izilooong/TapFeet/issues)。
+
+---
+
+## 📱 屏幕键盘（触摸机 / 收起实体键盘时）
+
+默认 26 键全键盘；左下角 **9键** 切九键，**26键** 切回来。「设置 → 键盘 → 屏幕键盘」会记住上次布局。数字/符号页的 **ABC** 回到当前选中的那种。
+
+| 布局 | 中文 | 英文 |
+| --- | --- | --- |
+| 26 键 | 逐字母拼音 | 逐字母 + 单词联想 |
+| 九键 | 2–9 数字串解成拼音出候选 | 多击循环字母 + 单词联想 |
+
+双拼、五笔请用 26 键。实体键盘机若只想用物理键：点顶栏键盘按钮收起屏幕键盘，或把「候选窗口 → 显示模式」设为「根据输入设备而定」。
 
 ---
 

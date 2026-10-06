@@ -77,7 +77,7 @@ class CustomKeyboard(
                 if (ev.eventTime - gestureDownTime < swipeBackTimeThresholdMs &&
                     ev.y - gestureDownY > swipeBackDistancePx
                 ) {
-                    onAction(KeyAction.LayoutSwitchAction(TextKeyboard.Name))
+                    onAction(KeyAction.LayoutSwitchAction(KeyboardWindow.PreferredText))
                     return true
                 }
                 return false

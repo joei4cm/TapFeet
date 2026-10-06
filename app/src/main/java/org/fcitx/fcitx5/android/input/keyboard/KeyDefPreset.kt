@@ -321,6 +321,36 @@ class TextPickerSwitchKey(
     )
 )
 
+class T9Key(
+    digit: Char,
+    letters: String,
+) : KeyDef(
+    Appearance.AltText(
+        displayText = digit.toString(),
+        altText = letters,
+        textSize = 22f,
+        percentWidth = 0.333f,
+    ),
+    setOf(
+        Behavior.Press(KeyAction.T9DigitAction(digit))
+    ),
+    if (digit == '1') {
+        arrayOf(
+            Popup.Preview("，"),
+            Popup.Keyboard.Explicit(arrayOf("，", "。", "？", "！", "、", "…")),
+        )
+    } else {
+        val chars = T9Pinyin.lettersByDigit[digit]
+            ?.map { it.toString() }
+            ?.toTypedArray()
+            ?: emptyArray()
+        arrayOf(
+            Popup.AltPreview(digit.toString(), letters),
+            Popup.Keyboard.Explicit(chars + digit.toString()),
+        )
+    }
+)
+
 class MiniSpaceKey : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_space_bar_24,
