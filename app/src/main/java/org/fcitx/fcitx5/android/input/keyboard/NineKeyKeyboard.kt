@@ -44,11 +44,17 @@ class NineKeyKeyboard(
                 T9Key('9', "WXYZ"),
             ),
             listOf(
-                LayoutSwitchKey("26键", TextKeyboard.Name, 0.16f),
+                LayoutSwitchKey(
+                    "26键",
+                    TextKeyboard.Name,
+                    0.18f,
+                    longPressTo = "",
+                    altHint = "?123",
+                ),
                 LanguageKey(),
                 SpaceKey(),
-                ReturnKey(0.16f),
                 BackspaceKey(0.16f),
+                ReturnKey(0.16f),
             ),
         )
     }

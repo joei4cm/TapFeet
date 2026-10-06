@@ -49,7 +49,14 @@ class VoiceAsrTranscriptTest {
             VoiceAsrReady.senseVoice(
                 VoiceAsrReady.SENSE_VOICE_MODEL_MIN_BYTES,
                 VoiceAsrReady.SENSE_VOICE_TOKENS_MIN_BYTES,
-                VoiceAsrReady.VAD_MIN_BYTES,
+                643_854L,
+            )
+        )
+        assertFalse(
+            VoiceAsrReady.senseVoice(
+                VoiceAsrReady.SENSE_VOICE_MODEL_MIN_BYTES,
+                VoiceAsrReady.SENSE_VOICE_TOKENS_MIN_BYTES,
+                100L,
             )
         )
         assertFalse(
