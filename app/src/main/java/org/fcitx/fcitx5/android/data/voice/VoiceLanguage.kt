@@ -11,6 +11,7 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceEnum
  * SenseVoice 的识别语言。[code] 直通 sherpa-onnx 的 `language` 参数
  * （合法值 auto / zh / en / ja / ko / yue，见 sherpa-onnx offline-sense-voice-model-config.cc）。
  * 模型本身是五语种一体的，切换语言不需要换模型，只需重建识别器换注入的语言标记。
+ * Qwen3-ASR 自带语种检测，设置里选 Qwen3 时不显示此项。
  */
 enum class VoiceLanguage(val code: String, override val stringRes: Int) : ManagedPreferenceEnum {
     Auto("auto", R.string.voice_language_auto),

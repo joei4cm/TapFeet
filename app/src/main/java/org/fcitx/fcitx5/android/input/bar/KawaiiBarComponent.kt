@@ -439,20 +439,21 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             AppUtil.launchMainToRecordAudioPermission(context)
             return
         }
-        when (VoiceModelManager.state.value) {
-            is VoiceModelManager.State.Downloading ->
+        when {
+            VoiceModelManager.isDownloadingSelected() ||
+                (VoiceModelManager.isDownloadInProgress() && !VoiceModelManager.isReady()) ->
                 context.toast(R.string.voice_input_model_downloading)
 
-            VoiceModelManager.State.Ready -> {
+            VoiceModelManager.isReady() -> {
                 voiceInputController.start()
                 if (voiceInputController.state == VoiceInputController.State.Recording) {
                     context.toast(R.string.voice_input_listening)
                 }
             }
 
-            VoiceModelManager.State.NotDownloaded,
-            is VoiceModelManager.State.Error -> {
-                context.toast(R.string.voice_input_model_download_start)
+            else -> {
+                val mb = VoiceModelManager.selectedKind().approxSizeMb
+                context.toast(context.getString(R.string.voice_input_model_download_start, mb))
                 VoiceModelManager.ensureDownloaded(
                     onSuccess = {
                         context.toast(R.string.voice_input_model_download_done)
