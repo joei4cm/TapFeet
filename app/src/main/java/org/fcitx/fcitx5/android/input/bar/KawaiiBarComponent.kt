@@ -401,7 +401,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                         else -> R.string.voice_input_unavailable
                     }
                 )
-            }
+            },
+            onMicReceiving = {
+                // Elite 物理键按住说话时工具栏可能不可见，音浪看不到；进声时再 Toast 一次确认
+                idleUi.voiceInputSlot.contentDescription =
+                    context.getString(R.string.voice_input_receiving)
+                context.toast(R.string.voice_input_receiving)
+            },
         )
     }
 

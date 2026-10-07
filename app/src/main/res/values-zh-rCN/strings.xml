@@ -486,6 +486,7 @@
     <string name="voice_asr_kind_qwen3">Qwen3-ASR 0.6B（约 940 MB，更准更慢）</string>
     <string name="voice_input">语音输入</string>
     <string name="voice_input_listening">正在聆听…</string>
+    <string name="voice_input_receiving">麦克风已接收</string>
     <string name="voice_input_recognizing">正在识别…</string>
     <string name="voice_input_model_download_start">开始下载语音模型（约 %1$d MB）…</string>
     <string name="voice_input_model_downloading">语音模型下载中…</string>

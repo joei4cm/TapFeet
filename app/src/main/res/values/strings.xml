@@ -490,6 +490,7 @@
     <string name="voice_asr_kind_qwen3">Qwen3-ASR 0.6B (~940 MB, slower, more accurate)</string>
     <string name="voice_input">Voice input</string>
     <string name="voice_input_listening">Listening…</string>
+    <string name="voice_input_receiving">Mic is picking up</string>
     <string name="voice_input_recognizing">Recognizing…</string>
     <string name="voice_input_model_download_start">Downloading voice model (about %1$d MB)…</string>
     <string name="voice_input_model_downloading">Voice model is downloading…</string>

@@ -47,6 +47,8 @@ class VoiceInputController(
     private val onStateChanged: (State) -> Unit,
     private val onAudioLevel: (Float) -> Unit,
     private val onError: (String) -> Unit,
+    /** 本会话首次检测到非静音采样时回调一次（物理键盘看不到工具栏音浪时的进声确认）。 */
+    private val onMicReceiving: () -> Unit = {},
 ) {
     enum class State {
         Idle, Recording, Recognizing
@@ -87,6 +89,10 @@ class VoiceInputController(
     /** 本会话是否有过识别失败（模型加载 / OOM / decode）。 */
     @Volatile
     private var recognizeFailed = false
+
+    /** 本会话是否已发过「麦克风已接收」提示。 */
+    @Volatile
+    private var micReceivingNotified = false
 
     // 录音循环复用的转换缓冲与前文缓冲：每 0.1s 的音频不再各 new 一个数组（低端机 GC 抖动）
     private val chunkFloats = FloatArray(SAMPLE_RATE / 10)
@@ -163,6 +169,7 @@ class VoiceInputController(
         sessionAborted = false
         sessionPeakAbs = 0f
         recognizeFailed = false
+        micReceivingNotified = false
         sessionId += 1
         prerollLen = 0
         mainHandler.removeCallbacks(releaseRecognizerRunnable)
@@ -297,6 +304,10 @@ class VoiceInputController(
                     if (a > peakAbs) peakAbs = a
                 }
                 sessionPeakAbs = peakAbs
+                if (!micReceivingNotified && !VoiceCaptureSupport.isNearSilence(peakAbs)) {
+                    micReceivingNotified = true
+                    mainHandler.post { onMicReceiving() }
+                }
                 // 音量动画：RMS 映射到 0..1
                 var sum = 0f
                 for (i in 0 until n) sum += chunkFloats[i] * chunkFloats[i]
