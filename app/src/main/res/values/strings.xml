@@ -490,6 +490,7 @@
     <string name="voice_asr_kind_qwen3">Qwen3-ASR 0.6B (~940 MB, slower, more accurate)</string>
     <string name="voice_input">Voice input</string>
     <string name="voice_input_listening">Listening…</string>
+    <string name="voice_input_receiving">Mic is picking up</string>
     <string name="voice_input_recognizing">Recognizing…</string>
     <string name="voice_input_model_download_start">Downloading voice model (about %1$d MB)…</string>
     <string name="voice_input_model_downloading">Voice model is downloading…</string>
@@ -503,6 +504,8 @@
     <string name="voice_model_status_error">Failed: %1$s. Tap to retry.</string>
     <string name="voice_input_permission_required">Microphone permission is required for voice input</string>
     <string name="voice_input_unavailable">Voice input is unavailable</string>
+    <string name="voice_input_no_speech">No speech detected — hold longer and speak closer to the mic</string>
+    <string name="voice_input_recognize_failed">Voice recognition failed — try again</string>
     <string name="fcitx_daemon">Fcitx Daemon</string>
     <string name="restarting_fcitx">Restarting Fcitx</string>
     <string name="plugin_needs_reload">Plugin changes detected, click here to reload</string>
