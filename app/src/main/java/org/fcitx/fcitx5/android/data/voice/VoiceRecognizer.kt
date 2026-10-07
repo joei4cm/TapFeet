@@ -53,8 +53,10 @@ object VoiceRecognizer {
             loadedKind = kind
             loadedLanguage = language
             true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // OutOfMemoryError 等 Error 也要卸掉半初始化状态，否则 Elite 上 Qwen3 一崩就再也起不来
             Timber.e(e, "failed to load voice model kind=%s", kind)
+            release()
             false
         }
     }
@@ -108,8 +110,9 @@ object VoiceRecognizer {
             } finally {
                 stream.release()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "voice recognition failed kind=%s", kind)
+            if (e is OutOfMemoryError) release()
             null
         }
     }

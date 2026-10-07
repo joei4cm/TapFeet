@@ -391,7 +391,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             },
             onStateChanged = { updateVoiceInputButton(it) },
             onAudioLevel = { idleUi.voiceWaveView.level = it },
-            onError = { context.toast(R.string.voice_input_unavailable) }
+            onError = { msg ->
+                Timber.w("voice input error: %s", msg)
+                context.toast(
+                    when (msg) {
+                        VoiceInputController.ERR_NO_AUDIO,
+                        VoiceInputController.ERR_NO_SPEECH -> R.string.voice_input_no_speech
+                        VoiceInputController.ERR_RECOGNIZE -> R.string.voice_input_recognize_failed
+                        else -> R.string.voice_input_unavailable
+                    }
+                )
+            }
         )
     }
 

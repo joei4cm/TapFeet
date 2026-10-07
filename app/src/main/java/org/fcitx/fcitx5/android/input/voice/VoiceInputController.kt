@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.voice.VoiceModelManager
 import org.fcitx.fcitx5.android.data.voice.VoiceRecognizer
 import timber.log.Timber
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
@@ -35,6 +36,9 @@ import kotlin.math.sqrt
  *
  * [onAudioLevel] 每 0.1s 发一次当前音量（0..1），驱动录音动画。
  * 所有回调均在主线程发出。
+ *
+ * Titan Elite 等 OEM 上 [MediaRecorder.AudioSource.VOICE_RECOGNITION] 常能初始化却只吐静音，
+ * 所以录音源按优先级回退，并在会话前 ~1s 仍近乎静音时热切换到下一个源。
  */
 class VoiceInputController(
     context: Context,
@@ -72,6 +76,18 @@ class VoiceInputController(
     @Volatile
     private var sessionId = 0
 
+    /** destroy 置位：空结果不要弹「未检测到声音」。 */
+    @Volatile
+    private var sessionAborted = false
+
+    /** 本会话读到的峰值幅度（float PCM abs）。 */
+    @Volatile
+    private var sessionPeakAbs = 0f
+
+    /** 本会话是否有过识别失败（模型加载 / OOM / decode）。 */
+    @Volatile
+    private var recognizeFailed = false
+
     // 录音循环复用的转换缓冲与前文缓冲：每 0.1s 的音频不再各 new 一个数组（低端机 GC 抖动）
     private val chunkFloats = FloatArray(SAMPLE_RATE / 10)
     private val prerollBuf = FloatArray(PRE_ROLL_SAMPLES)
@@ -83,6 +99,7 @@ class VoiceInputController(
     }
 
     private var recorder: AudioRecord? = null
+    private var audioSourceIndex = 0
     private var vad: Vad? = null
     private var captureJob: Job? = null
     private val pendingRecognitions = mutableListOf<Job>()
@@ -105,13 +122,18 @@ class VoiceInputController(
             onError("voice model not ready")
             return
         }
-        val rec = try {
-            createRecorder()
+        val opened = try {
+            openRecorderFrom(0)
         } catch (e: Exception) {
             Timber.e(e, "failed to create AudioRecord")
             onError(e.message ?: "AudioRecord init failed")
             return
         }
+        if (opened == null) {
+            onError("AudioRecord not initialized")
+            return
+        }
+        val (rec, sourceIdx) = opened
         val localVad = try {
             Vad(
                 config = VadModelConfig(
@@ -129,21 +151,25 @@ class VoiceInputController(
             )
         } catch (e: Exception) {
             Timber.e(e, "failed to create Vad")
-            rec.release()
+            releaseRecorder(rec)
             onError(e.message ?: "VAD init failed")
             return
         }
         recorder = rec
+        audioSourceIndex = sourceIdx
         vad = localVad
         recording = true
         sessionText = ""
+        sessionAborted = false
+        sessionPeakAbs = 0f
+        recognizeFailed = false
         sessionId += 1
         prerollLen = 0
         mainHandler.removeCallbacks(releaseRecognizerRunnable)
         // 预热识别器：与录音并行，用户说完第一句时通常已就绪
         preload()
         captureJob = scope.launch(Dispatchers.IO) {
-            captureLoop(rec, localVad)
+            captureLoop(rec, sourceIdx, localVad)
         }
         setState(State.Recording)
     }
@@ -173,21 +199,29 @@ class VoiceInputController(
                 localVad.release()
             }
             vad = null
-            recorder?.let {
-                try {
-                    it.stop()
-                } catch (_: Exception) {
-                }
-                it.release()
-            }
+            recorder?.let { releaseRecorder(it) }
             recorder = null
             val pending = synchronized(pendingRecognitions) { pendingRecognitions.toList() }
             pending.forEach { it.join() }
             synchronized(pendingRecognitions) { pendingRecognitions.clear() }
             val text = sessionText
+            val peak = sessionPeakAbs
+            val failed = recognizeFailed
+            val aborted = sessionAborted
             sessionText = ""
             if (mySession == sessionId) {
-                mainHandler.post { onSessionEnd(text) }
+                mainHandler.post {
+                    if (text.isEmpty() && !aborted) {
+                        onError(
+                            when {
+                                VoiceCaptureSupport.isNearSilence(peak) -> ERR_NO_AUDIO
+                                failed -> ERR_RECOGNIZE
+                                else -> ERR_NO_SPEECH
+                            }
+                        )
+                    }
+                    onSessionEnd(text)
+                }
                 setState(State.Idle)
                 // 空闲释放：60s 内没有新会话就把 ~300MB 的识别器放掉
                 mainHandler.removeCallbacks(releaseRecognizerRunnable)
@@ -204,6 +238,7 @@ class VoiceInputController(
     @Synchronized
     fun destroy() {
         recording = false
+        sessionAborted = true
         sessionId += 1 // 顶掉在途的 stop 收尾协程
         captureJob?.cancel()
         captureJob = null
@@ -211,10 +246,7 @@ class VoiceInputController(
             runCatching { it.release() }
         }
         vad = null
-        recorder?.let {
-            runCatching { it.stop() }
-            runCatching { it.release() }
-        }
+        recorder?.let { releaseRecorder(it) }
         recorder = null
         synchronized(pendingRecognitions) { pendingRecognitions.forEach { it.cancel() } }
         synchronized(pendingRecognitions) { pendingRecognitions.clear() }
@@ -227,38 +259,29 @@ class VoiceInputController(
         setState(State.Idle)
     }
 
-    private fun createRecorder(): AudioRecord {
-        val minBuf = AudioRecord.getMinBufferSize(
-            SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
-        )
-        val bufferSize = maxOf(minBuf * 2, SAMPLE_RATE / 5 * 2)
-        val rec = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSize,
-        )
-        if (rec.state != AudioRecord.STATE_INITIALIZED) {
-            rec.release()
-            throw IllegalStateException("AudioRecord not initialized")
-        }
-        rec.startRecording()
-        return rec
-    }
-
-    private fun captureLoop(rec: AudioRecord, localVad: Vad) {
+    private fun captureLoop(initialRec: AudioRecord, initialSourceIdx: Int, localVad: Vad) {
         val buf = ShortArray(SAMPLE_RATE / 10) // 0.1s
         val voiceAutoStop = AppPrefs.getInstance().keyboard.voiceAutoStop
         val voiceAutoStopSeconds = AppPrefs.getInstance().keyboard.voiceAutoStopSeconds
         var elapsedMs = 0L
         // 距上次语音活动的时刻；0 = 尚未说话（没说话也在计时：开了自动结束就别让会话挂死）
         var lastVoiceMs = 0L
+        var currentRec = initialRec
+        var sourceIdx = initialSourceIdx
+        var triedSilenceFallback = false
+        var peakAbs = 0f
         try {
             while (recording) {
-                val n = rec.read(buf, 0, buf.size)
+                val n = currentRec.read(buf, 0, buf.size)
                 if (n <= 0) {
-                    Timber.w("AudioRecord.read returned $n")
+                    Timber.w("AudioRecord.read returned $n source=%d", AUDIO_SOURCES[sourceIdx])
+                    // 读失败时立刻换源，别整段会话白录
+                    val swapped = swapRecorderIfPossible(currentRec, sourceIdx + 1)
+                    if (swapped != null) {
+                        currentRec = swapped.first
+                        sourceIdx = swapped.second
+                        continue
+                    }
                     break
                 }
                 elapsedMs += n * 1000L / SAMPLE_RATE
@@ -269,11 +292,37 @@ class VoiceInputController(
                 }
                 // 就地转换到复用缓冲（不分配）
                 for (i in 0 until n) chunkFloats[i] = buf[i] / 32768f
+                for (i in 0 until n) {
+                    val a = abs(chunkFloats[i])
+                    if (a > peakAbs) peakAbs = a
+                }
+                sessionPeakAbs = peakAbs
                 // 音量动画：RMS 映射到 0..1
                 var sum = 0f
                 for (i in 0 until n) sum += chunkFloats[i] * chunkFloats[i]
                 val rms = sqrt(sum / n)
                 mainHandler.post { onAudioLevel((rms * 4f).coerceIn(0f, 1f)) }
+                // Elite 等机：VOICE_RECOGNITION 初始化成功但只吐近零；约 1s 后热切 MIC
+                if (!triedSilenceFallback &&
+                    elapsedMs >= SILENCE_FALLBACK_MS &&
+                    VoiceCaptureSupport.isNearSilence(peakAbs)
+                ) {
+                    triedSilenceFallback = true
+                    val swapped = swapRecorderIfPossible(currentRec, sourceIdx + 1)
+                    if (swapped != null) {
+                        Timber.w(
+                            "AudioRecord near-silence on source=%d after %dms, switch to %d",
+                            AUDIO_SOURCES[sourceIdx],
+                            elapsedMs,
+                            AUDIO_SOURCES[swapped.second],
+                        )
+                        currentRec = swapped.first
+                        sourceIdx = swapped.second
+                        peakAbs = 0f
+                        sessionPeakAbs = 0f
+                        continue
+                    }
+                }
                 appendPreroll(chunkFloats, n)
                 localVad.acceptWaveform(
                     if (n == chunkFloats.size) chunkFloats else chunkFloats.copyOf(n)
@@ -324,7 +373,11 @@ class VoiceInputController(
             val padded = pre + samples
             val job = scope.launch(recognizeDispatcher) {
                 val text = VoiceRecognizer.recognize(padded)
-                if (!text.isNullOrEmpty()) {
+                if (text == null) {
+                    recognizeFailed = true
+                    return@launch
+                }
+                if (text.isNotEmpty()) {
                     sessionText += text
                     val snapshot = sessionText
                     mainHandler.post { onPartialText(snapshot) }
@@ -339,11 +392,105 @@ class VoiceInputController(
         mainHandler.post { onStateChanged(newState) }
     }
 
+    /**
+     * 从 [startIndex] 起依次尝试 [AUDIO_SOURCES]，返回第一个能 init+start 的录音器及其下标。
+     */
+    private fun openRecorderFrom(startIndex: Int): Pair<AudioRecord, Int>? {
+        val minBuf = AudioRecord.getMinBufferSize(
+            SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
+        )
+        if (minBuf <= 0) {
+            throw IllegalStateException("AudioRecord getMinBufferSize=$minBuf")
+        }
+        val bufferSize = maxOf(minBuf * 2, SAMPLE_RATE / 5 * 2)
+        var lastError: Exception? = null
+        for (i in startIndex until AUDIO_SOURCES.size) {
+            val source = AUDIO_SOURCES[i]
+            try {
+                val rec = AudioRecord(
+                    source,
+                    SAMPLE_RATE,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    bufferSize,
+                )
+                if (rec.state != AudioRecord.STATE_INITIALIZED) {
+                    rec.release()
+                    Timber.w("AudioRecord source=%d not initialized", source)
+                    continue
+                }
+                try {
+                    rec.startRecording()
+                } catch (e: Exception) {
+                    rec.release()
+                    throw e
+                }
+                Timber.i("AudioRecord opened source=%d", source)
+                audioSourceIndex = i
+                return rec to i
+            } catch (e: Exception) {
+                lastError = e
+                Timber.w(e, "AudioRecord source=%d failed", source)
+            }
+        }
+        if (lastError != null) throw lastError
+        return null
+    }
+
+    private fun swapRecorderIfPossible(
+        current: AudioRecord,
+        nextIndex: Int,
+    ): Pair<AudioRecord, Int>? {
+        if (nextIndex >= AUDIO_SOURCES.size) return null
+        val opened = try {
+            openRecorderFrom(nextIndex)
+        } catch (e: Exception) {
+            Timber.w(e, "AudioRecord fallback from index=%d failed", nextIndex)
+            null
+        } ?: return null
+        releaseRecorder(current)
+        recorder = opened.first
+        audioSourceIndex = opened.second
+        return opened
+    }
+
+    private fun releaseRecorder(rec: AudioRecord) {
+        runCatching { rec.stop() }
+        runCatching { rec.release() }
+    }
+
     companion object {
+        const val ERR_NO_AUDIO = "no audio"
+        const val ERR_NO_SPEECH = "no speech"
+        const val ERR_RECOGNIZE = "recognize failed"
+
         private const val SAMPLE_RATE = 16000
         private const val MIN_SEGMENT_SAMPLES = 400 // 25ms
         private const val PRE_ROLL_SAMPLES = 8000 // 0.5s
         private const val MAX_SESSION_MS = 120_000L
         private const val RECOGNIZER_IDLE_RELEASE_MS = 60_000L
+        /** 首源近静音多久后换下一路（Elite 上 VOICE_RECOGNITION 常空）。 */
+        private const val SILENCE_FALLBACK_MS = 1000L
+
+        /**
+         * 录音源优先级：MIC 优先。Titan Elite 等 OEM 上 VOICE_RECOGNITION 常能 init
+         * 却只吐近零采样，若排第一会白白丢掉按住说话的前一秒。失败/静音再回退其它源。
+         */
+        private val AUDIO_SOURCES = intArrayOf(
+            MediaRecorder.AudioSource.MIC,
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+            MediaRecorder.AudioSource.DEFAULT,
+        )
     }
+}
+
+/**
+ * 近静音判定（与 AudioRecord 解耦，方便单测）。
+ * peakAbs 是 float PCM 绝对值峰值；低于此阈值视为「麦克风没进声」。
+ */
+object VoiceCaptureSupport {
+    const val SILENCE_PEAK = 0.01f
+
+    fun isNearSilence(peakAbs: Float): Boolean = peakAbs < SILENCE_PEAK
 }
