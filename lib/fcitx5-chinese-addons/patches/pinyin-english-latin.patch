@@ -1,0 +1,64 @@
+From 7dffe21450800f6e4c5bb293fb06cdc8cf96335f Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Wed, 7 Oct 2026 11:40:09 +0000
+Subject: [PATCH] Show English spell candidates for continuous latin in pinyin.
+
+englishNess often scores vowel-heavy words like hello as 0 because
+they look like good pinyin; force spell hints for raw latin buffers
+and always offer the typed word itself.
+---
+ im/pinyin/pinyin.cpp | 31 ++++++++++++++++++++++---------
+ 1 file changed, 22 insertions(+), 9 deletions(-)
+
+diff --git a/im/pinyin/pinyin.cpp b/im/pinyin/pinyin.cpp
+index 3e73a82..a68d52b 100644
+--- a/im/pinyin/pinyin.cpp
++++ b/im/pinyin/pinyin.cpp
+@@ -545,6 +545,18 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
+             selectedLength <= context.cursor()) {
+             auto [hasUpper, engNess] =
+                 englishNess(parsedPy, context.useShuangpin());
++            // Continuous latin buffer (e.g. "hello"): englishNess often returns 0
++            // because vowel-heavy tokens look like good pinyin. Still offer English.
++            const bool rawLatin =
++                !pyBeforeCursor.empty() &&
++                std::ranges::all_of(pyBeforeCursor, [](char c) {
++                    return charutils::isupper(c) || charutils::islower(c) ||
++                           c == '\'' || c == '-';
++                });
++            if (!engNess && rawLatin && pyBeforeCursor.size() >= 2) {
++                engNess = std::max<int>(
++                    3, static_cast<int>((pyBeforeCursor.size() + 2) / 2));
++            }
+             if (engNess) {
+                 parsedPyCursor -= selectedSentence.length();
+                 parsedPy = parsedPy.substr(
+@@ -556,15 +568,16 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
+                     "en", SpellProvider::Custom, pyBeforeCursor, engNess);
+ 
+                 // Our hint doesn't work well with mixed case, so, always put a
+-                // word as is.
+-                if (hasUpper && !pyBeforeCursor.empty()) {
+-                    if (std::find(results.begin(), results.end(),
+-                                  pyBeforeCursor) == results.end()) {
+-                        if (!charutils::isupper(pyBeforeCursor[0])) {
+-                            results.insert(results.begin(), pyBeforeCursor);
+-                        } else {
+-                            results.push_back(pyBeforeCursor);
+-                        }
++                // word as is. Same for lowercase raw latin so users can commit
++                // the typed English word even when the dict misses.
++                if (!pyBeforeCursor.empty() &&
++                    (hasUpper || rawLatin) &&
++                    std::find(results.begin(), results.end(),
++                              pyBeforeCursor) == results.end()) {
++                    if (!charutils::isupper(pyBeforeCursor[0])) {
++                        results.insert(results.begin(), pyBeforeCursor);
++                    } else {
++                        results.push_back(pyBeforeCursor);
+                     }
+                 }
+ 
+-- 
+2.43.0
+

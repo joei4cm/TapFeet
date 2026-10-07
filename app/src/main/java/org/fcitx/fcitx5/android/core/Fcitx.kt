@@ -19,6 +19,7 @@ import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseManager
 import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeyboardPrefs
+import org.fcitx.fcitx5.android.data.prefs.PinyinSpellPrefs.syncPinyinSpellPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
@@ -39,6 +40,11 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     @Keep
     private val onAndroidKeyboardPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
         lifecycle.launchWhenReady { this@Fcitx.syncAndroidKeyboardPrefs() }
+    }
+
+    @Keep
+    private val onPinyinSpellPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+        lifecycle.launchWhenReady { this@Fcitx.syncPinyinSpellPrefs() }
     }
 
     @Keep
@@ -217,6 +223,8 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         hw.englishWordHint.registerOnChangeListener(onAndroidKeyboardPrefChange)
         hw.englishInsertSpace.registerOnChangeListener(onAndroidKeyboardPrefChange)
         hw.pinyinEngine.registerOnChangeListener(onPinyinEngineChange)
+        AppPrefs.getInstance().candidateBar.pinyinEnglishCandidates
+            .registerOnChangeListener(onPinyinSpellPrefChange)
     }
 
 
@@ -482,6 +490,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             }
             lifecycle.launchWhenReady {
                 this@Fcitx.syncAndroidKeyboardPrefs()
+                this@Fcitx.syncPinyinSpellPrefs()
                 this@Fcitx.syncChinesePinyinEngine(
                     AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue()
                 )
