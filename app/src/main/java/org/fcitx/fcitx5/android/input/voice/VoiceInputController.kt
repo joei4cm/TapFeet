@@ -37,8 +37,8 @@ import kotlin.math.sqrt
  * [onAudioLevel] 每 0.1s 发一次当前音量（0..1），驱动录音动画。
  * 所有回调均在主线程发出。
  *
- * Titan Elite 等 OEM 上 [MediaRecorder.AudioSource.VOICE_RECOGNITION] 常能初始化却只吐静音，
- * 所以录音源按优先级回退，并在会话前 ~1s 仍近乎静音时热切换到下一个源。
+ * Titan Elite 等机：MIC 优先 + 弱音增益；VAD 切不出段时，收尾对整段 PCM 做一次兜底识别
+ * （按住说话常无句中停顿，单靠 VAD flush 容易空结果）。
  */
 class VoiceInputController(
     context: Context,
@@ -99,6 +99,13 @@ class VoiceInputController(
     private val prerollBuf = FloatArray(PRE_ROLL_SAMPLES)
     private var prerollLen = 0
 
+    /**
+     * 整段会话 PCM（增益后），VAD 空切时兜底整段识别。
+     * 最长 [MAX_SESSION_PCM_SAMPLES]（约 30s），再长只丢尾部到点就停攒。
+     */
+    private val sessionPcm = FloatArray(MAX_SESSION_PCM_SAMPLES)
+    private var sessionPcmLen = 0
+
     /** 会话结束 60s 无新会话就释放识别器（约 300MB 内存），避免常驻拖累整机流畅度。 */
     private val releaseRecognizerRunnable = Runnable {
         scope.launch { VoiceRecognizer.release() }
@@ -145,9 +152,10 @@ class VoiceInputController(
                 config = VadModelConfig(
                     sileroVadModelConfig = SileroVadModelConfig(
                         model = VoiceModelManager.vadFile.absolutePath,
-                        threshold = 0.5f,
-                        minSilenceDuration = 0.5f,
-                        minSpeechDuration = 0.25f,
+                        // Elite 内置麦偏弱，0.5 经常「有电平但切不出段」
+                        threshold = 0.35f,
+                        minSilenceDuration = 0.4f,
+                        minSpeechDuration = 0.15f,
                         windowSize = 512,
                         maxSpeechDuration = 30f,
                     ),
@@ -170,6 +178,7 @@ class VoiceInputController(
         sessionPeakAbs = 0f
         recognizeFailed = false
         micReceivingNotified = false
+        sessionPcmLen = 0
         sessionId += 1
         prerollLen = 0
         mainHandler.removeCallbacks(releaseRecognizerRunnable)
@@ -211,17 +220,33 @@ class VoiceInputController(
             val pending = synchronized(pendingRecognitions) { pendingRecognitions.toList() }
             pending.forEach { it.join() }
             synchronized(pendingRecognitions) { pendingRecognitions.clear() }
+            // VAD 没切出段（按住说话无停顿 / 阈值仍偏严）：对整段 PCM 兜底识别一次
+            if (sessionText.isEmpty() && sessionPcmLen >= MIN_FORCE_RECOGNIZE_SAMPLES) {
+                Timber.i("VAD empty; force-recognize session pcm len=%d peak=%.4f", sessionPcmLen, sessionPeakAbs)
+                val samples = sessionPcm.copyOf(sessionPcmLen)
+                val text = VoiceRecognizer.recognize(samples)
+                when {
+                    text == null -> recognizeFailed = true
+                    text.isNotEmpty() -> {
+                        sessionText = text
+                        mainHandler.post { onPartialText(text) }
+                    }
+                }
+            }
             val text = sessionText
             val peak = sessionPeakAbs
             val failed = recognizeFailed
             val aborted = sessionAborted
+            val heard = micReceivingNotified
             sessionText = ""
+            sessionPcmLen = 0
             if (mySession == sessionId) {
                 mainHandler.post {
                     if (text.isEmpty() && !aborted) {
                         onError(
                             when {
-                                VoiceCaptureSupport.isNearSilence(peak) -> ERR_NO_AUDIO
+                                // 已经提示过「麦克风已接收」就不要再谎称没声音
+                                !heard && VoiceCaptureSupport.isNearSilence(peak) -> ERR_NO_AUDIO
                                 failed -> ERR_RECOGNIZE
                                 else -> ERR_NO_SPEECH
                             }
@@ -258,6 +283,7 @@ class VoiceInputController(
         synchronized(pendingRecognitions) { pendingRecognitions.forEach { it.cancel() } }
         synchronized(pendingRecognitions) { pendingRecognitions.clear() }
         prerollLen = 0
+        sessionPcmLen = 0
         sessionText = ""
         // 识别器释放放到后台：若此刻有识别任务正持有它的锁，主线程等锁会卡顿
         mainHandler.removeCallbacks(releaseRecognizerRunnable)
@@ -304,16 +330,23 @@ class VoiceInputController(
                     if (a > peakAbs) peakAbs = a
                 }
                 sessionPeakAbs = peakAbs
+                // 弱麦增益：电平能触发「已接收」但 VAD/ASR 仍嫌小 → 抬到目标峰值再喂
+                val gain = VoiceCaptureSupport.softGain(peakAbs)
+                if (gain > 1f) {
+                    for (i in 0 until n) {
+                        chunkFloats[i] = (chunkFloats[i] * gain).coerceIn(-1f, 1f)
+                    }
+                }
                 if (!micReceivingNotified && !VoiceCaptureSupport.isNearSilence(peakAbs)) {
                     micReceivingNotified = true
                     mainHandler.post { onMicReceiving() }
                 }
-                // 音量动画：RMS 映射到 0..1
+                // 音量动画：RMS 映射到 0..1（用增益后，波形跟「模型听到的」一致）
                 var sum = 0f
                 for (i in 0 until n) sum += chunkFloats[i] * chunkFloats[i]
                 val rms = sqrt(sum / n)
                 mainHandler.post { onAudioLevel((rms * 4f).coerceIn(0f, 1f)) }
-                // Elite 等机：VOICE_RECOGNITION 初始化成功但只吐近零；约 1s 后热切 MIC
+                // Elite 等机：VOICE_RECOGNITION 初始化成功但只吐近零；约 1s 后热切下一源
                 if (!triedSilenceFallback &&
                     elapsedMs >= SILENCE_FALLBACK_MS &&
                     VoiceCaptureSupport.isNearSilence(peakAbs)
@@ -331,9 +364,11 @@ class VoiceInputController(
                         sourceIdx = swapped.second
                         peakAbs = 0f
                         sessionPeakAbs = 0f
+                        sessionPcmLen = 0
                         continue
                     }
                 }
+                appendSessionPcm(chunkFloats, n)
                 appendPreroll(chunkFloats, n)
                 localVad.acceptWaveform(
                     if (n == chunkFloats.size) chunkFloats else chunkFloats.copyOf(n)
@@ -355,6 +390,14 @@ class VoiceInputController(
             Timber.e(e, "capture loop failed")
             mainHandler.post { onError(e.message ?: "capture failed") }
         }
+    }
+
+    private fun appendSessionPcm(samples: FloatArray, n: Int) {
+        val room = sessionPcm.size - sessionPcmLen
+        if (room <= 0) return
+        val take = minOf(n, room)
+        System.arraycopy(samples, 0, sessionPcm, sessionPcmLen, take)
+        sessionPcmLen += take
     }
 
     /** 滚动保留最近 [PRE_ROLL_SAMPLES] 个采样的前文（就地搬移，不分配）。 */
@@ -482,6 +525,10 @@ class VoiceInputController(
         private const val RECOGNIZER_IDLE_RELEASE_MS = 60_000L
         /** 首源近静音多久后换下一路（Elite 上 VOICE_RECOGNITION 常空）。 */
         private const val SILENCE_FALLBACK_MS = 1000L
+        /** 整段兜底识别最长攒约 30s。 */
+        private const val MAX_SESSION_PCM_SAMPLES = SAMPLE_RATE * 30
+        /** 至少约 0.3s 才值得整段兜底，避免误识别环境底噪。 */
+        private const val MIN_FORCE_RECOGNIZE_SAMPLES = SAMPLE_RATE * 3 / 10
 
         /**
          * 录音源优先级：MIC 优先。Titan Elite 等 OEM 上 VOICE_RECOGNITION 常能 init
@@ -497,11 +544,26 @@ class VoiceInputController(
 }
 
 /**
- * 近静音判定（与 AudioRecord 解耦，方便单测）。
- * peakAbs 是 float PCM 绝对值峰值；低于此阈值视为「麦克风没进声」。
+ * 近静音判定与弱麦增益（与 AudioRecord 解耦，方便单测）。
  */
 object VoiceCaptureSupport {
+    /** float PCM 绝对值峰值；低于此视为「麦克风没进声」。 */
     const val SILENCE_PEAK = 0.01f
 
+    /** 弱音目标峰值：抬到这附近再喂 VAD/ASR。 */
+    const val TARGET_PEAK = 0.25f
+
+    /** 最大增益，避免把底噪放大成「假语音」。 */
+    const val MAX_GAIN = 8f
+
     fun isNearSilence(peakAbs: Float): Boolean = peakAbs < SILENCE_PEAK
+
+    /**
+     * 峰值落在 (静音, 目标) 之间时返回抬升倍率，否则 1。
+     * 已够响（≥ 目标）不放大；近静音也不放大（换源逻辑另管）。
+     */
+    fun softGain(peakAbs: Float): Float {
+        if (peakAbs < SILENCE_PEAK || peakAbs >= TARGET_PEAK) return 1f
+        return (TARGET_PEAK / peakAbs).coerceAtMost(MAX_GAIN)
+    }
 }

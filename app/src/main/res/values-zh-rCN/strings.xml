@@ -501,6 +501,7 @@
     <string name="voice_input_permission_required">语音输入需要麦克风权限</string>
     <string name="voice_input_unavailable">语音输入不可用</string>
     <string name="voice_input_no_speech">未检测到声音，请按住说久一点、靠近麦克风</string>
+    <string name="voice_input_no_transcript">已收到声音但未能识别出文字，请再说一次</string>
     <string name="voice_input_recognize_failed">语音识别失败，请重试</string>
     <string name="fcitx_daemon">Fcitx 守护程序</string>
     <string name="restarting_fcitx">正在重新启动 Fcitx</string>
