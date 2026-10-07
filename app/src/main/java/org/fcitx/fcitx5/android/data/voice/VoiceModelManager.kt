@@ -38,8 +38,8 @@ import java.util.concurrent.TimeUnit
  * 模型不打进 APK，首次使用按需下载到外部私有目录。
  *
  * 下载源面向国内网络排序：
- *  1. **hf-mirror.com 散文件**（HuggingFace 国内镜像，直下无需解包）；
- *  2. **GitHub Releases tar.bz2** 兜底。
+ *  1. **hf-mirror.com / huggingface.co 散文件**（直下无需解包）；
+ *  2. **GitHub Releases tar.bz2**，并走 ghfast / gh-proxy 镜像。
  * ⚠️ 没走 Gitee：免费仓库 Release 单附件上限低于模型体积。
  */
 object VoiceModelManager {
@@ -52,30 +52,22 @@ object VoiceModelManager {
      * 且开头丢字（「开放」→「放」），整体识别也更差；维护者原话「要粤语才选它，不然不推荐」。
      * 这里用 twmht 镜像仓库（model.int8.onnx / tokens.txt 与官方 tar.bz2 内文件逐字节同尺寸）。
      */
-    private const val SENSE_VOICE_MODEL_URL =
-        "https://hf-mirror.com/twmht/sherpa-onnx-sense-voice-small" +
-            "/resolve/main/model.int8.onnx"
+    private const val SENSE_VOICE_HF =
+        "twmht/sherpa-onnx-sense-voice-small/resolve/main"
+    private const val QWEN_HF =
+        "thieunv/sherpa-onnx-qwen3-asr-0.6B-int8/resolve/main"
+    private const val VAD_HF =
+        "R4kSo1997/sherpa-onnx-silero-vad-v5/resolve/main/silero_vad.onnx"
 
-    private const val SENSE_VOICE_TOKENS_URL =
-        "https://hf-mirror.com/twmht/sherpa-onnx-sense-voice-small" +
-            "/resolve/main/tokens.txt"
-
-    /** GitHub Releases 兜底：tar.bz2 包，内含子目录下的 model.int8.onnx 与 tokens.txt。 */
     private const val SENSE_VOICE_TARBALL_URL =
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" +
             "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2"
-
-    private const val QWEN_MIRROR_BASE =
-        "https://hf-mirror.com/thieunv/sherpa-onnx-qwen3-asr-0.6B-int8/resolve/main"
 
     private const val QWEN_TARBALL_URL =
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" +
             "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2"
 
-    private const val VAD_URL =
-        "https://hf-mirror.com/R4kSo1997/sherpa-onnx-silero-vad-v5/resolve/main/silero_vad.onnx"
-
-    private const val VAD_FALLBACK_URL =
+    private const val VAD_GITHUB_URL =
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx"
 
     private const val PROGRESS_STEP_BYTES = 256L * 1024L
@@ -206,7 +198,7 @@ object VoiceModelManager {
             try {
                 emitProgress(kind, 0, expectedBytes(kind))
                 downloadFirst(
-                    listOf(VAD_URL, VAD_FALLBACK_URL),
+                    hfFiles(VAD_HF) + githubMirrors(VAD_GITHUB_URL),
                     vadFile,
                     VoiceAsrReady.VAD_MIN_BYTES,
                 ) { done, total ->
@@ -303,7 +295,7 @@ object VoiceModelManager {
         return try {
             var doneBase = existingAsrBytes(kind)
             downloadFirst(
-                listOf(SENSE_VOICE_MODEL_URL),
+                hfFiles("$SENSE_VOICE_HF/model.int8.onnx"),
                 modelFile,
                 VoiceAsrReady.SENSE_VOICE_MODEL_MIN_BYTES,
             ) { done, _ ->
@@ -311,7 +303,7 @@ object VoiceModelManager {
             }
             doneBase = existingAsrBytes(kind)
             downloadFirst(
-                listOf(SENSE_VOICE_TOKENS_URL),
+                hfFiles("$SENSE_VOICE_HF/tokens.txt"),
                 tokensFile,
                 VoiceAsrReady.SENSE_VOICE_TOKENS_MIN_BYTES,
             ) { done, _ ->
@@ -330,13 +322,27 @@ object VoiceModelManager {
 
     /** GitHub 兜底：下载 tar.bz2 并抽出 SenseVoice 的 model.int8.onnx 与 tokens.txt。 */
     private fun downloadSenseVoiceTarball(kind: VoiceAsrKind) {
+        var last: Exception? = null
+        for (url in githubMirrors(SENSE_VOICE_TARBALL_URL)) {
+            try {
+                downloadSenseVoiceTarballFrom(kind, url)
+                return
+            } catch (e: Exception) {
+                Timber.w(e, "sense-voice tarball failed: $url")
+                last = e
+            }
+        }
+        throw last ?: IOException("sense-voice tarball failed")
+    }
+
+    private fun downloadSenseVoiceTarballFrom(kind: VoiceAsrKind, url: String) {
         val partModel = File(modelDir, "model.int8.onnx.part")
         val partTokens = File(modelDir, "tokens.txt.part")
         partModel.delete()
         partTokens.delete()
-        val request = Request.Builder().url(SENSE_VOICE_TARBALL_URL).build()
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
         client.newCall(request).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: $SENSE_VOICE_TARBALL_URL")
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: $url")
             val body = resp.body ?: throw IOException("empty response body")
             val total = body.contentLength().takeIf { it > 0 } ?: expectedBytes(kind)
             val counted = CountingInputStream(body.byteStream()) { done ->
@@ -382,21 +388,21 @@ object VoiceModelManager {
 
     private fun tryDownloadQwenFromMirror(kind: VoiceAsrKind): Boolean {
         val files = listOf(
-            Triple("$QWEN_MIRROR_BASE/conv_frontend.onnx", qwenConvFrontendFile, VoiceAsrReady.QWEN_FRONTEND_MIN_BYTES),
-            Triple("$QWEN_MIRROR_BASE/encoder.int8.onnx", qwenEncoderFile, VoiceAsrReady.QWEN_ENCODER_MIN_BYTES),
-            Triple("$QWEN_MIRROR_BASE/decoder.int8.onnx", qwenDecoderFile, VoiceAsrReady.QWEN_DECODER_MIN_BYTES),
-            Triple("$QWEN_MIRROR_BASE/tokenizer/vocab.json", qwenVocabFile, VoiceAsrReady.QWEN_VOCAB_MIN_BYTES),
-            Triple("$QWEN_MIRROR_BASE/tokenizer/merges.txt", qwenMergesFile, VoiceAsrReady.QWEN_MERGES_MIN_BYTES),
+            Triple("$QWEN_HF/conv_frontend.onnx", qwenConvFrontendFile, VoiceAsrReady.QWEN_FRONTEND_MIN_BYTES),
+            Triple("$QWEN_HF/encoder.int8.onnx", qwenEncoderFile, VoiceAsrReady.QWEN_ENCODER_MIN_BYTES),
+            Triple("$QWEN_HF/decoder.int8.onnx", qwenDecoderFile, VoiceAsrReady.QWEN_DECODER_MIN_BYTES),
+            Triple("$QWEN_HF/tokenizer/vocab.json", qwenVocabFile, VoiceAsrReady.QWEN_VOCAB_MIN_BYTES),
+            Triple("$QWEN_HF/tokenizer/merges.txt", qwenMergesFile, VoiceAsrReady.QWEN_MERGES_MIN_BYTES),
             Triple(
-                "$QWEN_MIRROR_BASE/tokenizer/tokenizer_config.json",
+                "$QWEN_HF/tokenizer/tokenizer_config.json",
                 qwenTokenizerConfigFile,
                 VoiceAsrReady.QWEN_TOKENIZER_CONFIG_MIN_BYTES,
             ),
         )
         return try {
-            for ((url, dest, minBytes) in files) {
+            for ((path, dest, minBytes) in files) {
                 val doneBase = existingAsrBytes(kind)
-                downloadFirst(listOf(url), dest, minBytes) { done, _ ->
+                downloadFirst(hfFiles(path), dest, minBytes) { done, _ ->
                     emitProgress(kind, doneBase + done, expectedBytes(kind))
                 }
             }
@@ -415,6 +421,20 @@ object VoiceModelManager {
     }
 
     private fun downloadQwenTarball(kind: VoiceAsrKind) {
+        var last: Exception? = null
+        for (url in githubMirrors(QWEN_TARBALL_URL)) {
+            try {
+                downloadQwenTarballFrom(kind, url)
+                return
+            } catch (e: Exception) {
+                Timber.w(e, "qwen3 tarball failed: $url")
+                last = e
+            }
+        }
+        throw last ?: IOException("qwen3 tarball failed")
+    }
+
+    private fun downloadQwenTarballFrom(kind: VoiceAsrKind, url: String) {
         qwenDir.mkdirs()
         qwenTokenizerDir.mkdirs()
         val partFrontend = File(qwenDir, "conv_frontend.onnx.part")
@@ -424,9 +444,9 @@ object VoiceModelManager {
         val partMerges = File(qwenTokenizerDir, "merges.txt.part")
         val partTokCfg = File(qwenTokenizerDir, "tokenizer_config.json.part")
         listOf(partFrontend, partEncoder, partDecoder, partVocab, partMerges, partTokCfg).forEach { it.delete() }
-        val request = Request.Builder().url(QWEN_TARBALL_URL).build()
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
         client.newCall(request).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: $QWEN_TARBALL_URL")
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: $url")
             val body = resp.body ?: throw IOException("empty response body")
             val total = body.contentLength().takeIf { it > 0 } ?: expectedBytes(kind)
             val counted = CountingInputStream(body.byteStream()) { done ->
@@ -501,12 +521,46 @@ object VoiceModelManager {
         if (!part.renameTo(dest)) throw IOException("rename ${dest.name} failed")
     }
 
+    private const val USER_AGENT = "TapFeet-IME"
+
+    private fun hfFiles(path: String): List<String> {
+        val rel = path.removePrefix("/")
+        return listOf(
+            "https://hf-mirror.com/$rel?download=true",
+            "https://huggingface.co/$rel?download=true",
+        )
+    }
+
+    private fun githubMirrors(url: String): List<String> {
+        return listOf(
+            url,
+            "https://ghfast.top/$url",
+            "https://gh-proxy.com/$url",
+        )
+    }
+
+    private fun looksLikeHtmlOrPointer(file: File): Boolean {
+        file.inputStream().use { ins ->
+            val buf = ByteArray(32)
+            val n = ins.read(buf)
+            if (n <= 0) return true
+            val head = buf.decodeToString(0, n).trimStart()
+            return head.startsWith("<") ||
+                head.startsWith("{") ||
+                head.startsWith("version https://git-lfs")
+        }
+    }
+
     private fun downloadFile(url: String, dest: File, minBytes: Long, onProgress: (Long, Long) -> Unit) {
         if (dest.length() >= minBytes) return
         dest.parentFile?.mkdirs()
         val part = File(dest.parentFile, dest.name + ".part")
         part.delete()
-        val request = Request.Builder().url(url).build()
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "*/*")
+            .build()
         client.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: $url")
             val body = resp.body ?: throw IOException("empty response body")
@@ -514,9 +568,10 @@ object VoiceModelManager {
             val counted = CountingInputStream(body.byteStream()) { done -> onProgress(done, total) }
             part.outputStream().use { out -> IOUtils.copyLarge(counted, out) }
         }
-        if (part.length() < minBytes) {
+        if (part.length() < minBytes || looksLikeHtmlOrPointer(part)) {
+            val size = part.length()
             part.delete()
-            throw IOException("downloaded file too small: $url")
+            throw IOException("downloaded file too small ($size < $minBytes): $url")
         }
         dest.delete()
         if (!part.renameTo(dest)) throw IOException("rename ${dest.name} failed")

@@ -111,18 +111,34 @@ class LayoutSwitchKey(
     displayText: String,
     val to: String = "",
     percentWidth: Float = 0.15f,
-    variant: Variant = Variant.Alternative
+    variant: Variant = Variant.Alternative,
+    longPressTo: String? = null,
+    altHint: String = "",
 ) : KeyDef(
-    Appearance.Text(
-        displayText,
-        textSize = 16f,
-        textStyle = Typeface.BOLD,
-        percentWidth = percentWidth,
-        variant = variant
-    ),
-    setOf(
-        Behavior.Press(KeyAction.LayoutSwitchAction(to))
-    )
+    if (altHint.isEmpty()) {
+        Appearance.Text(
+            displayText,
+            textSize = 16f,
+            textStyle = Typeface.BOLD,
+            percentWidth = percentWidth,
+            variant = variant
+        )
+    } else {
+        Appearance.AltText(
+            displayText = displayText,
+            altText = altHint,
+            textSize = 16f,
+            textStyle = Typeface.BOLD,
+            percentWidth = percentWidth,
+            variant = variant
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.LayoutSwitchAction(to)))
+        if (longPressTo != null) {
+            add(Behavior.LongPress(KeyAction.LayoutSwitchAction(longPressTo)))
+        }
+    }
 )
 
 /**
@@ -325,12 +341,7 @@ class T9Key(
     digit: Char,
     letters: String,
 ) : KeyDef(
-    Appearance.AltText(
-        displayText = digit.toString(),
-        altText = letters,
-        textSize = 22f,
-        percentWidth = 0.333f,
-    ),
+    Appearance.T9(digit.toString(), letters),
     setOf(
         Behavior.Press(KeyAction.T9DigitAction(digit))
     ),

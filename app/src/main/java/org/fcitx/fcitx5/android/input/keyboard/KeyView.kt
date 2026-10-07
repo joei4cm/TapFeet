@@ -452,3 +452,45 @@ class ImageTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.ImageT
         updateMargins(newConfig.orientation)
     }
 }
+
+/**
+ * 九键：数字大、字母在下，不跟 QWERTY 标点角标抢位置。
+ */
+@SuppressLint("ViewConstructor")
+class T9KeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.T9) :
+    TextKeyView(ctx, theme, def) {
+    private val letters = view(::AutoScaleTextView) {
+        isClickable = false
+        isFocusable = false
+        background = null
+        text = def.altText
+        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f)
+        setTypeface(CandidateFont.uiTypeface(ctx, Typeface.BOLD))
+        textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        setTextColor(theme.altKeyTextColor)
+        letterSpacing = 0.08f
+    }
+
+    init {
+        mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize)
+        appearanceView.apply {
+            add(letters, lParams(wrapContent, wrapContent))
+        }
+        mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = parentId
+            bottomToBottom = unset
+            leftToLeft = parentId
+            rightToRight = parentId
+            bottomToTop = letters.existingOrNewId
+            topMargin = vMargin + dp(4)
+            bottomMargin = 0
+        }
+        letters.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToBottom = mainText.existingOrNewId
+            bottomToBottom = parentId
+            leftToLeft = parentId
+            rightToRight = parentId
+            bottomMargin = vMargin + dp(6)
+        }
+    }
+}

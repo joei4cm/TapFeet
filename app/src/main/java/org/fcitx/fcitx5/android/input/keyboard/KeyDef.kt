@@ -45,7 +45,7 @@ open class KeyDef(
             soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
         ) : Appearance(percentWidth, variant, border, margin, viewId, soundEffect)
 
-        class AltText(
+        open class AltText(
             displayText: String,
             val altText: String,
             textSize: Float,
@@ -71,6 +71,19 @@ open class KeyDef(
             viewId: Int = -1,
             soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
         ) : Appearance(percentWidth, variant, border, margin, viewId, soundEffect)
+
+        class T9(
+            digit: String,
+            letters: String,
+            textSize: Float = 26f,
+            percentWidth: Float = 0.333f,
+        ) : AltText(
+            displayText = digit,
+            altText = letters,
+            textSize = textSize,
+            textStyle = Typeface.BOLD,
+            percentWidth = percentWidth,
+        )
 
         class ImageText(
             displayText: String,

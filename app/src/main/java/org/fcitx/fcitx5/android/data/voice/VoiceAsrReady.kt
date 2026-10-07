@@ -11,7 +11,8 @@ object VoiceAsrReady {
 
     const val SENSE_VOICE_MODEL_MIN_BYTES = 200L * 1024 * 1024
     const val SENSE_VOICE_TOKENS_MIN_BYTES = 1024L
-    const val VAD_MIN_BYTES = 1024L * 1024
+    /** silero_vad.onnx（v4/v5）约 0.2–0.7MB，不要用 1MB 门槛，否则下完也会 too small。 */
+    const val VAD_MIN_BYTES = 200L * 1024
 
     const val QWEN_FRONTEND_MIN_BYTES = 30L * 1024 * 1024
     const val QWEN_ENCODER_MIN_BYTES = 150L * 1024 * 1024
