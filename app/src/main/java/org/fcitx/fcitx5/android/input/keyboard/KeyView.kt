@@ -214,10 +214,11 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
         if (bordered) return
         when (def.viewId) {
             R.id.button_space -> {
-                val bkgRadius = dp(3f)
+                // Match letter-key radius (Gboard-like bar, not a stubby 3dp chip).
+                val bkgRadius = radius
                 val minHeight = dp(26)
-                val hInset = dp(10)
-                val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
+                val hInset = dp(6)
+                val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(12))
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.spaceBarColor
                 )
@@ -232,16 +233,18 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 )
             }
             R.id.button_return -> {
-                val drawableSize = min(min(w, h), dp(35))
-                val hInset = (w - drawableSize) / 2
-                val vInset = (h - drawableSize) / 2
-                appearanceView.background = insetOvalDrawable(
-                    hInset, vInset, theme.accentKeyBackgroundColor
+                // Rounded rect like other accent keys — not a floating circle.
+                val maxH = dp(40)
+                val vInset = if (h <= maxH) dp(4) else (h - maxH) / 2
+                val hInset = dp(4)
+                appearanceView.background = insetRadiusDrawable(
+                    hInset, vInset, radius, theme.accentKeyBackgroundColor
                 )
                 appearanceView.padding = 0
                 setupPressHighlight(
-                    insetOvalDrawable(
-                        hInset, vInset, if (rippled) Color.WHITE else theme.keyPressHighlightColor
+                    insetRadiusDrawable(
+                        hInset, vInset, radius,
+                        if (rippled) Color.WHITE else theme.keyPressHighlightColor
                     )
                 )
             }
@@ -286,8 +289,9 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
         isClickable = false
         isFocusable = false
         // TODO hardcoded alt text size
-        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.666667f)
-        setTypeface(CandidateFont.uiTypeface(ctx, Typeface.BOLD))
+        // Quieter than letter size — closer to Gboard's secondary symbols.
+        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9.5f)
+        setTypeface(CandidateFont.uiTypeface(ctx, Typeface.NORMAL))
         text = def.altText
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         setTextColor(
@@ -296,6 +300,7 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
                 Variant.Accent -> theme.accentKeyTextColor
             }
         )
+        alpha = 0.72f
     }
 
     init {

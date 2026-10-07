@@ -351,9 +351,9 @@
     <string name="show_candidate_comment">Encoding hint</string>
     <string name="show_candidate_comment_summary">Show pinyin/code next to each candidate. Uses the engine comment, or the word\'s pinyin.</string>
     <string name="pinyin_english_candidates">English words in pinyin</string>
-    <string name="pinyin_english_candidates_summary">While typing pinyin, show English dictionary matches in the candidate list (e.g. hello). Pick with the candidate keys. Separate from English IME word completion (Sym+N).</string>
+    <string name="pinyin_english_candidates_summary">Off by default. When on, typing latin in pinyin (e.g. hello) also lists English words — the typed word comes first. For pure English typing prefer Sym+N → English IME. Mixing with Chinese candidates can feel busy.</string>
     <string name="show_translation_comment">Translation gloss</string>
-    <string name="show_translation_comment_summary">Optional. Show a local Chinese/Japanese→English gloss beside candidates when the encoding hint is empty. Bundled compact dictionary; offline only. Requires encoding hint on.</string>
+    <string name="show_translation_comment_summary">Optional. Append English/Japanese gloss after pinyin (拼音 · en · 日). Offline compact dictionary. Not a Japanese IME — install Anthy for Japanese input. Requires encoding hint on.</string>
     <string name="v_mode">V-mode shortcuts</string>
     <string name="v_mode_summary">Type v then digits or + - * / for dates, Chinese numerals, and a mini calculator.</string>
     <string name="contacts_dictionary">Contacts dictionary</string>

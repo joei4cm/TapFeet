@@ -347,9 +347,9 @@
     <string name="show_candidate_comment">编码提示</string>
     <string name="show_candidate_comment_summary">候选旁显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。</string>
     <string name="pinyin_english_candidates">拼音中显示英文单词</string>
-    <string name="pinyin_english_candidates_summary">打拼音时若像英文单词（如 hello），把英文候选插进列表，用巨硬/数字键选。与 Sym+N 切到英文输入法的单词联想是两套。默认开。</string>
+    <string name="pinyin_english_candidates_summary">默认关。打开后，在拼音里打 hello 等拉丁字母也会出英文候选（完整单词优先）。纯英文请用 Sym+N 切英文输入法。与中文候选混排可能显得乱。</string>
     <string name="show_translation_comment">翻译释义</string>
-    <string name="show_translation_comment_summary">可选。编码提示为空时，在候选旁显示本地中/日→英释义。内置精简词表，不联网。需先打开「编码提示」。</string>
+    <string name="show_translation_comment_summary">可选。在拼音后追加英/日释义，格式「拼音 · en · 日」。内置精简词表，不联网。这不是日语输入；要打日文请装 Anthy 插件。需先打开「编码提示」。</string>
     <string name="v_mode">V 模式</string>
     <string name="v_mode_summary">输入 v 再跟数字或 + - * /，出日期、数字大小写和简单计算。</string>
     <string name="contacts_dictionary">通讯录词库</string>

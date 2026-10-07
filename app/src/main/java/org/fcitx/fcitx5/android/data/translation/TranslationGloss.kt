@@ -9,17 +9,21 @@ import timber.log.Timber
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * 本地中/日 → 英释义表（assets `translation/zh_ja_en_gloss.tsv`）。
- * 格式每行：`词\t英文释义`；加载后同时建英文 → 原文的反向索引（取第一条）。
+ * 本地释义表（assets `translation/zh_ja_en_gloss.tsv`）。
  *
- * 体积刻意保持很小（可随版本扩充）；不做联网翻译。
+ * 每行：`原文\t英文[\t日文]`
+ * - 中文词：forward 查英/日
+ * - 日文词：同样走 forward（原文可以是假名/汉字）
+ * - 英文：reverse 反查原文
  */
 object TranslationGloss {
+
+    data class Entry(val en: String?, val ja: String?)
 
     private const val ASSET = "translation/zh_ja_en_gloss.tsv"
 
     private data class Tables(
-        val forward: Map<String, String>,
+        val forward: Map<String, Entry>,
         val reverse: Map<String, String>,
     )
 
@@ -31,11 +35,10 @@ object TranslationGloss {
         tables.set(load())
     }
 
-    fun glossOf(text: String): String? {
+    fun entryOf(text: String): Entry? {
         val t = tables.get() ?: return null
         if (text.isBlank()) return null
         t.forward[text]?.let { return it }
-        // 多字词：最长前缀命中（最多扫到全文长度，短词优先已在 map）
         if (text.length > 1) {
             for (len in text.length - 1 downTo 1) {
                 t.forward[text.substring(0, len)]?.let { return it }
@@ -44,7 +47,8 @@ object TranslationGloss {
         return null
     }
 
-    /** 英文单词 → 中/日原文（词表反向）。 */
+    fun glossOf(text: String): String? = entryOf(text)?.en
+
     fun sourceOfEnglish(english: String): String? {
         val t = tables.get() ?: return null
         val key = english.trim().lowercase()
@@ -54,8 +58,7 @@ object TranslationGloss {
 
     fun isLoaded(): Boolean = tables.get() != null
 
-    /** 测试用：直接注入表。 */
-    internal fun replaceForTest(forward: Map<String, String>, reverse: Map<String, String>) {
+    internal fun replaceForTest(forward: Map<String, Entry>, reverse: Map<String, String>) {
         tables.set(Tables(forward, reverse))
     }
 
@@ -64,20 +67,20 @@ object TranslationGloss {
     }
 
     private fun load(): Tables {
-        val forward = HashMap<String, String>(1024)
+        val forward = HashMap<String, Entry>(1024)
         val reverse = HashMap<String, String>(1024)
         try {
             appContext.assets.open(ASSET).bufferedReader(Charsets.UTF_8).useLines { lines ->
                 lines.forEach { line ->
                     if (line.isBlank() || line.startsWith("#")) return@forEach
-                    val tab = line.indexOf('\t')
-                    if (tab <= 0) return@forEach
-                    val src = line.substring(0, tab).trim()
-                    val gloss = line.substring(tab + 1).trim()
-                    if (src.isEmpty() || gloss.isEmpty()) return@forEach
-                    forward.putIfAbsent(src, gloss)
-                    // 反向：取释义里第一个英文词条
-                    val firstEn = gloss.split(';', ',').firstOrNull()?.trim()?.lowercase()
+                    val cols = line.split('\t')
+                    if (cols.size < 2) return@forEach
+                    val src = cols[0].trim()
+                    val en = cols[1].trim().ifEmpty { null }
+                    val ja = cols.getOrNull(2)?.trim()?.ifEmpty { null }
+                    if (src.isEmpty() || (en == null && ja == null)) return@forEach
+                    forward.putIfAbsent(src, Entry(en, ja))
+                    val firstEn = en?.split(';', ',')?.firstOrNull()?.trim()?.lowercase()
                     if (!firstEn.isNullOrEmpty() && firstEn[0] in 'a'..'z') {
                         reverse.putIfAbsent(firstEn, src)
                     }

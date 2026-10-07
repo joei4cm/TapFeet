@@ -1,12 +1,12 @@
 的	of; 's
-一	one
+一	one	一
 是	is; yes
 了	le particle
-我	I; me
+我	I; me	私
 不	not
-人	person
+人	person	人
 在	at; in
-他	he
+他	he	彼
 有	have
 这	this
 个	ge measure
@@ -14,7 +14,7 @@
 中	middle; China
 来	come
 上	up; on
-大	big
+大	big	大きい
 为	for; as
 和	and
 国	country
@@ -29,7 +29,7 @@
 会	can; meeting
 可	can; may
 也	also
-你	you
+你	you	あなた
 对	correct; toward
 生	life; birth
 能	can; able
@@ -58,7 +58,7 @@
 事	matter; thing
 成	become
 方	square; method
-多	many
+多	many	多い
 经	pass; classic
 么	me particle
 去	go
@@ -79,8 +79,8 @@
 分	divide; minute
 还	still; return
 进	enter
-好	good
-小	small
+好	good	良い
+小	small	小さい
 部	part
 其	its; that
 些	some
@@ -88,7 +88,7 @@
 样	kind; manner
 理	reason; manage
 心	heart
-她	she
+她	she	彼女
 本	root; book
 前	before
 开	open
@@ -109,7 +109,7 @@
 长	long; chief
 把	ba particle; hold
 机	machine
-十	ten
+十	ten	十
 民	people
 第	ordinal
 公	public
@@ -122,7 +122,7 @@
 性	nature; -ity
 知	know
 全	whole
-三	three
+三	three	三
 又	again
 关	close; about
 点	point
@@ -131,7 +131,7 @@
 外	outside
 将	will; general
 两	two
-高	high
+高	high	高い
 间	between
 由	by; from
 问	ask
@@ -154,11 +154,11 @@
 被	by passive
 利	benefit
 什	what
-二	two
+二	two	二
 等	etc; wait
 产	produce
 或	or
-新	new
+新	new	新しい
 己	self
 制	system
 身	body
@@ -199,7 +199,7 @@
 比	compare
 员	member
 解	solve
-水	water
+水	water	水
 名	name
 真	true
 论	theory
@@ -223,14 +223,14 @@
 打	hit
 女	woman
 变	change
-四	four
+四	four	四
 神	god; spirit
 总	total
 何	what
 电	electric
 数	number
 安	safe; install
-少	few
+少	few	少ない
 报	report
 才	talent; only then
 结	tie; result
@@ -251,7 +251,7 @@
 布	cloth; arrange
 让	let
 直	straight
-爱	love
+爱	love	愛
 场	field
 至	to; until
 街	street
@@ -305,44 +305,44 @@
 德	German; virtue
 俄	Russian
 阿	A-; Arabic
-你好	hello; hi
-谢谢	thanks
-再见	goodbye
-对不起	sorry
-没关系	it's OK
-请	please
-是的	yes
-不是	no; not
-可以	OK; can
+你好	hello; hi	こんにちは
+谢谢	thanks	ありがとう
+再见	goodbye	さようなら
+对不起	sorry	すみません
+没关系	it's OK	大丈夫
+请	please	どうぞ
+是的	yes	はい
+不是	no; not	いいえ
+可以	OK; can	大丈夫
 不行	no; won't do
 怎么样	how about
-什么	what
-哪里	where
-谁	who
-为什么	why
-怎么	how
+什么	what	何
+哪里	where	どこ
+谁	who	誰
+为什么	why	なぜ
+怎么	how	どう
 多少	how many
-今天	today
-明天	tomorrow
-昨天	yesterday
-现在	now
+今天	today	今日
+明天	tomorrow	明日
+昨天	yesterday	昨日
+现在	now	今
 以后	later
 以前	before
 时候	time; when
 小时	hour
 分钟	minute
-早上	morning
-中午	noon
-下午	afternoon
-晚上	evening
+早上	morning	朝
+中午	noon	昼
+下午	afternoon	午後
+晚上	evening	夜
 周末	weekend
-朋友	friend
+朋友	friend	友達
 同学	classmate
-老师	teacher
-学生	student
-家人	family
-爸爸	dad
-妈妈	mom
+老师	teacher	先生
+学生	student	学生
+家人	family	家族
+爸爸	dad	お父さん
+妈妈	mom	お母さん
 哥哥	older brother
 姐姐	older sister
 弟弟	younger brother
@@ -351,29 +351,29 @@
 先生	Mr.; husband
 女士	Ms.
 小姐	Miss
-中国	China
-美国	USA
-日本	Japan
-英国	UK
+中国	China	中国
+美国	USA	アメリカ
+日本	Japan	日本
+英国	UK	イギリス
 法国	France
-北京	Beijing
-上海	Shanghai
-香港	Hong Kong
-台湾	Taiwan
+北京	Beijing	北京
+上海	Shanghai	上海
+香港	Hong Kong	香港
+台湾	Taiwan	台湾
 深圳	Shenzhen
-公司	company
-工作	work
+公司	company	会社
+工作	work	仕事
 上班	go to work
 下班	get off work
 开会	meeting
-电话	telephone
-手机	mobile phone
-电脑	computer
+电话	telephone	電話
+手机	mobile phone	携帯
+电脑	computer	パソコン
 邮件	email
 微信	WeChat
-吃饭	eat a meal
-喝水	drink water
-睡觉	sleep
+吃饭	eat a meal	食べる
+喝水	drink water	水を飲む
+睡觉	sleep	寝る
 起床	get up
 洗澡	bathe
 走路	walk
@@ -390,12 +390,12 @@
 雨	rain
 雪	snow
 风	wind
-热	hot
-冷	cold
+热	hot	暑い
+冷	cold	寒い
 温	warm
 凉快	cool
 舒服	comfortable
-喜欢	like
+喜欢	like	好き
 需要	need
 希望	hope
 觉得	feel; think
@@ -410,37 +410,37 @@
 完成	finish
 帮助	help
 麻烦	trouble
-问题	problem; question
+问题	problem; question	問題
 答案	answer
 办法	method
-时间	time
-地方	place
-东西	thing
+时间	time	時間
+地方	place	場所
+东西	thing	もの
 事情	matter
 机会	opportunity
-重要	important
-简单	simple
+重要	important	大切
+简单	simple	簡単
 复杂	complex
-容易	easy
-困难	difficult
-快	fast
-慢	slow
+容易	easy	簡単
+困难	difficult	難しい
+快	fast	速い
+慢	slow	遅い
 错	wrong
-坏	bad
+坏	bad	悪い
 丑	ugly
-低	low
+低	low	低い
 短	short
-旧	old
+旧	old	古い
 近	near
 远	far
 左	left
 右	right
-红色	red
-蓝色	blue
-绿色	green
-黄色	yellow
-黑色	black
-白色	white
+红色	red	赤
+蓝色	blue	青
+绿色	green	緑
+黄色	yellow	黄色
+黑色	black	黒
+白色	white	白
 颜色	color
 声音	sound
 音乐	music
@@ -449,39 +449,39 @@
 新闻	news
 报纸	newspaper
 杂志	magazine
-五	five
+五	five	五
 六	six
 七	seven
 八	eight
 九	nine
 零	zero
 亿	hundred million
-输入	input
+输入	input	入力
 输出	output
 候选	candidate
 拼音	pinyin
 键盘	keyboard
 语音	voice
 识别	recognition
-翻译	translate
-英语	English
-日语	Japanese
-中文	Chinese
+翻译	translate	翻訳
+英语	English	英語
+日语	Japanese	日本語
+中文	Chinese	中国語
 汉字	Chinese character
 单词	word
 句子	sentence
 意思	meaning
-早上好	good morning
-晚上好	good evening
-晚安	good night
+早上好	good morning	おはよう
+晚上好	good evening	こんばんは
+晚安	good night	おやすみ
 恭喜	congratulations
-生日快乐	happy birthday
-新年快乐	happy new year
+生日快乐	happy birthday	誕生日おめでとう
+新年快乐	happy new year	明けましておめでとう
 加油	come on; add oil
-没问题	no problem
-当然	of course
-也许	maybe
-一定	certainly
+没问题	no problem	問題ない
+当然	of course	もちろん
+也许	maybe	たぶん
+一定	certainly	必ず
 马上	right away
 一会儿	a while
 刚才	just now
@@ -490,13 +490,13 @@
 已经	already
 还是	still; or
 或者	or
-因为	because
-所以	so; therefore
-如果	if
+因为	because	から
+所以	so; therefore	だから
+如果	if	もし
 虽然	although
-但是	but
+但是	but	でも
 而且	and; moreover
-然后	then
+然后	then	そして
 接着	next
 最后	finally
 首先	first
@@ -529,8 +529,8 @@
 大阪	Osaka
 友達	friend
 家族	family
-火	fire
-山	mountain
+火	fire	火
+山	mountain	山
 川	river
 空	sky
 今日	today

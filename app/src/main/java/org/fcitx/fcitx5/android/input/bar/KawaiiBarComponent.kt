@@ -786,8 +786,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     override val view by lazy {
         ViewAnimator(context).apply {
             backgroundColor =
-                if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
-                else theme.barColor
+                // Always paint the bar strip (Gboard-like tonal footer), even with key borders.
+                theme.barColor
             add(idleUi.root, lParams(matchParent, wrapContent))
             add(candidateUi.root, lParams(matchParent, wrapContent))
             add(titleUi.root, lParams(matchParent, wrapContent))

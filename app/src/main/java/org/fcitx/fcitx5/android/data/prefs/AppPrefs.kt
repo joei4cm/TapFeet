@@ -467,17 +467,21 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.show_candidate_comment_summary
         )
 
-        /** 拼音输入时把英文单词插进候选（引擎 SpellEnabled）。默认开。 */
+        /**
+         * 拼音输入时把英文单词插进候选（引擎 SpellEnabled）。
+         * 默认关：开着会和中文候选混在一起显得乱；需要中英混打时再开。
+         * key 带 _v2：升级后重新落到默认关，不受旧默认「开」影响。
+         */
         val pinyinEnglishCandidates = switch(
             R.string.pinyin_english_candidates,
-            "pinyin_english_candidates",
-            true,
+            "pinyin_english_candidates_v2",
+            false,
             R.string.pinyin_english_candidates_summary
         )
 
         /**
-         * 候选旁显示本地中/日→英释义（可选；关则仍走编码提示/拼音）。
-         * 词表内置精简版，不联网。
+         * 候选旁在拼音后追加本地英/日释义（格式：`拼音 · 英 · 日`）。
+         * 词表内置精简版，不联网。不开时只显示拼音/编码。
          */
         val showTranslationComment = switch(
             R.string.show_translation_comment,

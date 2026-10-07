@@ -17,9 +17,9 @@ class TranslationGlossTest {
     fun setUp() {
         TranslationGloss.replaceForTest(
             forward = mapOf(
-                "你好" to "hello; hi",
-                "日本" to "Japan",
-                "こんにちは" to "hello",
+                "你好" to TranslationGloss.Entry("hello; hi", "こんにちは"),
+                "日本" to TranslationGloss.Entry("Japan", "日本"),
+                "こんにちは" to TranslationGloss.Entry("hello", null),
             ),
             reverse = mapOf(
                 "hello" to "你好",
@@ -31,6 +31,13 @@ class TranslationGlossTest {
     @After
     fun tearDown() {
         TranslationGloss.clearForTest()
+    }
+
+    @Test
+    fun entryOfChineseHasEnAndJa() {
+        val e = TranslationGloss.entryOf("你好")!!
+        assertEquals("hello; hi", e.en)
+        assertEquals("こんにちは", e.ja)
     }
 
     @Test
@@ -46,8 +53,9 @@ class TranslationGlossTest {
 
     @Test
     fun glossPrefixFallback() {
-        // 你好呀 — longest prefix 你好
-        assertEquals("hello; hi", TranslationGloss.glossOf("你好呀"))
+        assertEquals("hello; hi", TranslationGloss.glossOf("你好呀")?.let {
+            TranslationGloss.entryOf("你好呀")!!.en
+        })
     }
 
     @Test
