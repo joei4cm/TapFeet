@@ -395,8 +395,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 Timber.w("voice input error: %s", msg)
                 context.toast(
                     when (msg) {
-                        VoiceInputController.ERR_NO_AUDIO,
-                        VoiceInputController.ERR_NO_SPEECH -> R.string.voice_input_no_speech
+                        VoiceInputController.ERR_NO_AUDIO -> R.string.voice_input_no_speech
+                        VoiceInputController.ERR_NO_SPEECH -> R.string.voice_input_no_transcript
                         VoiceInputController.ERR_RECOGNIZE -> R.string.voice_input_recognize_failed
                         else -> R.string.voice_input_unavailable
                     }

@@ -505,6 +505,7 @@
     <string name="voice_input_permission_required">Microphone permission is required for voice input</string>
     <string name="voice_input_unavailable">Voice input is unavailable</string>
     <string name="voice_input_no_speech">No speech detected — hold longer and speak closer to the mic</string>
+    <string name="voice_input_no_transcript">Heard audio but could not recognize text — try again</string>
     <string name="voice_input_recognize_failed">Voice recognition failed — try again</string>
     <string name="fcitx_daemon">Fcitx Daemon</string>
     <string name="restarting_fcitx">Restarting Fcitx</string>
