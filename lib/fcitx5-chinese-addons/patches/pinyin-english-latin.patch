@@ -1,20 +1,17 @@
-From 7dffe21450800f6e4c5bb293fb06cdc8cf96335f Mon Sep 17 00:00:00 2001
+From 60520bfc020a2e3ac3756a508709252ef63be098 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
-Date: Wed, 7 Oct 2026 11:40:09 +0000
-Subject: [PATCH] Show English spell candidates for continuous latin in pinyin.
+Date: Wed, 7 Oct 2026 14:12:03 +0000
+Subject: [PATCH] tmp spell
 
-englishNess often scores vowel-heavy words like hello as 0 because
-they look like good pinyin; force spell hints for raw latin buffers
-and always offer the typed word itself.
 ---
- im/pinyin/pinyin.cpp | 31 ++++++++++++++++++++++---------
- 1 file changed, 22 insertions(+), 9 deletions(-)
+ im/pinyin/pinyin.cpp | 34 ++++++++++++++++++++++------------
+ 1 file changed, 22 insertions(+), 12 deletions(-)
 
 diff --git a/im/pinyin/pinyin.cpp b/im/pinyin/pinyin.cpp
-index 3e73a82..a68d52b 100644
+index 3e73a82..fcf5d9f 100644
 --- a/im/pinyin/pinyin.cpp
 +++ b/im/pinyin/pinyin.cpp
-@@ -545,6 +545,18 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
+@@ -545,6 +545,19 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
              selectedLength <= context.cursor()) {
              auto [hasUpper, engNess] =
                  englishNess(parsedPy, context.useShuangpin());
@@ -26,17 +23,19 @@ index 3e73a82..a68d52b 100644
 +                    return charutils::isupper(c) || charutils::islower(c) ||
 +                           c == '\'' || c == '-';
 +                });
-+            if (!engNess && rawLatin && pyBeforeCursor.size() >= 2) {
++            if (rawLatin && pyBeforeCursor.size() >= 2) {
++                // Ask for enough hints that a complete word surfaces near the top.
 +                engNess = std::max<int>(
-+                    3, static_cast<int>((pyBeforeCursor.size() + 2) / 2));
++                    engNess, std::max(8, static_cast<int>(pyBeforeCursor.size())));
 +            }
              if (engNess) {
                  parsedPyCursor -= selectedSentence.length();
                  parsedPy = parsedPy.substr(
-@@ -556,15 +568,16 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
+@@ -555,20 +568,17 @@ void PinyinEngine::updateUI(InputContext *inputContext) {
+                 auto results = spell()->call<ISpell::hintWithProvider>(
                      "en", SpellProvider::Custom, pyBeforeCursor, engNess);
  
-                 // Our hint doesn't work well with mixed case, so, always put a
+-                // Our hint doesn't work well with mixed case, so, always put a
 -                // word as is.
 -                if (hasUpper && !pyBeforeCursor.empty()) {
 -                    if (std::find(results.begin(), results.end(),
@@ -46,19 +45,22 @@ index 3e73a82..a68d52b 100644
 -                        } else {
 -                            results.push_back(pyBeforeCursor);
 -                        }
-+                // word as is. Same for lowercase raw latin so users can commit
-+                // the typed English word even when the dict misses.
-+                if (!pyBeforeCursor.empty() &&
-+                    (hasUpper || rawLatin) &&
-+                    std::find(results.begin(), results.end(),
-+                              pyBeforeCursor) == results.end()) {
-+                    if (!charutils::isupper(pyBeforeCursor[0])) {
-+                        results.insert(results.begin(), pyBeforeCursor);
-+                    } else {
-+                        results.push_back(pyBeforeCursor);
-                     }
+-                    }
++                // Always offer the typed latin word first so a complete English
++                // word is selectable even when the dict ranking is weak.
++                if (!pyBeforeCursor.empty() && (hasUpper || rawLatin)) {
++                    results.erase(std::remove(results.begin(), results.end(),
++                                              pyBeforeCursor),
++                                  results.end());
++                    results.insert(results.begin(), pyBeforeCursor);
                  }
  
+-                int position = hasUpper ? 0 : 1;
++                // Exact typed latin first (slot 0); Chinese stays alongside.
++                int position = (hasUpper || rawLatin) ? 0 : 1;
+                 for (const auto &result : results) {
+                     if (customCandidateMap.contains(result)) {
+                         continue;
 -- 
 2.43.0
 

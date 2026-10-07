@@ -11,17 +11,30 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.translation.TranslationGloss
 
 /**
- * 候选旁提示：引擎 comment →（可选）本地中/日英释义 → 汉字拼音。
+ * 候选旁提示，规则固定，避免「有的拼音有的英文」乱跳：
+ * - 关翻译：引擎 comment，否则汉字拼音
+ * - 开翻译：`拼音 · 英 · 日`（缺啥省啥）；纯英文候选则显示中/日原文
  */
 fun CandidateWord.displayComment(): String {
     if (comment.isNotBlank()) return comment
-    if (AppPrefs.getInstance().candidateBar.showTranslationComment.getValue()) {
-        TranslationGloss.ensureLoaded()
-        TranslationGloss.glossOf(text)?.let { return it }
-        // 英文候选：反查中/日原文作提示
-        if (text.isNotEmpty() && text.all { it.isLetter() && it.code < 128 }) {
-            TranslationGloss.sourceOfEnglish(text)?.let { return it }
-        }
+
+    val prefs = AppPrefs.getInstance().candidateBar
+    val latin = text.isNotEmpty() && text.all { it.isLetter() && it.code < 128 }
+    val pinyin = if (!latin) PinyinLookup.pinyinOf(text).orEmpty() else ""
+
+    if (!prefs.showTranslationComment.getValue()) {
+        return pinyin
     }
-    return PinyinLookup.pinyinOf(text).orEmpty()
+
+    TranslationGloss.ensureLoaded()
+    if (latin) {
+        return TranslationGloss.sourceOfEnglish(text).orEmpty()
+    }
+    val gloss = TranslationGloss.entryOf(text)
+    val parts = buildList {
+        if (pinyin.isNotBlank()) add(pinyin)
+        gloss?.en?.takeIf { it.isNotBlank() }?.let { add(it) }
+        gloss?.ja?.takeIf { it.isNotBlank() }?.let { add(it) }
+    }
+    return parts.joinToString(" · ")
 }
