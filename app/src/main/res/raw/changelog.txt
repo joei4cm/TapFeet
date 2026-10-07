@@ -195,6 +195,7 @@ https://github.com/izilooong/TapFeet
 
 # v1.0.27
 - 内置遍黑体扩展区回退字体：生僻字（CJK Ext B–I，例如 𫚥）不再依赖系统字库出方块；常用字仍走 Noto Sans SC
+- Titan Elite 语音：录音改 MIC 优先，静音自动换源；空会话提示「未检测到声音」；首次进声提示「麦克风已接收」
 
 
 
