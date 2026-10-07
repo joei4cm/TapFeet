@@ -467,6 +467,25 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.show_candidate_comment_summary
         )
 
+        /** 拼音输入时把英文单词插进候选（引擎 SpellEnabled）。默认开。 */
+        val pinyinEnglishCandidates = switch(
+            R.string.pinyin_english_candidates,
+            "pinyin_english_candidates",
+            true,
+            R.string.pinyin_english_candidates_summary
+        )
+
+        /**
+         * 候选旁显示本地中/日→英释义（可选；关则仍走编码提示/拼音）。
+         * 词表内置精简版，不联网。
+         */
+        val showTranslationComment = switch(
+            R.string.show_translation_comment,
+            "show_translation_comment",
+            false,
+            R.string.show_translation_comment_summary
+        ) { showCandidateComment.getValue() }
+
         val vMode = switch(
             R.string.v_mode,
             "pinyin_v_mode",

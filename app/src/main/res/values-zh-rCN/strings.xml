@@ -346,6 +346,10 @@
     <string name="hide_status_bar_summary">空闲时收起顶栏；打字时照常显示候选栏。</string>
     <string name="show_candidate_comment">编码提示</string>
     <string name="show_candidate_comment_summary">候选旁显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。</string>
+    <string name="pinyin_english_candidates">拼音中显示英文单词</string>
+    <string name="pinyin_english_candidates_summary">打拼音时若像英文单词（如 hello），把英文候选插进列表，用巨硬/数字键选。与 Sym+N 切到英文输入法的单词联想是两套。默认开。</string>
+    <string name="show_translation_comment">翻译释义</string>
+    <string name="show_translation_comment_summary">可选。编码提示为空时，在候选旁显示本地中/日→英释义。内置精简词表，不联网。需先打开「编码提示」。</string>
     <string name="v_mode">V 模式</string>
     <string name="v_mode_summary">输入 v 再跟数字或 + - * /，出日期、数字大小写和简单计算。</string>
     <string name="contacts_dictionary">通讯录词库</string>
