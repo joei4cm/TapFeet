@@ -193,6 +193,9 @@ https://github.com/izilooong/TapFeet
 - 模型下载增加 huggingface.co 与 GitHub 加速镜像，拒绝把 HTML/LFS 指针当模型文件
 - 屏幕键盘：长按 ?123 切九键（不再挤占底排）；九键数字大、字母在下，底排 26键 / 空格 / 退格 / 回车
 
+# v1.0.27
+- 内置遍黑体扩展区回退字体：生僻字（CJK Ext B–I，例如 𫚥）不再依赖系统字库出方块；常用字仍走 Noto Sans SC
+
 
 
 

@@ -18,18 +18,25 @@ import timber.log.Timber
 /**
  * Typefaces for candidate text and IME chrome (keys, preedit, popups).
  *
- * Default is bundled Noto Sans SC (assets), not the system `sans-serif` family: Elite and similar
- * ROMs often ship a Latin-first default with incomplete CJK coverage, which becomes tofu.
- * An imported TTF/OTF still wins for **candidates**; on API 29+ the bundled face is chained as
- * a custom fallback so a Latin-only import does not hide 汉字. Keys always use the bundled face.
+ * Default chain (API 29+):
+ *  1. imported TTF/OTF (candidates only, optional)
+ *  2. bundled Noto Sans SC — common 简体
+ *  3. bundled Plangothic Ext — CJK Extension B–I rare glyphs (e.g. 𫚥)
+ *  4. system `sans-serif`
+ *
+ * Elite and similar ROMs often ship a Latin-first default with incomplete CJK; Noto alone is still
+ * a SC subset and misses Extension C forms such as U+2B6A5, so Plangothic fills those holes.
  */
 object CandidateFont {
 
     private const val FILE = "candidate_font.ttf"
     private const val BUNDLED_FILE = "NotoSansSC-Regular.otf"
+    private const val EXT_FILE = "PlangothicExt-Regular.ttf"
     private const val MIN_BUNDLED_BYTES = 1_000_000L
+    private const val MIN_EXT_BYTES = 1_000_000L
     private const val FAMILY = "sans-serif"
     const val ASSET = "fonts/NotoSansSC-Regular.otf"
+    const val EXT_ASSET = "fonts/PlangothicExt-Regular.ttf"
 
     @Volatile
     private var cached: Typeface? = null
@@ -44,6 +51,9 @@ object CandidateFont {
 
     @Volatile
     private var bundledFamily: Any? = null
+
+    @Volatile
+    private var extFamily: Any? = null
 
     fun file(context: Context): File = File(context.filesDir, FILE)
 
@@ -81,7 +91,7 @@ object CandidateFont {
         return uiTypeface(context, style)
     }
 
-    /** Bundled Noto Sans SC, never the user import. Safe to pass as [android.widget.TextView.setTypeface]. */
+    /** Bundled Noto Sans SC (+ Ext fallback on API 29+). Safe for [android.widget.TextView.setTypeface]. */
     fun uiTypeface(context: Context, style: Int = Typeface.NORMAL): Typeface {
         val bold = style == Typeface.BOLD
         val hit = if (bold) bundledBold else bundledNormal
@@ -99,24 +109,25 @@ object CandidateFont {
             val family = FontFamily.Builder(font).build()
             val builder = Typeface.CustomFallbackBuilder(family)
             bundledFontFamily(context)?.let { builder.addCustomFallback(it) }
+            extFontFamily(context)?.let { builder.addCustomFallback(it) }
             return builder.setSystemFallback(FAMILY).build()
         }
         val base = cachedFileTypeface(f)
         return Typeface.create(base, style)
     }
 
-    private fun bundledFile(context: Context): File {
-        val dest = File(context.filesDir, BUNDLED_FILE)
-        if (dest.isFile && dest.length() > MIN_BUNDLED_BYTES) return dest
-        val part = File(context.filesDir, "$BUNDLED_FILE.part")
+    private fun extractAsset(context: Context, assetPath: String, destName: String, minBytes: Long): File {
+        val dest = File(context.filesDir, destName)
+        if (dest.isFile && dest.length() > minBytes) return dest
+        val part = File(context.filesDir, "$destName.part")
         try {
-            context.assets.open(ASSET).use { input ->
+            context.assets.open(assetPath).use { input ->
                 part.outputStream().use { input.copyTo(it) }
             }
-            if (part.length() <= MIN_BUNDLED_BYTES) {
+            if (part.length() <= minBytes) {
                 val size = part.length()
                 part.delete()
-                throw IOException("extracted CJK font too small: $size")
+                throw IOException("extracted font too small: $destName ($size)")
             }
             dest.delete()
             if (!part.renameTo(dest)) {
@@ -130,6 +141,12 @@ object CandidateFont {
         return dest
     }
 
+    private fun bundledFile(context: Context): File =
+        extractAsset(context, ASSET, BUNDLED_FILE, MIN_BUNDLED_BYTES)
+
+    private fun extFile(context: Context): File =
+        extractAsset(context, EXT_ASSET, EXT_FILE, MIN_EXT_BYTES)
+
     private fun buildBundled(context: Context, style: Int): Typeface {
         return try {
             val file = bundledFile(context)
@@ -137,9 +154,9 @@ object CandidateFont {
                 val font = Font.Builder(file).apply {
                     if (style == Typeface.BOLD) setWeight(700)
                 }.build()
-                Typeface.CustomFallbackBuilder(FontFamily.Builder(font).build())
-                    .setSystemFallback(FAMILY)
-                    .build()
+                val builder = Typeface.CustomFallbackBuilder(FontFamily.Builder(font).build())
+                extFontFamily(context)?.let { builder.addCustomFallback(it) }
+                builder.setSystemFallback(FAMILY).build()
             } else {
                 val base = Typeface.createFromFile(file)
                 if (style == Typeface.NORMAL) base else Typeface.create(base, style)
@@ -163,6 +180,19 @@ object CandidateFont {
         }
     }
 
+    private fun extFontFamily(context: Context): FontFamily? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        (extFamily as? FontFamily)?.let { return it }
+        return try {
+            FontFamily.Builder(Font.Builder(extFile(context)).build()).build().also {
+                extFamily = it
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load Plangothic Ext font family")
+            null
+        }
+    }
+
     private fun cachedFileTypeface(f: File): Typeface {
         val mod = f.lastModified()
         val len = f.length()
@@ -181,5 +211,9 @@ object CandidateFont {
         cached = null
         cachedMod = 0L
         cachedLen = -1L
+        bundledNormal = null
+        bundledBold = null
+        bundledFamily = null
+        extFamily = null
     }
 }
