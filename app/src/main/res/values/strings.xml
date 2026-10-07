@@ -358,7 +358,7 @@
     <string name="candidate_font_bold">Bold candidate text</string>
     <string name="candidate_letter_spacing">Candidate letter spacing</string>
     <string name="candidate_font_status">Current candidate font</string>
-    <string name="candidate_font_status_bundled">Current: bundled Noto Sans SC (no import needed; missing glyphs fall back to the system)</string>
+    <string name="candidate_font_status_bundled">Current: bundled Noto Sans SC + Plangothic Ext (rare CJK; no import needed)</string>
     <string name="candidate_font_status_imported">Current: imported file (keys still use bundled Noto Sans SC)</string>
     <string name="candidate_font_status_missing">Bundled font failed to load. Import a TTF/OTF below.</string>
     <string name="candidate_font_import">Import candidate font</string>

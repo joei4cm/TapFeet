@@ -2,3 +2,9 @@ Noto Sans SC Regular — region-specific Subset OTF from Noto CJK 2.004
 https://github.com/notofonts/noto-cjk
 path: Sans/SubsetOTF/SC/NotoSansSC-Regular.otf
 License: SIL Open Font License 1.1 (OFL.txt)
+
+Plangothic Ext Regular — rare CJK fallback (Ext B–I glyphs missing from Noto Sans SC)
+subset of Plangothic P1 Regular V2.9.5795
+https://github.com/Fitzgerald-Porthmouth-Koenigsegg/Plangothic_Project
+License: SIL Open Font License 1.1 (OFL-Plangothic.txt)
+Includes U+2B6A5 𫚥 and other Extension-block ideographs.
