@@ -15,16 +15,19 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.ViewTreeObserver.OnPreDrawListener
 import android.view.WindowInsets
 import android.widget.TextView
-import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
-import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
 import androidx.annotation.Size
+import androidx.lifecycle.lifecycleScope
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.data.translation.TranslationChipHelper
+import org.fcitx.fcitx5.android.data.translation.TranslationCommit
 import org.fcitx.fcitx5.android.input.bar.ui.ChipStripUi
+import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
+import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
 import org.fcitx.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fcitx.fcitx5.android.input.pinyin.pinyinSegments
 import org.fcitx.fcitx5.android.input.preedit.PreeditUi
@@ -66,6 +69,20 @@ class CandidatesView(
 
     private var inputPanel = FcitxEvent.InputPanelEvent.Data()
     private var paged = FcitxEvent.PagedCandidateEvent.Data.Empty
+    private var translationChipItems: List<TranslationCommit.Item> = emptyList()
+
+    private val translationChips by lazy {
+        TranslationChipHelper(service.lifecycleScope) { items ->
+            translationChipItems = items
+            refreshChips()
+            // 联网结果回来时可能只改了 chips，需要重新评估悬浮窗可见性
+            if (evaluateVisibility()) {
+                visibility = VISIBLE
+            } else if (visibility == VISIBLE) {
+                visibility = INVISIBLE
+            }
+        }
+    }
 
     /**
      * horizontal, bottom, top
@@ -151,6 +168,7 @@ class CandidatesView(
             }
             is FcitxEvent.PagedCandidateEvent -> {
                 paged = it.data
+                translationChips.setSource(paged.candidates.firstOrNull()?.text)
                 updateUi()
             }
             else -> {}
@@ -197,6 +215,12 @@ class CandidatesView(
             items += seg.text to {
                 val pos = inputPanel.preedit.codePointCountUntil(seg.cursor)
                 fcitx.launchOnReady { it.moveCursor(pos) }
+            }
+        }
+        translationChipItems.forEach { item ->
+            items += item.label to {
+                service.commitText(item.text)
+                fcitx.launchOnReady { it.reset() }
             }
         }
         chipStrip.update(items)
