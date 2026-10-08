@@ -481,6 +481,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
         /**
          * 候选旁在拼音后追加本地英/日释义（格式：`拼音 · 英 · 日`）。
+         * 同时在候选栏上方给出「英 …」「日 …」芯片，点一下即可上屏。
          * 词表内置精简版，不联网。不开时只显示拼音/编码。
          */
         val showTranslationComment = switch(
@@ -489,6 +490,17 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             false,
             R.string.show_translation_comment_summary
         ) { showCandidateComment.getValue() }
+
+        /**
+         * 联网整句翻译：按当前首选候选（或源文）请求英/日（或中）译文，
+         * 结果同样以可点芯片上屏。需网络；默认关。
+         */
+        val onlineSentenceTranslate = switch(
+            R.string.online_sentence_translate,
+            "online_sentence_translate",
+            false,
+            R.string.online_sentence_translate_summary
+        )
 
         val vMode = switch(
             R.string.v_mode,

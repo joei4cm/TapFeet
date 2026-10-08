@@ -44,6 +44,8 @@ import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.translation.TranslationChipHelper
+import org.fcitx.fcitx5.android.data.translation.TranslationCommit
 import org.fcitx.fcitx5.android.data.voice.VoiceModelManager
 import org.fcitx.fcitx5.android.input.StatusIconMapping
 import org.fcitx.fcitx5.android.input.bar.ExpandButtonStateMachine.State.ClickToAttachWindow
@@ -883,13 +885,29 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private var lastCandidatesEmpty = true
     private var chipsNonEmpty = false
+    private var lastPanelData = InputPanelEvent.Data()
+    private var translationChipItems: List<TranslationCommit.Item> = emptyList()
+
+    private val translationChips by lazy {
+        TranslationChipHelper(service.lifecycleScope) { items ->
+            translationChipItems = items
+            rebuildChipStrip()
+        }
+    }
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
         lastCandidatesEmpty = data.candidates.isEmpty()
+        translationChips.setSource(data.candidates.firstOrNull()?.text)
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to (lastCandidatesEmpty && !chipsNonEmpty))
     }
 
     override fun onInputPanelUpdate(data: InputPanelEvent.Data) {
+        lastPanelData = data
+        rebuildChipStrip()
+    }
+
+    private fun rebuildChipStrip() {
+        val data = lastPanelData
         val items = mutableListOf<Pair<String, () -> Unit>>()
         if (prefs.candidateBar.vMode.getValue()) {
             org.fcitx.fcitx5.android.input.vmode.VMode.suggestions(data.preedit.toString()).forEach { s ->
@@ -903,6 +921,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             items += seg.text to {
                 val pos = data.preedit.codePointCountUntil(seg.cursor)
                 fcitx.launchOnReady { it.moveCursor(pos) }
+            }
+        }
+        translationChipItems.forEach { item ->
+            items += item.label to {
+                service.commitText(item.text)
+                fcitx.launchOnReady { it.reset() }
             }
         }
         chipsNonEmpty = items.isNotEmpty()
