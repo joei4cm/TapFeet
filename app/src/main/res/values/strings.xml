@@ -159,12 +159,12 @@
     <string name="pinyin_engine_rime_ice_error">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_rime_ice_download_start">Downloading Rime Ice (~%1$d MB)…</string>
     <string name="pinyin_engine_rime_frost_tap">Download ~%1$d MB · tap to install (first deploy may take a few minutes)</string>
-    <string name="pinyin_engine_rime_frost_ready">Downloaded · tap to use</string>
+    <string name="pinyin_engine_rime_frost_ready">Cached · tap to make active</string>
     <string name="pinyin_engine_rime_frost_downloading">Downloading Rime Frost… %1$d%%</string>
     <string name="pinyin_engine_rime_frost_error">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_rime_frost_download_start">Downloading Rime Frost (~%1$d MB)…</string>
     <string name="pinyin_engine_rime_mint_tap">Download ~%1$d MB · tap to install (first deploy may take a few minutes)</string>
-    <string name="pinyin_engine_rime_mint_ready">Downloaded · tap to use</string>
+    <string name="pinyin_engine_rime_mint_ready">Cached · tap to make active</string>
     <string name="pinyin_engine_rime_mint_downloading">Downloading Oh-my-rime… %1$d%%</string>
     <string name="pinyin_engine_rime_mint_error">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_rime_mint_download_start">Downloading Oh-my-rime (~%1$d MB)…</string>

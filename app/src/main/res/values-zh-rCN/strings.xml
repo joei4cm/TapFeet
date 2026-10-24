@@ -155,12 +155,12 @@
     <string name="pinyin_engine_rime_ice_error">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_rime_ice_download_start">开始下载雾凇拼音（约 %1$d MB）…</string>
     <string name="pinyin_engine_rime_frost_tap">需下载约 %1$d MB · 点按安装（首次部署可能要几分钟）</string>
-    <string name="pinyin_engine_rime_frost_ready">已下载 · 点按使用</string>
+    <string name="pinyin_engine_rime_frost_ready">已缓存 · 点按切换为当前方案</string>
     <string name="pinyin_engine_rime_frost_downloading">正在下载白霜… %1$d%%</string>
     <string name="pinyin_engine_rime_frost_error">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_rime_frost_download_start">开始下载白霜拼音（约 %1$d MB）…</string>
     <string name="pinyin_engine_rime_mint_tap">需下载约 %1$d MB · 点按安装（首次部署可能要几分钟）</string>
-    <string name="pinyin_engine_rime_mint_ready">已下载 · 点按使用</string>
+    <string name="pinyin_engine_rime_mint_ready">已缓存 · 点按切换为当前方案</string>
     <string name="pinyin_engine_rime_mint_downloading">正在下载薄荷… %1$d%%</string>
     <string name="pinyin_engine_rime_mint_error">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_rime_mint_download_start">开始下载薄荷拼音（约 %1$d MB）…</string>
