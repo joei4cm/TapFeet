@@ -142,10 +142,16 @@
     <string name="pinyin_engine_fcitx">小企鹅拼音</string>
     <string name="pinyin_engine_shuangpin">双拼</string>
     <string name="pinyin_engine_rime">中州韵（朙月简拼）</string>
+    <string name="pinyin_engine_rime_ice">雾凇拼音</string>
     <string name="pinyin_engine_wubi">五笔</string>
-    <string name="pinyin_engine_summary">小企鹅拼音、双拼、中州韵、五笔均已内置，点选即加载，不用下载。粤语/注音/日韩等先到「插件」安装，再到「输入法」启用。点选不会卸掉已经启用的其他引擎；只要中英两种时到「输入法」删掉多余的。Sym+N 在已启用的输入法之间循环。</string>
+    <string name="pinyin_engine_summary">小企鹅拼音、双拼、中州韵（朙月）、五笔均已内置，点选即加载。雾凇拼音首次使用需联网下载约 47 MB（GitHub 预编译包）。粤语/注音/日韩等先到「插件」安装，再到「输入法」启用。点选不会卸掉已经启用的其他引擎；只要中英两种时到「输入法」删掉多余的。Sym+N 在已启用的输入法之间循环。</string>
     <string name="pinyin_engine_in_use">使用中 · 已加载</string>
     <string name="pinyin_engine_tap_to_load">已内置 · 点按加载</string>
+    <string name="pinyin_engine_rime_ice_tap">需下载约 %1$d MB · 点按安装</string>
+    <string name="pinyin_engine_rime_ice_ready">已下载 · 点按使用</string>
+    <string name="pinyin_engine_rime_ice_downloading">正在下载雾凇… %1$d%%</string>
+    <string name="pinyin_engine_rime_ice_error">下载失败：%1$s · 点按重试</string>
+    <string name="pinyin_engine_rime_ice_download_start">开始下载雾凇拼音（约 %1$d MB）…</string>
     <string name="pinyin_engine_loaded">已加载 %1$s</string>
     <string name="pinyin_engine_more_im">输入法列表</string>
     <string name="pinyin_engine_more_im_summary">查看并增删已启用的输入法。</string>

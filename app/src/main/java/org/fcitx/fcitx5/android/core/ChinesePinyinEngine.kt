@@ -4,12 +4,16 @@
  */
 package org.fcitx.fcitx5.android.core
 
+import org.fcitx.fcitx5.android.data.rime.RimeIceManager
+import org.fcitx.fcitx5.android.data.rime.RimeSchemaSwitcher
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
 
 /**
  * Enable and activate a bundled Chinese IM. English (`keyboard-us`) and any other IMs stay put.
  * Selecting an engine **adds** it; it does not strip engines the user already enabled.
+ *
+ * 雾凇与朙月共用 fcitx `rime` 输入法，通过 [RimeSchemaSwitcher] 切换 schema。
  */
 object ChinesePinyinEngine {
     const val PINYIN = "pinyin"
@@ -42,14 +46,34 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
         Timber.w("$uniqueName input method is not available")
         return
     }
+
+    val schemaId = kind.rimeSchemaId
+    if (schemaId != null) {
+        if (kind.needsDownload && !RimeIceManager.isReady()) {
+            Timber.i("rime-ice not ready yet; skip schema switch")
+            return
+        }
+        RimeSchemaSwitcher.apply(schemaId)
+        if (!RimeSchemaSwitcher.deploy(this)) {
+            Timber.w("rime deploy action not found; schema file written, will apply on next session")
+        }
+    }
+
     val enabled = enabledIme().map { it.uniqueName }
     val next = ChinesePinyinEngine.applyEnabled(enabled, uniqueName)
     if (next != enabled) {
         setEnabledIme(next.toTypedArray())
     }
-    ChinesePinyinEngine.shouldActivate(
+    // 同一 uniqueName（rime）在朙月↔雾凇之间切换时也要 force 再激活一次，让引擎重读 schema
+    val activate = ChinesePinyinEngine.shouldActivate(
         currentIme().uniqueName,
         uniqueName,
-        forceActivate,
-    )?.let { activateIme(it) }
+        forceActivate || schemaId != null,
+    )
+    if (activate != null) {
+        activateIme(activate)
+    } else if (forceActivate && schemaId != null && currentIme().uniqueName == uniqueName) {
+        // 已在 rime 上：再 activate 一次触发重载
+        activateIme(uniqueName)
+    }
 }

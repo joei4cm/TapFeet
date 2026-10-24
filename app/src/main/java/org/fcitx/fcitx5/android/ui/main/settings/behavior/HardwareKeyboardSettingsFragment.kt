@@ -9,15 +9,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.InputFeedbacks.SoundScheme
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
+import org.fcitx.fcitx5.android.data.rime.RimeIceManager
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
@@ -32,6 +37,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     private lateinit var hw: AppPrefs.HardwareKeyboard
     private lateinit var profileList: ListPreference
     private val keyPrefs = mutableListOf<KeyCapturePreference>()
+    private val enginePrefs = mutableListOf<Preference>()
 
     /** The 巨硬 quick-pick master switch; its summary shows the LIVE key bindings (task: 键位描述). */
     private lateinit var quickPickSwitch: SwitchPreference
@@ -107,18 +113,8 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(applyEliteMod)
 
-        // Bundled Chinese IMs: each row is tappable to enable+activate. No download for these four.
-        val enginePrefs = mutableListOf<Preference>()
-        fun refreshEngineSummaries() {
-            val current = hw.pinyinEngine.getValue()
-            enginePrefs.forEach { pref ->
-                val kind = PinyinEngineKind.entries.first { "pinyin_engine_pick_${it.name}" == pref.key }
-                pref.summary = getString(
-                    if (kind == current) R.string.pinyin_engine_in_use
-                    else R.string.pinyin_engine_tap_to_load
-                )
-            }
-        }
+        // Chinese IMs: bundled four + optional 雾凇（按需下载）。点选即启用并切换。
+        enginePrefs.clear()
         profileScreen.addPreference(Preference(context).apply {
             key = "pinyin_engine_help"
             title = getString(R.string.pinyin_engine)
@@ -134,13 +130,25 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
                 setOnPreferenceClickListener {
+                    if (kind == PinyinEngineKind.RimeIce && !RimeIceManager.isReady()) {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(
+                                R.string.pinyin_engine_rime_ice_download_start,
+                                RimeIceManager.approxSizeMb(),
+                            ),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                     hw.pinyinEngine.setValue(kind)
                     refreshEngineSummaries()
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.pinyin_engine_loaded, getString(kind.stringRes)),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    if (!kind.needsDownload || RimeIceManager.isReady()) {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.pinyin_engine_loaded, getString(kind.stringRes)),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                     true
                 }
             }
@@ -677,6 +685,40 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupTabLayout()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                RimeIceManager.state.collect { refreshEngineSummaries() }
+            }
+        }
+    }
+
+    private fun refreshEngineSummaries() {
+        if (enginePrefs.isEmpty()) return
+        val current = hw.pinyinEngine.getValue()
+        val iceState = RimeIceManager.state.value
+        enginePrefs.forEach { pref ->
+            val kind = PinyinEngineKind.entries.first { "pinyin_engine_pick_${it.name}" == pref.key }
+            pref.summary = when {
+                kind == current -> getString(R.string.pinyin_engine_in_use)
+                kind == PinyinEngineKind.RimeIce -> when (iceState) {
+                    is RimeIceManager.State.Downloading -> {
+                        val pct = if (iceState.totalBytes > 0)
+                            (iceState.downloadedBytes * 100 / iceState.totalBytes).toInt()
+                        else 0
+                        getString(R.string.pinyin_engine_rime_ice_downloading, pct)
+                    }
+                    RimeIceManager.State.Ready ->
+                        getString(R.string.pinyin_engine_rime_ice_ready)
+                    is RimeIceManager.State.Error ->
+                        getString(R.string.pinyin_engine_rime_ice_error, iceState.message)
+                    else -> getString(
+                        R.string.pinyin_engine_rime_ice_tap,
+                        RimeIceManager.approxSizeMb(),
+                    )
+                }
+                else -> getString(R.string.pinyin_engine_tap_to_load)
+            }
+        }
     }
 
     private fun setupTabLayout() {
