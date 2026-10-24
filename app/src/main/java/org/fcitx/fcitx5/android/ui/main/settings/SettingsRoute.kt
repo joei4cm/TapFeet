@@ -39,6 +39,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragm
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.ShortcutKeysSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.VoiceSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fcitx.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
 import org.fcitx.fcitx5.android.ui.main.settings.im.InputMethodListFragment
@@ -115,6 +116,9 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data object ShortcutKeys : SettingsRoute()
+
+    @Serializable
+    data object VoiceInput : SettingsRoute()
 
     @Serializable
     data object Developer : SettingsRoute()
@@ -287,6 +291,9 @@ sealed class SettingsRoute : Parcelable {
             }
             fragment<ShortcutKeysSettingsFragment, ShortcutKeys> {
                 label = ctx.getString(R.string.shortcut_keys)
+            }
+            fragment<VoiceSettingsFragment, VoiceInput> {
+                label = ctx.getString(R.string.voice_input)
             }
             fragment<DeveloperFragment, Developer> {
                 label = ctx.getString(R.string.developer)
