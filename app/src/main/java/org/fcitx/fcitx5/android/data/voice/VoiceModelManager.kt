@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -127,7 +128,7 @@ object VoiceModelManager {
     }
 
     fun selectedKind(): VoiceAsrKind {
-        return AppPrefs.getInstance().keyboard.voiceAsrKind.getValue()
+        return AppPrefs.getInstance().voice.voiceAsrKind.getValue()
     }
 
     fun isReady(kind: VoiceAsrKind = selectedKind()): Boolean {
@@ -143,6 +144,52 @@ object VoiceModelManager {
 
     fun attachPrefs() {
         ensureKindWatch()
+    }
+
+    /** 当前引擎已落地文件总大小（字节），设置页展示用。 */
+    fun modelSizeBytes(kind: VoiceAsrKind = selectedKind()): Long {
+        val asr = when (kind) {
+            VoiceAsrKind.SenseVoice ->
+                listOf(modelFile, tokensFile).sumOf { if (it.exists()) it.length() else 0L }
+            VoiceAsrKind.Qwen3 ->
+                listOf(
+                    qwenConvFrontendFile, qwenEncoderFile, qwenDecoderFile,
+                    qwenVocabFile, qwenMergesFile, qwenTokenizerConfigFile,
+                ).sumOf { if (it.exists()) it.length() else 0L }
+        }
+        val vad = if (vadFile.exists()) vadFile.length() else 0L
+        return asr + vad
+    }
+
+    /**
+     * 删除 [kind] 的本地模型（含 .part）。会取消进行中的下载并释放识别器。
+     * VAD 两档共用：另一档仍就绪时保留 silero_vad.onnx。
+     */
+    @Synchronized
+    fun deleteModel(kind: VoiceAsrKind = selectedKind()) {
+        if (downloadJob?.isActive == true && downloadingKind == kind) {
+            downloadJob?.cancel()
+            downloadJob = null
+            downloadingKind = null
+        }
+        when (kind) {
+            VoiceAsrKind.SenseVoice -> {
+                modelFile.delete()
+                tokensFile.delete()
+                File(modelDir, "model.int8.onnx.part").delete()
+                File(modelDir, "tokens.txt.part").delete()
+            }
+            VoiceAsrKind.Qwen3 -> {
+                qwenDir.deleteRecursively()
+            }
+        }
+        val other = if (kind == VoiceAsrKind.SenseVoice) VoiceAsrKind.Qwen3 else VoiceAsrKind.SenseVoice
+        if (!filesReady(other)) {
+            vadFile.delete()
+            File(modelDir, "silero_vad.onnx.part").delete()
+        }
+        VoiceRecognizer.release()
+        refreshState()
     }
 
     private fun filesReady(kind: VoiceAsrKind): Boolean {
@@ -167,7 +214,7 @@ object VoiceModelManager {
         if (kindWatchInstalled) return
         synchronized(this) {
             if (kindWatchInstalled) return
-            AppPrefs.getInstance().keyboard.voiceAsrKind.registerOnChangeListener(kindChangeListener)
+            AppPrefs.getInstance().voice.voiceAsrKind.registerOnChangeListener(kindChangeListener)
             kindWatchInstalled = true
             refreshState()
         }
@@ -209,6 +256,7 @@ object VoiceModelManager {
                     VoiceAsrKind.Qwen3 -> downloadQwen3(kind)
                 }
                 if (!filesReady(kind)) throw IOException("模型文件缺失")
+                if (!isActive) return@launch
                 if (selectedKind() == kind) {
                     mutableState.value = State.Ready
                 } else {
@@ -216,6 +264,7 @@ object VoiceModelManager {
                 }
                 onSuccess?.let { mainHandler.post(it) }
             } catch (e: Exception) {
+                if (!isActive) return@launch
                 Timber.e(e, "voice model download failed kind=%s", kind)
                 val message = e.message ?: "download failed"
                 if (selectedKind() == kind) {

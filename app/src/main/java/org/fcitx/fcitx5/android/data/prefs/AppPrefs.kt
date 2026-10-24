@@ -77,6 +77,40 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
     }
 
+    /**
+     * 语音输入（从虚拟键盘页拆出）。偏好 key 与原先 Keyboard 下一致，升级不丢设置。
+     */
+    inner class Voice : ManagedPreferenceCategory(R.string.voice_input, sharedPreferences) {
+        init { category(R.string.cat_voice_input) }
+        val builtInVoiceInput =
+            switch(
+                R.string.local_voice_input, "built_in_voice_input", true,
+                R.string.local_voice_input_summary
+            )
+        val voiceAsrKind = enumList(
+            R.string.voice_asr_kind, "voice_asr_kind", VoiceAsrKind.SenseVoice
+        ) { builtInVoiceInput.getValue() }
+        val voiceAutoStop =
+            switch(
+                R.string.voice_auto_stop, "voice_auto_stop", false,
+                R.string.voice_auto_stop_summary
+            )
+        val voiceAutoStopSeconds = int(
+            R.string.voice_auto_stop_seconds, "voice_auto_stop_seconds",
+            3, 1, 10, "s", 1
+        ) { voiceAutoStop.getValue() }
+        val voiceLanguage = enumList(
+            R.string.voice_language, "voice_language", VoiceLanguage.Auto
+        ) {
+            builtInVoiceInput.getValue() && voiceAsrKind.getValue() == VoiceAsrKind.SenseVoice
+        }
+        val showVoiceInputButton =
+            switch(R.string.show_voice_input_button, "show_voice_input_button", false)
+        val preferredVoiceInput = voiceInputPreference(
+            R.string.preferred_voice_input, "preferred_voice_input", ""
+        ) { showVoiceInputButton.getValue() }
+    }
+
     inner class Keyboard : ManagedPreferenceCategory(R.string.virtual_keyboard, sharedPreferences) {
         init { category(R.string.cat_keyboard_feedback_vibration) }
         val hapticOnKeyPress =
@@ -177,34 +211,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             false
         )
 
-        init { category(R.string.cat_keyboard_voice_swipe) }
-        val builtInVoiceInput =
-            switch(
-                R.string.local_voice_input, "built_in_voice_input", true,
-                R.string.local_voice_input_summary
-            )
-        val voiceAsrKind = enumList(
-            R.string.voice_asr_kind, "voice_asr_kind", VoiceAsrKind.SenseVoice
-        ) { builtInVoiceInput.getValue() }
-        val voiceAutoStop =
-            switch(
-                R.string.voice_auto_stop, "voice_auto_stop", false,
-                R.string.voice_auto_stop_summary
-            )
-        val voiceAutoStopSeconds = int(
-            R.string.voice_auto_stop_seconds, "voice_auto_stop_seconds",
-            3, 1, 10, "s", 1
-        ) { voiceAutoStop.getValue() }
-        val voiceLanguage = enumList(
-            R.string.voice_language, "voice_language", VoiceLanguage.Auto
-        ) {
-            builtInVoiceInput.getValue() && voiceAsrKind.getValue() == VoiceAsrKind.SenseVoice
-        }
-        val showVoiceInputButton =
-            switch(R.string.show_voice_input_button, "show_voice_input_button", false)
-        val preferredVoiceInput = voiceInputPreference(
-            R.string.preferred_voice_input, "preferred_voice_input", ""
-        ) { showVoiceInputButton.getValue() }
+        init { category(R.string.cat_keyboard_swipe) }
 
         val expandKeypressArea =
             switch(R.string.expand_keypress_area, "expand_keypress_area", false)
@@ -958,6 +965,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     }
 
     val internal = Internal().register()
+    val voice = Voice().register()
     val keyboard = Keyboard().register()
     val hardwareKeyboard = HardwareKeyboard().register()
     val shortcuts = Shortcuts().register()
