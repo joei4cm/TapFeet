@@ -20,9 +20,12 @@ class ChinesePinyinEngineTest {
         assertEquals("shuangpin", PinyinEngineKind.Shuangpin.uniqueName)
         assertEquals("rime", PinyinEngineKind.Rime.uniqueName)
         assertEquals("rime", PinyinEngineKind.RimeIce.uniqueName)
+        assertEquals("rime", PinyinEngineKind.RimeFrost.uniqueName)
         assertEquals("wbx", PinyinEngineKind.Wubi.uniqueName)
         assertTrue(PinyinEngineKind.RimeIce.needsDownload)
+        assertTrue(PinyinEngineKind.RimeFrost.needsDownload)
         assertEquals("rime_ice", PinyinEngineKind.RimeIce.rimeSchemaId)
+        assertEquals("rime_frost", PinyinEngineKind.RimeFrost.rimeSchemaId)
         assertEquals("luna_pinyin_simp", PinyinEngineKind.Rime.rimeSchemaId)
         assertTrue(ChinesePinyinEngine.bundledNames.containsAll(listOf("pinyin", "shuangpin", "rime", "wbx")))
     }

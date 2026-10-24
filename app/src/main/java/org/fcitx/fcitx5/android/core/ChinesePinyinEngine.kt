@@ -4,7 +4,7 @@
  */
 package org.fcitx.fcitx5.android.core
 
-import org.fcitx.fcitx5.android.data.rime.RimeIceManager
+import org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack
 import org.fcitx.fcitx5.android.data.rime.RimeSchemaSwitcher
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
@@ -13,7 +13,7 @@ import timber.log.Timber
  * Enable and activate a bundled Chinese IM. English (`keyboard-us`) and any other IMs stay put.
  * Selecting an engine **adds** it; it does not strip engines the user already enabled.
  *
- * 雾凇与朙月共用 fcitx `rime` 输入法，通过 [RimeSchemaSwitcher] 切换 schema。
+ * 雾凇 / 白霜与朙月共用 fcitx `rime` 输入法，通过 [RimeSchemaSwitcher] 切换 schema。
  */
 object ChinesePinyinEngine {
     const val PINYIN = "pinyin"
@@ -49,8 +49,8 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
 
     val schemaId = kind.rimeSchemaId
     if (schemaId != null) {
-        if (kind.needsDownload && !RimeIceManager.isReady()) {
-            Timber.i("rime-ice not ready yet; skip schema switch")
+        if (kind.needsDownload && !RimeDownloadablePack.isReady(kind)) {
+            Timber.i("rime pack not ready yet kind=%s; skip schema switch", kind)
             return
         }
         RimeSchemaSwitcher.apply(schemaId)

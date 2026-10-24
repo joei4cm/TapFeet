@@ -19,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.voice.VoiceAsrKind
 import org.fcitx.fcitx5.android.data.voice.VoiceModelManager
 import org.fcitx.fcitx5.android.data.voice.VoiceRecognizer
 import timber.log.Timber
@@ -29,10 +30,9 @@ import kotlin.math.sqrt
  * 本地语音输入会话控制：
  * 录音（16kHz 单声道 PCM）→ silero-vad 静音断句 → 当前选中的离线 ASR 整段识别。
  *
- * **准流式上屏**：每识别完一段（说话中一个停顿）就把**累积文本**通过 [onPartialText] 发出，
- * 调用方放进编辑器 composing 区 —— 边说边长，用户能看到字在涨；整个会话结束（手动停止 /
- * 静音自动结束）才通过 [onSessionEnd] 交最终文本一次性上屏，空串表示放弃（取消录入）。
- * 两档引擎都是整段模型，这是能做到的最接近流式的体验。
+ * **SenseVoice 准流式上屏**：每识别完一段（说话中一个停顿）就把**累积文本**通过 [onPartialText]
+ * 发出。**Qwen3** 单次解码很慢，句中分段会叠乘等待，因此只在会话结束识别一次整段 PCM。
+ * 会话结束（手动停止 / 静音自动结束）才通过 [onSessionEnd] 交最终文本一次性上屏，空串表示放弃。
  *
  * [onAudioLevel] 每 0.1s 发一次当前音量（0..1），驱动录音动画。
  * 所有回调均在主线程发出。
@@ -220,9 +220,18 @@ class VoiceInputController(
             val pending = synchronized(pendingRecognitions) { pendingRecognitions.toList() }
             pending.forEach { it.join() }
             synchronized(pendingRecognitions) { pendingRecognitions.clear() }
-            // VAD 没切出段（短说无句中停顿 / 阈值仍偏严）：对整段 PCM 兜底识别一次
-            if (sessionText.isEmpty() && sessionPcmLen >= MIN_FORCE_RECOGNIZE_SAMPLES) {
-                Timber.i("VAD empty; force-recognize session pcm len=%d peak=%.4f", sessionPcmLen, sessionPeakAbs)
+            val asrKind = AppPrefs.getInstance().voice.voiceAsrKind.getValue()
+            // Qwen：句中从不分段识别，收尾整段一次。SenseVoice：仅 VAD 空切时兜底。
+            val needSessionRecognize = when (asrKind) {
+                VoiceAsrKind.Qwen3 -> sessionPcmLen >= MIN_FORCE_RECOGNIZE_SAMPLES
+                VoiceAsrKind.SenseVoice ->
+                    sessionText.isEmpty() && sessionPcmLen >= MIN_FORCE_RECOGNIZE_SAMPLES
+            }
+            if (needSessionRecognize) {
+                Timber.i(
+                    "session-recognize kind=%s pcm len=%d peak=%.4f",
+                    asrKind, sessionPcmLen, sessionPeakAbs,
+                )
                 val samples = sessionPcm.copyOf(sessionPcmLen)
                 val text = VoiceRecognizer.recognize(samples)
                 when {
@@ -418,6 +427,13 @@ class VoiceInputController(
 
     /** 取出 VAD 已切出的完整语音段，垫上 0.5s 前文后识别，累积进会话文本并发出预览。 */
     private fun drainVad(localVad: Vad) {
+        // Qwen 单次推理重，句中分段只拖慢结束；PCM 仍由 captureLoop 攒进 sessionPcm。
+        if (AppPrefs.getInstance().voice.voiceAsrKind.getValue() == VoiceAsrKind.Qwen3) {
+            while (!localVad.empty()) {
+                localVad.pop()
+            }
+            return
+        }
         while (!localVad.empty()) {
             val segment = localVad.front()
             localVad.pop()
@@ -525,8 +541,8 @@ class VoiceInputController(
         private const val RECOGNIZER_IDLE_RELEASE_MS = 60_000L
         /** 首源近静音多久后换下一路（Elite 上 VOICE_RECOGNITION 常空）。 */
         private const val SILENCE_FALLBACK_MS = 1000L
-        /** 整段兜底识别最长攒约 30s。 */
-        private const val MAX_SESSION_PCM_SAMPLES = SAMPLE_RATE * 30
+        /** 整段 PCM 最长：SenseVoice 可攒久一点；Qwen 在 capture 里仍共用此上限（约 20s）。 */
+        private const val MAX_SESSION_PCM_SAMPLES = SAMPLE_RATE * 20
         /** 至少约 0.3s 才值得整段兜底，避免误识别环境底噪。 */
         private const val MIN_FORCE_RECOGNIZE_SAMPLES = SAMPLE_RATE * 3 / 10
 

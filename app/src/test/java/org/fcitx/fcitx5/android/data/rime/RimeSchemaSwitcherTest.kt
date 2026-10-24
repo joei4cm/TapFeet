@@ -25,4 +25,11 @@ class RimeSchemaSwitcherTest {
         assertTrue(yaml.contains("schema: luna_pinyin_simp"))
         assertTrue(yaml.contains("page_size: 5"))
     }
+
+    @Test
+    fun customYamlPointsAtFrost() {
+        val yaml = RimeSchemaSwitcher.customYaml(RimeSchemaSwitcher.RIME_FROST)
+        assertTrue(yaml.contains("schema: rime_frost"))
+        assertTrue(yaml.contains("Shift_L: noop"))
+    }
 }

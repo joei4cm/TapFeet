@@ -17,9 +17,10 @@ object RimeSchemaSwitcher {
 
     const val LUNA_SIMP = "luna_pinyin_simp"
     const val RIME_ICE = "rime_ice"
+    const val RIME_FROST = "rime_frost"
 
     fun apply(schemaId: String) {
-        val dir = RimeIceManager.rimeUserDir()
+        val dir = RimePaths.userDir()
         dir.mkdirs()
         val custom = File(dir, "default.custom.yaml")
         custom.writeText(customYaml(schemaId), Charsets.UTF_8)

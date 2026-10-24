@@ -16,7 +16,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.fcitx.fcitx5.android.utils.appContext
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -67,14 +66,18 @@ object RimeIceManager {
             .build()
     }
 
-    fun rimeUserDir(): File =
-        File(appContext.getExternalFilesDir(null) ?: appContext.filesDir, "data/rime").also {
-            it.mkdirs()
-        }
+    fun rimeUserDir(): File = RimePaths.userDir()
 
     private fun markerFile(): File = File(rimeUserDir(), ".tapfeet_rime_ice")
     private fun tableFile(): File = File(rimeUserDir(), "build/rime_ice.table.bin")
     private fun schemaFile(): File = File(rimeUserDir(), "rime_ice.schema.yaml")
+
+    /** 装白霜前清掉雾凇标记，避免两套包互相误判为已就绪。 */
+    @Synchronized
+    fun clearInstallMarker() {
+        markerFile().delete()
+        refreshState()
+    }
 
     fun approxSizeMb(): Int = APPROX_MB
 
@@ -145,11 +148,12 @@ object RimeIceManager {
     }
 
     private fun downloadAndExtract() {
+        RimeFrostManager.clearInstallMarker()
         val dir = rimeUserDir()
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
-        for (url in githubMirrors(GITHUB_ZIP)) {
+        for (url in RimePaths.githubMirrors(GITHUB_ZIP)) {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)
@@ -238,10 +242,4 @@ object RimeIceManager {
             else throw IOException("missing rime_ice.schema.yaml")
         }
     }
-
-    private fun githubMirrors(url: String): List<String> = listOf(
-        url,
-        "https://ghfast.top/$url",
-        "https://gh-proxy.com/$url",
-    )
 }
