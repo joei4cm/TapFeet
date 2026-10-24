@@ -13,7 +13,7 @@ import timber.log.Timber
  * Enable and activate a bundled Chinese IM. English (`keyboard-us`) and any other IMs stay put.
  * Selecting an engine **adds** it; it does not strip engines the user already enabled.
  *
- * 雾凇 / 白霜与朙月共用 fcitx `rime` 输入法，通过 [RimeSchemaSwitcher] 切换 schema。
+ * 雾凇 / 白霜 / 薄荷与朙月共用 fcitx `rime` 输入法，通过 [RimeSchemaSwitcher] 切换 schema。
  */
 object ChinesePinyinEngine {
     const val PINYIN = "pinyin"

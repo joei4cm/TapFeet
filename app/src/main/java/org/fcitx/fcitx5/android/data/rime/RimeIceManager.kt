@@ -16,6 +16,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -148,7 +149,7 @@ object RimeIceManager {
     }
 
     private fun downloadAndExtract() {
-        RimeFrostManager.clearInstallMarker()
+        RimePackExclusivity.clearOthers(PinyinEngineKind.RimeIce)
         val dir = rimeUserDir()
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()

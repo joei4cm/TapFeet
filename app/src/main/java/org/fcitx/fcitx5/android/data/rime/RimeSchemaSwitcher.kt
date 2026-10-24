@@ -18,6 +18,7 @@ object RimeSchemaSwitcher {
     const val LUNA_SIMP = "luna_pinyin_simp"
     const val RIME_ICE = "rime_ice"
     const val RIME_FROST = "rime_frost"
+    const val RIME_MINT = "rime_mint"
 
     fun apply(schemaId: String) {
         val dir = RimePaths.userDir()

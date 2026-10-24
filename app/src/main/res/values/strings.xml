@@ -148,8 +148,9 @@
     <string name="pinyin_engine_rime">Rime (Luna simplified)</string>
     <string name="pinyin_engine_rime_ice">Rime Ice (雾凇拼音)</string>
     <string name="pinyin_engine_rime_frost">Rime Frost (白霜拼音)</string>
+    <string name="pinyin_engine_rime_mint">Oh-my-rime (薄荷拼音)</string>
     <string name="pinyin_engine_wubi">Wubi</string>
-    <string name="pinyin_engine_summary">Fcitx pinyin, Shuangpin, Rime (Luna), and Wubi are bundled — tap to load. Optional Rime Ice (~47 MB, precompiled) or Rime Frost / 白霜 (~42 MB, first deploy compiles) download on first use from GitHub; only one of Ice/Frost is installed at a time. Jyutping / Chewing / CJK neighbors: install a plugin, then enable under Input Methods. Tapping an engine adds it; remove extras in Input Methods if you only want Chinese+English. Sym+N cycles enabled IMs.</string>
+    <string name="pinyin_engine_summary">Fcitx pinyin, Shuangpin, Rime (Luna), and Wubi are bundled — tap to load. Optional Rime Ice (~47 MB, precompiled), Rime Frost / 白霜 (~42 MB), or Oh-my-rime / 薄荷 (~23 MB) download on first use; Frost/Mint need a first deploy compile. Only one of Ice/Frost/Mint is installed at a time. Jyutping / Chewing / CJK neighbors: install a plugin, then enable under Input Methods. Tapping an engine adds it; remove extras in Input Methods if you only want Chinese+English. Sym+N cycles enabled IMs.</string>
     <string name="pinyin_engine_in_use">In use · loaded</string>
     <string name="pinyin_engine_tap_to_load">Bundled · tap to load</string>
     <string name="pinyin_engine_rime_ice_tap">Download ~%1$d MB · tap to install</string>
@@ -162,6 +163,11 @@
     <string name="pinyin_engine_rime_frost_downloading">Downloading Rime Frost… %1$d%%</string>
     <string name="pinyin_engine_rime_frost_error">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_rime_frost_download_start">Downloading Rime Frost (~%1$d MB)…</string>
+    <string name="pinyin_engine_rime_mint_tap">Download ~%1$d MB · tap to install (first deploy may take a few minutes)</string>
+    <string name="pinyin_engine_rime_mint_ready">Downloaded · tap to use</string>
+    <string name="pinyin_engine_rime_mint_downloading">Downloading Oh-my-rime… %1$d%%</string>
+    <string name="pinyin_engine_rime_mint_error">Download failed: %1$s · tap to retry</string>
+    <string name="pinyin_engine_rime_mint_download_start">Downloading Oh-my-rime (~%1$d MB)…</string>
     <string name="pinyin_engine_loaded">Loaded %1$s</string>
     <string name="pinyin_engine_more_im">Input methods</string>
     <string name="pinyin_engine_more_im_summary">Add or remove enabled input methods.</string>

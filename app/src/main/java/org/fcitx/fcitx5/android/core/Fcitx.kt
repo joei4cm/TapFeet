@@ -53,7 +53,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             if (value.needsDownload &&
                 !org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack.isReady(value)
             ) {
-                // 雾凇 / 白霜：先下包，完成后再切 schema + 启用
+                // 雾凇 / 白霜 / 薄荷：先下包，完成后再切 schema + 启用
                 org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack.ensureDownloaded(
                     value,
                     onSuccess = {

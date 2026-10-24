@@ -32,4 +32,10 @@ class RimeSchemaSwitcherTest {
         assertTrue(yaml.contains("schema: rime_frost"))
         assertTrue(yaml.contains("Shift_L: noop"))
     }
+
+    @Test
+    fun customYamlPointsAtMint() {
+        val yaml = RimeSchemaSwitcher.customYaml(RimeSchemaSwitcher.RIME_MINT)
+        assertTrue(yaml.contains("schema: rime_mint"))
+    }
 }
