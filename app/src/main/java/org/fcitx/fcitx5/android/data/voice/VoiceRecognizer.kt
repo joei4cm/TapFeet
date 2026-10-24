@@ -12,6 +12,7 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import timber.log.Timber
+import kotlin.math.min
 
 /**
  * 离线识别封装（sherpa-onnx）。按设置加载 SenseVoice-Small 或 Qwen3-ASR-0.6B。
@@ -62,6 +63,7 @@ object VoiceRecognizer {
     }
 
     private fun configFor(kind: VoiceAsrKind, language: String): OfflineRecognizerConfig {
+        val threads = asrThreadCount(kind)
         val modelConfig = when (kind) {
             VoiceAsrKind.SenseVoice -> OfflineModelConfig(
                 senseVoice = OfflineSenseVoiceModelConfig(
@@ -70,7 +72,7 @@ object VoiceRecognizer {
                     useInverseTextNormalization = true,
                 ),
                 tokens = VoiceModelManager.tokensFile.absolutePath,
-                numThreads = 2,
+                numThreads = threads,
             )
             VoiceAsrKind.Qwen3 -> OfflineModelConfig(
                 qwen3Asr = OfflineQwen3AsrModelConfig(
@@ -78,10 +80,12 @@ object VoiceRecognizer {
                     encoder = VoiceModelManager.qwenEncoderFile.absolutePath,
                     decoder = VoiceModelManager.qwenDecoderFile.absolutePath,
                     tokenizer = VoiceModelManager.qwenTokenizerDir.absolutePath,
-                    maxNewTokens = 256,
+                    // 默认 128；256 只拉长解码。短句场景 96 足够，Elite 上能省一轮生成。
+                    maxNewTokens = 96,
+                    maxTotalLen = 512,
                 ),
                 tokens = "",
-                numThreads = 2,
+                numThreads = threads,
             )
         }
         return OfflineRecognizerConfig(
@@ -89,6 +93,15 @@ object VoiceRecognizer {
             modelConfig = modelConfig,
             decodingMethod = "greedy_search",
         )
+    }
+
+    /** Qwen 吃核；SenseVoice 2 线程即可。 */
+    internal fun asrThreadCount(kind: VoiceAsrKind): Int {
+        val cpus = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        return when (kind) {
+            VoiceAsrKind.Qwen3 -> min(4, cpus.coerceAtLeast(2))
+            VoiceAsrKind.SenseVoice -> min(2, cpus)
+        }
     }
 
     /**

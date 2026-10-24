@@ -50,11 +50,10 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     @Keep
     private val onPinyinEngineChange = ManagedPreference.OnChangeListener<PinyinEngineKind> { _, value ->
         lifecycle.launchWhenReady {
-            if (value.needsDownload &&
-                !org.fcitx.fcitx5.android.data.rime.RimeIceManager.isReady()
-            ) {
-                // 雾凇：先下包，完成后再切 schema + 启用
-                org.fcitx.fcitx5.android.data.rime.RimeIceManager.ensureDownloaded(
+            if (value.needsDownload) {
+                // 雾凇 / 白霜 / 薄荷：确保已缓存，再替换进 data/rime，然后切 schema
+                org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack.ensureDownloaded(
+                    value,
                     onSuccess = {
                         lifecycle.launchWhenReady {
                             syncChinesePinyinEngine(value, forceActivate = true)

@@ -11,7 +11,7 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceEnum
  * 本地语音识别引擎。两档都走 sherpa-onnx 离线推理，模型按需下载，互不影响。
  *
  * - [SenseVoice]：默认。体积小、CPU 轻，覆盖中英日韩粤。
- * - [Qwen3]：Qwen3-ASR-0.6B int8。更准、语种更多，体积大约 940 MB，Elite 上更慢。
+ * - [Qwen3]：Qwen3-ASR-0.6B int8。更准、语种更多，体积大约 940 MB；说完整段识别一次（不句中分段）。
  */
 enum class VoiceAsrKind(
     override val stringRes: Int,
