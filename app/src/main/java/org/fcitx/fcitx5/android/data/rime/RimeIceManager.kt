@@ -27,13 +27,15 @@ import java.util.zip.ZipInputStream
  *
  * 官方 `full_compiled.zip`（约 47MB）先落到 `data/rime-packs/ice/`；
  * 用户点选雾凇后再替换进 `data/rime/`。与白霜 / 薄荷缓存可并存。
+ *
+ * 下载优先 TapFeet 自建 `rime-packs` 镜像，失败再回落上游（见 [RimePackUrls]）。
  */
 object RimeIceManager {
 
     const val RELEASE_TAG = "2026.06.30"
 
     private const val ZIP_NAME = "full_compiled.zip"
-    private const val GITHUB_ZIP =
+    private const val UPSTREAM_ZIP =
         "https://github.com/iDvel/rime-ice/releases/download/$RELEASE_TAG/$ZIP_NAME"
 
     private const val TABLE_MIN_BYTES = 50L * 1024L * 1024L
@@ -167,7 +169,7 @@ object RimeIceManager {
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
-        for (url in RimePaths.githubMirrors(GITHUB_ZIP)) {
+        for (url in RimePackUrls.candidates(RimePackUrls.ASSET_ICE, UPSTREAM_ZIP)) {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)

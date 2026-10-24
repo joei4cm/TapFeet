@@ -150,4 +150,18 @@ object DeviceInfo {
             product = Build.PRODUCT.orEmpty(),
             hasKeyboardTouchSurface = hasKeyboardTouchSurface(),
         )
+
+    /**
+     * Whether this looks like a physical full-keyboard phone (Q25 / Titan / Elite…).
+     * Plain touch phones are false → first-run keeps the on-screen QWERTY / 九键 path.
+     */
+    fun looksLikeFullKeyboardDevice(): Boolean =
+        HardwareKeyProfiles.looksLikeFullKeyboardDevice(
+            manufacturer = Build.MANUFACTURER.orEmpty(),
+            brand = Build.BRAND.orEmpty(),
+            model = Build.MODEL.orEmpty(),
+            device = Build.DEVICE.orEmpty(),
+            product = Build.PRODUCT.orEmpty(),
+            hasKeyboardTouchSurface = hasKeyboardTouchSurface(),
+        )
 }

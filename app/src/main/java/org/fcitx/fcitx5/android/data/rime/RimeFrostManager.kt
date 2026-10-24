@@ -27,13 +27,15 @@ import java.util.zip.ZipInputStream
  *
  * 源配置包先落到 `data/rime-packs/frost/`（并裁细胞词库）；用户点选后再替换进 `data/rime/`。
  * 与雾凇 / 薄荷缓存可并存。
+ *
+ * 下载优先 TapFeet 自建 `rime-packs` 镜像，失败再回落上游（见 [RimePackUrls]）。
  */
 object RimeFrostManager {
 
     const val RELEASE_TAG = "1.0.4"
 
     private const val ZIP_NAME = "rime-frost-schemas.zip"
-    private const val GITHUB_ZIP =
+    private const val UPSTREAM_ZIP =
         "https://github.com/gaboolic/rime-frost/releases/download/$RELEASE_TAG/$ZIP_NAME"
 
     private const val APPROX_MB = 42
@@ -133,7 +135,7 @@ object RimeFrostManager {
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
-        for (url in RimePaths.githubMirrors(GITHUB_ZIP)) {
+        for (url in RimePackUrls.candidates(RimePackUrls.ASSET_FROST, UPSTREAM_ZIP)) {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)
