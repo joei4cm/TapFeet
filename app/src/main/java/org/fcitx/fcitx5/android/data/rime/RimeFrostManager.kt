@@ -16,7 +16,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -26,10 +25,8 @@ import java.util.zip.ZipInputStream
 /**
  * 白霜拼音（[gaboolic/rime-frost](https://github.com/gaboolic/rime-frost)）按需下载。
  *
- * 上游 Release 只提供源配置包（无预编译 `.table.bin`），解压到 `{externalFiles}/data/rime/`
- * 后由 fcitx5-rime Deploy 首次编译。细胞词库体量过大，安装时裁成手机可用的核心表
- *（8105 / base / ext），保留白霜词频，避免 Elite 上部署数十分钟或 OOM。
- * 与雾凇互斥：装白霜会清雾凇标记，反之亦然。
+ * 源配置包先落到 `data/rime-packs/frost/`（并裁细胞词库）；用户点选后再替换进 `data/rime/`。
+ * 与雾凇 / 薄荷缓存可并存。
  */
 object RimeFrostManager {
 
@@ -40,6 +37,7 @@ object RimeFrostManager {
         "https://github.com/gaboolic/rime-frost/releases/download/$RELEASE_TAG/$ZIP_NAME"
 
     private const val APPROX_MB = 42
+    private const val PACK_ID = RimePackStore.ID_FROST
 
     sealed class State {
         data object NotDownloaded : State()
@@ -66,18 +64,16 @@ object RimeFrostManager {
     }
 
     fun rimeUserDir(): File = RimePaths.userDir()
-
-    private fun markerFile(): File = File(rimeUserDir(), ".tapfeet_rime_frost")
-    private fun schemaFile(): File = File(rimeUserDir(), "rime_frost.schema.yaml")
-    private fun dictFile(): File = File(rimeUserDir(), "rime_frost.dict.yaml")
+    private fun packDir(): File = RimePackStore.packDir(PACK_ID)
+    private fun schemaFile(): File = File(packDir(), "rime_frost.schema.yaml")
+    private fun dictFile(): File = File(packDir(), "rime_frost.dict.yaml")
 
     fun approxSizeMb(): Int = APPROX_MB
 
-    fun isReady(): Boolean {
-        val marker = markerFile()
-        if (!marker.isFile || marker.readText().trim() != RELEASE_TAG) return false
-        return schemaFile().isFile && dictFile().isFile
-    }
+    fun isReady(): Boolean =
+        RimePackStore.isPackCached(PACK_ID, RELEASE_TAG) &&
+            schemaFile().isFile &&
+            dictFile().isFile
 
     fun isDownloadInProgress(): Boolean = downloadJob?.isActive == true
 
@@ -89,29 +85,30 @@ object RimeFrostManager {
 
     @Synchronized
     fun clearInstallMarker() {
-        markerFile().delete()
+        val active = RimePackStore.readActive()
+        if (active?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
         refreshState()
     }
 
     @Synchronized
     fun ensureDownloaded(onSuccess: (() -> Unit)? = null, onFailure: ((String) -> Unit)? = null) {
-        if (isReady()) {
-            mutableState.value = State.Ready
-            onSuccess?.let { mainHandler.post(it) }
-            return
-        }
         if (downloadJob?.isActive == true) return
         downloadJob = scope.launch {
             try {
-                mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
-                downloadAndExtract()
-                if (!isReady()) throw IOException("白霜文件校验失败")
+                if (!isReady()) {
+                    mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
+                    downloadAndExtract()
+                    if (!isReady()) throw IOException("白霜文件校验失败")
+                }
+                RimePackStore.activate(PACK_ID, RELEASE_TAG)
                 if (!isActive) return@launch
                 mutableState.value = State.Ready
                 onSuccess?.let { mainHandler.post(it) }
             } catch (e: Exception) {
                 if (!isActive) return@launch
-                Timber.e(e, "rime-frost download failed")
+                Timber.e(e, "rime-frost download/activate failed")
                 val message = e.message ?: "download failed"
                 mutableState.value = State.Error(message)
                 onFailure?.let { cb -> mainHandler.post { cb(message) } }
@@ -123,24 +120,16 @@ object RimeFrostManager {
     fun delete() {
         downloadJob?.cancel()
         downloadJob = null
-        val dir = rimeUserDir()
-        markerFile().delete()
-        listOf(
-            "rime_frost.schema.yaml",
-            "rime_frost.dict.yaml",
-            "rime_frost_aux.schema.yaml",
-            "rime_frost_aux.dict.yaml",
-            "build/rime_frost.table.bin",
-            "build/rime_frost.prism.bin",
-            "build/rime_frost.reverse.bin",
-            "build/rime_frost.schema.yaml",
-        ).forEach { File(dir, it).delete() }
+        RimePackStore.deletePackCache(PACK_ID)
+        if (RimePackStore.readActive()?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
         refreshState()
     }
 
     private fun downloadAndExtract() {
-        RimePackExclusivity.clearOthers(PinyinEngineKind.RimeFrost)
-        val dir = rimeUserDir()
+        val dir = packDir()
+        dir.mkdirs()
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
@@ -149,7 +138,7 @@ object RimeFrostManager {
                 downloadFile(url, part)
                 extractZip(part, dir)
                 slimDictFile(dictFile())
-                markerFile().writeText(RELEASE_TAG)
+                RimePackStore.markPackCached(PACK_ID, RELEASE_TAG)
                 part.delete()
                 return
             } catch (e: Exception) {
@@ -223,7 +212,6 @@ object RimeFrostManager {
         if (!dictFile().isFile) throw IOException("missing rime_frost.dict.yaml")
     }
 
-    /** 去掉细胞词库 / 大字表，保留白霜核心字词频。 */
     private fun slimDictFile(dict: File) {
         if (!dict.isFile) return
         val original = dict.readText(Charsets.UTF_8)

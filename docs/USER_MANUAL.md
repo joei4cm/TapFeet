@@ -298,8 +298,10 @@ SenseVoice 可另选识别语言（自动 / 中 / 英 / 日 / 韩 / 粤）。Qwe
 | 双拼 | 内置双拼 |
 | 中州韵（朙月简拼） | 内置朙月拼音·简化字 |
 | 雾凇拼音 | 首次点选联网下载约 47 MB（[rime-ice](https://github.com/iDvel/rime-ice) 预编译包），与朙月共用中州韵引擎 |
-| 白霜拼音 | 首次点选联网下载约 42 MB（[rime-frost](https://github.com/gaboolic/rime-frost)），首次部署需编译词库；与雾凇/薄荷互斥（同时只装一套），与朙月共用中州韵引擎 |
-| 薄荷拼音 | 首次点选联网下载约 23 MB（[oh-my-rime](https://github.com/Mintimate/oh-my-rime) / 薄荷），首次部署需编译；与雾凇/白霜互斥，与朙月共用中州韵引擎 |
+| 白霜拼音 | 首次点选联网下载约 42 MB（[rime-frost](https://github.com/gaboolic/rime-frost)），首次部署需编译词库；与朙月共用中州韵引擎 |
+| 薄荷拼音 | 首次点选联网下载约 23 MB（[oh-my-rime](https://github.com/Mintimate/oh-my-rime) / 薄荷），首次部署需编译；与朙月共用中州韵引擎 |
+
+雾凇 / 白霜 / 薄荷三套方案包各自缓存在 `rime-packs/`；**点选哪一套就替换哪一套**进当前 `data/rime/`。已下载过的再切换只需本地替换，不用重下。
 | 五笔 | 内置五笔 `wbx` |
 
 点选会把该引擎**加入**已启用列表并切过去，不会卸掉已经启用的其他引擎。只要「中文 ↔ 英文」两种时，到「输入法」里删掉多余的。`Sym + N`、空闲下滑、双指左右滑在已启用的输入法之间循环。Shift 仍归巨硬选字和中英切换（雾凇包内的 Shift 切英文会被覆盖关掉）。

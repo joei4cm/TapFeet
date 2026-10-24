@@ -16,7 +16,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -26,22 +25,20 @@ import java.util.zip.ZipInputStream
 /**
  * 雾凇拼音（[iDvel/rime-ice](https://github.com/iDvel/rime-ice)）按需下载。
  *
- * 使用官方 Release 的 `full_compiled.zip`（含源配置 + 预编译词库，约 47MB），
- * 解压到 `{externalFiles}/data/rime/`，与手册中的手动导入路径一致。
- * 不打进 APK，避免体积暴涨。
+ * 官方 `full_compiled.zip`（约 47MB）先落到 `data/rime-packs/ice/`；
+ * 用户点选雾凇后再替换进 `data/rime/`。与白霜 / 薄荷缓存可并存。
  */
 object RimeIceManager {
 
-    /** 锁定的上游 Release 标签；升级雾凇时改这里并测一遍。 */
     const val RELEASE_TAG = "2026.06.30"
 
     private const val ZIP_NAME = "full_compiled.zip"
     private const val GITHUB_ZIP =
         "https://github.com/iDvel/rime-ice/releases/download/$RELEASE_TAG/$ZIP_NAME"
 
-    /** 预编译主表下限，用于拒收残包/HTML。 */
     private const val TABLE_MIN_BYTES = 50L * 1024L * 1024L
     private const val APPROX_MB = 47
+    private const val PACK_ID = RimePackStore.ID_ICE
 
     sealed class State {
         data object NotDownloaded : State()
@@ -68,25 +65,18 @@ object RimeIceManager {
     }
 
     fun rimeUserDir(): File = RimePaths.userDir()
-
-    private fun markerFile(): File = File(rimeUserDir(), ".tapfeet_rime_ice")
-    private fun tableFile(): File = File(rimeUserDir(), "build/rime_ice.table.bin")
-    private fun schemaFile(): File = File(rimeUserDir(), "rime_ice.schema.yaml")
-
-    /** 装白霜前清掉雾凇标记，避免两套包互相误判为已就绪。 */
-    @Synchronized
-    fun clearInstallMarker() {
-        markerFile().delete()
-        refreshState()
-    }
+    private fun packDir(): File = RimePackStore.packDir(PACK_ID)
+    private fun tableFile(): File = File(packDir(), "build/rime_ice.table.bin")
+    private fun schemaFile(): File = File(packDir(), "rime_ice.schema.yaml")
 
     fun approxSizeMb(): Int = APPROX_MB
 
+    /** 缓存已就绪（未必已替换进 data/rime）。 */
     fun isReady(): Boolean {
-        val marker = markerFile()
-        if (!marker.isFile || marker.readText().trim() != RELEASE_TAG) return false
-        if (!schemaFile().isFile) return false
-        return tableFile().length() >= TABLE_MIN_BYTES
+        migrateLegacyIfNeeded()
+        return RimePackStore.isPackCached(PACK_ID, RELEASE_TAG) &&
+            schemaFile().isFile &&
+            tableFile().length() >= TABLE_MIN_BYTES
     }
 
     fun isDownloadInProgress(): Boolean = downloadJob?.isActive == true
@@ -97,28 +87,36 @@ object RimeIceManager {
         mutableState.value = if (isReady()) State.Ready else State.NotDownloaded
     }
 
+    @Synchronized
+    fun clearInstallMarker() {
+        // 兼容旧互斥 API：不再清缓存，仅清 active 标记（若当前是本包）
+        val active = RimePackStore.readActive()
+        if (active?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
+        refreshState()
+    }
+
     /**
-     * 确保雾凇包就绪；缺失时开始下载（幂等）。
+     * 确保雾凇已缓存，并**替换**进 `data/rime/`（幂等）。
      */
     @Synchronized
     fun ensureDownloaded(onSuccess: (() -> Unit)? = null, onFailure: ((String) -> Unit)? = null) {
-        if (isReady()) {
-            mutableState.value = State.Ready
-            onSuccess?.let { mainHandler.post(it) }
-            return
-        }
         if (downloadJob?.isActive == true) return
         downloadJob = scope.launch {
             try {
-                mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
-                downloadAndExtract()
-                if (!isReady()) throw IOException("雾凇文件校验失败")
+                if (!isReady()) {
+                    mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
+                    downloadAndExtract()
+                    if (!isReady()) throw IOException("雾凇文件校验失败")
+                }
+                RimePackStore.activate(PACK_ID, RELEASE_TAG)
                 if (!isActive) return@launch
                 mutableState.value = State.Ready
                 onSuccess?.let { mainHandler.post(it) }
             } catch (e: Exception) {
                 if (!isActive) return@launch
-                Timber.e(e, "rime-ice download failed")
+                Timber.e(e, "rime-ice download/activate failed")
                 val message = e.message ?: "download failed"
                 mutableState.value = State.Error(message)
                 onFailure?.let { cb -> mainHandler.post { cb(message) } }
@@ -126,31 +124,46 @@ object RimeIceManager {
         }
     }
 
-    /** 删除雾凇安装痕迹（不碰用户自定义的其它 rime 文件，尽量只清冰词相关）。 */
     @Synchronized
     fun delete() {
         downloadJob?.cancel()
         downloadJob = null
-        val dir = rimeUserDir()
-        markerFile().delete()
-        listOf(
-            "rime_ice.schema.yaml",
-            "rime_ice.dict.yaml",
-            "build/rime_ice.table.bin",
-            "build/rime_ice.prism.bin",
-            "build/rime_ice.reverse.bin",
-            "build/rime_ice.schema.yaml",
-        ).forEach { File(dir, it).delete() }
-        File(dir, "cn_dicts").deleteRecursively()
-        File(dir, "en_dicts").deleteRecursively()
-        // lua / opencc / custom_phrase 可能被用户改过；有 marker 时整目录清过一次更干净，
-        // 这里只在确认是我们装的包时删掉 ice 专用 lua 名（保留用户自建）。
+        RimePackStore.deletePackCache(PACK_ID)
+        if (RimePackStore.readActive()?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
         refreshState()
     }
 
+    /** 旧版直接装在 data/rime/ 的雾凇：迁入 packs/ice。 */
+    private fun migrateLegacyIfNeeded() {
+        if (RimePackStore.isPackCached(PACK_ID, RELEASE_TAG)) return
+        val legacyMarker = File(rimeUserDir(), ".tapfeet_rime_ice")
+        val legacyTable = File(rimeUserDir(), "build/rime_ice.table.bin")
+        val legacySchema = File(rimeUserDir(), "rime_ice.schema.yaml")
+        if (!legacyMarker.isFile || legacyMarker.readText().trim() != RELEASE_TAG) return
+        if (!legacySchema.isFile || legacyTable.length() < TABLE_MIN_BYTES) return
+        try {
+            val dest = packDir()
+            dest.mkdirs()
+            rimeUserDir().listFiles()?.forEach { child ->
+                if (child.name.startsWith(".tapfeet_")) return@forEach
+                val out = File(dest, child.name)
+                if (child.isDirectory) child.copyRecursively(out, overwrite = true)
+                else child.copyTo(out, overwrite = true)
+            }
+            RimePackStore.markPackCached(PACK_ID, RELEASE_TAG)
+            RimePackStore.activeMarkerFile().writeText("$PACK_ID\n$RELEASE_TAG\n")
+            legacyMarker.delete()
+            Timber.i("migrated legacy rime-ice into pack cache")
+        } catch (e: Exception) {
+            Timber.w(e, "legacy rime-ice migrate failed")
+        }
+    }
+
     private fun downloadAndExtract() {
-        RimePackExclusivity.clearOthers(PinyinEngineKind.RimeIce)
-        val dir = rimeUserDir()
+        val dir = packDir()
+        dir.mkdirs()
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
@@ -158,7 +171,7 @@ object RimeIceManager {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)
-                markerFile().writeText(RELEASE_TAG)
+                RimePackStore.markPackCached(PACK_ID, RELEASE_TAG)
                 part.delete()
                 return
             } catch (e: Exception) {
@@ -195,25 +208,21 @@ object RimeIceManager {
             }
         }
         if (dest.length() < 1024 * 1024) throw IOException("zip too small")
-        // 拒收 HTML / LFS 指针
         dest.inputStream().use { ins ->
             val head = ByteArray(16)
             val n = ins.read(head)
             val s = head.decodeToString(0, n.coerceAtLeast(0)).trimStart()
             if (s.startsWith("<") || s.startsWith("version https://git-lfs")) {
-                throw IOException("not a zip: $urlProxyHint")
+                throw IOException("not a zip")
             }
         }
     }
-
-    private const val urlProxyHint = "bad download payload"
 
     private fun extractZip(zip: File, destDir: File) {
         ZipInputStream(zip.inputStream().buffered()).use { zis ->
             while (true) {
                 val entry = zis.nextEntry ?: break
                 val name = entry.name ?: continue
-                // Zip slip
                 val outFile = File(destDir, name)
                 val destPath = destDir.canonicalPath + File.separator
                 if (!outFile.canonicalPath.startsWith(destPath)) {
@@ -223,7 +232,6 @@ object RimeIceManager {
                     outFile.mkdirs()
                 } else {
                     outFile.parentFile?.mkdirs()
-                    // 不覆盖我们写的 schema 切换补丁
                     if (outFile.name == "default.custom.yaml" && outFile.exists()) {
                         zis.closeEntry()
                         continue
@@ -237,8 +245,7 @@ object RimeIceManager {
             throw IOException("missing precompiled rime_ice.table.bin")
         }
         if (!schemaFile().isFile) {
-            // 少数包只把 schema 放在 build/；补一份到根目录供 Rime 识别
-            val built = File(rimeUserDir(), "build/rime_ice.schema.yaml")
+            val built = File(packDir(), "build/rime_ice.schema.yaml")
             if (built.isFile) built.copyTo(schemaFile(), overwrite = true)
             else throw IOException("missing rime_ice.schema.yaml")
         }

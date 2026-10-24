@@ -16,7 +16,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -26,16 +25,11 @@ import java.util.zip.ZipInputStream
 /**
  * 薄荷输入法 / oh-my-rime（[Mintimate/oh-my-rime](https://github.com/Mintimate/oh-my-rime)）按需下载。
  *
- * 上游无 GitHub Release 预编译包；优先拉 CNB 流水线打包的 `oh-my-rime.zip`（约 23MB），
- * 失败再回退到锁定的 GitHub commit archive。解压到 `data/rime/` 后由 Deploy 编译。
- * 与雾凇 / 白霜互斥。
+ * 先缓存到 `data/rime-packs/mint/`；用户点选后再替换进 `data/rime/`。
+ * 与雾凇 / 白霜缓存可并存。
  */
 object RimeMintManager {
 
-    /**
-     * 安装标记版本。CNB `latest` 会滚动；升级薄荷时改此常量强制重下。
-     * 对应抓取时上游 main @ 5fca6ae（2026-10-19 左右打包）。
-     */
     const val RELEASE_TAG = "2025.10.19-cnb"
 
     private const val ZIP_NAME = "oh-my-rime.zip"
@@ -46,6 +40,7 @@ object RimeMintManager {
         "https://github.com/Mintimate/oh-my-rime/archive/$GITHUB_COMMIT.zip"
 
     private const val APPROX_MB = 23
+    private const val PACK_ID = RimePackStore.ID_MINT
 
     sealed class State {
         data object NotDownloaded : State()
@@ -72,18 +67,16 @@ object RimeMintManager {
     }
 
     fun rimeUserDir(): File = RimePaths.userDir()
-
-    private fun markerFile(): File = File(rimeUserDir(), ".tapfeet_rime_mint")
-    private fun schemaFile(): File = File(rimeUserDir(), "rime_mint.schema.yaml")
-    private fun dictFile(): File = File(rimeUserDir(), "rime_mint.dict.yaml")
+    private fun packDir(): File = RimePackStore.packDir(PACK_ID)
+    private fun schemaFile(): File = File(packDir(), "rime_mint.schema.yaml")
+    private fun dictFile(): File = File(packDir(), "rime_mint.dict.yaml")
 
     fun approxSizeMb(): Int = APPROX_MB
 
-    fun isReady(): Boolean {
-        val marker = markerFile()
-        if (!marker.isFile || marker.readText().trim() != RELEASE_TAG) return false
-        return schemaFile().isFile && dictFile().isFile
-    }
+    fun isReady(): Boolean =
+        RimePackStore.isPackCached(PACK_ID, RELEASE_TAG) &&
+            schemaFile().isFile &&
+            dictFile().isFile
 
     fun isDownloadInProgress(): Boolean = downloadJob?.isActive == true
 
@@ -95,29 +88,30 @@ object RimeMintManager {
 
     @Synchronized
     fun clearInstallMarker() {
-        markerFile().delete()
+        val active = RimePackStore.readActive()
+        if (active?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
         refreshState()
     }
 
     @Synchronized
     fun ensureDownloaded(onSuccess: (() -> Unit)? = null, onFailure: ((String) -> Unit)? = null) {
-        if (isReady()) {
-            mutableState.value = State.Ready
-            onSuccess?.let { mainHandler.post(it) }
-            return
-        }
         if (downloadJob?.isActive == true) return
         downloadJob = scope.launch {
             try {
-                mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
-                downloadAndExtract()
-                if (!isReady()) throw IOException("薄荷文件校验失败")
+                if (!isReady()) {
+                    mutableState.value = State.Downloading(0, APPROX_MB * 1024L * 1024L)
+                    downloadAndExtract()
+                    if (!isReady()) throw IOException("薄荷文件校验失败")
+                }
+                RimePackStore.activate(PACK_ID, RELEASE_TAG)
                 if (!isActive) return@launch
                 mutableState.value = State.Ready
                 onSuccess?.let { mainHandler.post(it) }
             } catch (e: Exception) {
                 if (!isActive) return@launch
-                Timber.e(e, "oh-my-rime download failed")
+                Timber.e(e, "oh-my-rime download/activate failed")
                 val message = e.message ?: "download failed"
                 mutableState.value = State.Error(message)
                 onFailure?.let { cb -> mainHandler.post { cb(message) } }
@@ -129,24 +123,16 @@ object RimeMintManager {
     fun delete() {
         downloadJob?.cancel()
         downloadJob = null
-        val dir = rimeUserDir()
-        markerFile().delete()
-        listOf(
-            "rime_mint.schema.yaml",
-            "rime_mint.dict.yaml",
-            "rime_mint_flypy.schema.yaml",
-            "build/rime_mint.table.bin",
-            "build/rime_mint.prism.bin",
-            "build/rime_mint.reverse.bin",
-            "build/rime_mint.schema.yaml",
-        ).forEach { File(dir, it).delete() }
-        File(dir, "dicts").deleteRecursively()
+        RimePackStore.deletePackCache(PACK_ID)
+        if (RimePackStore.readActive()?.first == PACK_ID) {
+            RimePackStore.activeMarkerFile().delete()
+        }
         refreshState()
     }
 
     private fun downloadAndExtract() {
-        RimePackExclusivity.clearOthers(PinyinEngineKind.RimeMint)
-        val dir = rimeUserDir()
+        val dir = packDir()
+        dir.mkdirs()
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
@@ -158,7 +144,7 @@ object RimeMintManager {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)
-                markerFile().writeText(RELEASE_TAG)
+                RimePackStore.markPackCached(PACK_ID, RELEASE_TAG)
                 part.delete()
                 return
             } catch (e: Exception) {
@@ -236,5 +222,4 @@ object RimeMintManager {
         if (!schemaFile().isFile) throw IOException("missing rime_mint.schema.yaml")
         if (!dictFile().isFile) throw IOException("missing rime_mint.dict.yaml")
     }
-
 }
