@@ -846,11 +846,28 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         fun ensureInitialized() {
             if (seededKeys.any { sharedPreferences.contains(it.key) }) {
                 HardwareKeyProfiles.applyEliteSymSymbolPicker(this)
-                return
+            } else {
+                val id = DeviceInfo.suggestedHardwareKeyProfile()
+                keyProfile.setValue(id)
+                HardwareKeyProfiles.applyProfile(id, this@AppPrefs)
             }
-            val id = DeviceInfo.suggestedHardwareKeyProfile()
-            keyProfile.setValue(id)
-            HardwareKeyProfiles.applyProfile(id, this@AppPrefs)
+            // 无全键盘手机：强制触屏键盘（悬浮候选「禁用」）+ 默认 26 键；
+            // 已知全键盘机：跟随输入设备（敲物理键切悬浮候选）。仅首次写入，不覆盖用户改动。
+            seedTouchSurfaceDefaults()
+        }
+
+        private fun seedTouchSurfaceDefaults() {
+            val candidatesPref = this@AppPrefs.candidates.mode
+            if (!sharedPreferences.contains(candidatesPref.key)) {
+                val modeName = TouchKeyboardDefaults.floatingCandidatesModeName(
+                    DeviceInfo.looksLikeFullKeyboardDevice()
+                )
+                candidatesPref.setValue(FloatingCandidatesMode.valueOf(modeName))
+            }
+            val layoutPref = this@AppPrefs.keyboard.virtualLayout
+            if (!sharedPreferences.contains(layoutPref.key)) {
+                layoutPref.setValue(VirtualLayout.valueOf(TouchKeyboardDefaults.virtualLayoutName()))
+            }
         }
 
         init {

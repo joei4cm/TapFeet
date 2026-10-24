@@ -9,9 +9,9 @@ package org.fcitx.fcitx5.android.data.prefs
  * Pure matching for [HardwareKeyProfiles.detectSuggestedId]. Kept free of Android types so JVM
  * unit tests can cover the fingerprint rules without `R` / `InputDevice`.
  *
- * Matching is conservative: Unihertz phones without a Titan / Elite fingerprint stay on
- * blackberry (Jelly 等无全键盘机型). The keyboard+touchpad surface is treated as Elite
- * because that combination is how the Titan 2 Elite keyboard face enumerates.
+ * Matching is conservative: only known full-keyboard fingerprints (and keyboard+touchpad surface)
+ * return a profile id. Ordinary touch phones return `null` so first-run can default to the
+ * on-screen keyboard instead of seeding BlackBerry hardware bindings as if they were Q25.
  */
 internal object HardwareKeyProfileDetect {
 
@@ -22,7 +22,7 @@ internal object HardwareKeyProfileDetect {
         device: String,
         product: String,
         hasKeyboardTouchSurface: Boolean,
-    ): String {
+    ): String? {
         val blob = "$manufacturer $brand $model $device $product".lowercase()
         val isTitan = blob.contains("titan")
         val isElite = blob.contains("elite") ||
@@ -48,6 +48,18 @@ internal object HardwareKeyProfileDetect {
             return "blackberry"
         }
         if (hasKeyboardTouchSurface) return "titan2_elite"
-        return "blackberry"
+        return null
     }
+
+    /** True when the fingerprint matches a known physical full-keyboard phone. */
+    fun isKnownFullKeyboardDevice(
+        manufacturer: String,
+        brand: String,
+        model: String,
+        device: String,
+        product: String,
+        hasKeyboardTouchSurface: Boolean,
+    ): Boolean = suggestedId(
+        manufacturer, brand, model, device, product, hasKeyboardTouchSurface
+    ) != null
 }

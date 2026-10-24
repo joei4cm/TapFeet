@@ -1,0 +1,71 @@
+# Sync Rime scheme packs into a stable TapFeet release tag `rime-packs`.
+# App download order: Gitee mirror → this GitHub release → upstream.
+#
+# Assets (overwrite on each run):
+#   rime-ice-full_compiled.zip
+#   rime-frost-schemas.zip
+#   oh-my-rime.zip
+#
+# Keep asset names and Kotlin RimePackUrls / *Manager RELEASE_TAG in sync when bumping.
+
+name: Mirror Rime Packs
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 03:17 UTC
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-rime-packs
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Download upstream packs
+        env:
+          ICE_TAG: "2026.06.30"
+          FROST_TAG: "1.0.4"
+          MINT_CNB: "https://cnb.cool/Mintimate/rime/oh-my-rime/-/releases/download/latest/oh-my-rime.zip"
+          MINT_COMMIT: "5fca6ae067fd666b5ec4f119c5147efd629cc76d"
+        run: |
+          set -euo pipefail
+          mkdir -p packs
+          curl -fL --retry 3 -o "packs/rime-ice-full_compiled.zip" \
+            "https://github.com/iDvel/rime-ice/releases/download/${ICE_TAG}/full_compiled.zip"
+          curl -fL --retry 3 -o "packs/rime-frost-schemas.zip" \
+            "https://github.com/gaboolic/rime-frost/releases/download/${FROST_TAG}/rime-frost-schemas.zip"
+          if ! curl -fL --retry 3 -o "packs/oh-my-rime.zip" "$MINT_CNB"; then
+            curl -fL --retry 3 -o "packs/oh-my-rime.zip" \
+              "https://github.com/Mintimate/oh-my-rime/archive/${MINT_COMMIT}.zip"
+          fi
+          ls -lh packs/
+
+      - name: Publish to rime-packs release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=rime-packs
+          NOTES="Mirrored Rime scheme packs for TapFeet (ice / frost / mint). Auto-updated by mirror-rime-packs.yml."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              packs/rime-ice-full_compiled.zip \
+              packs/rime-frost-schemas.zip \
+              packs/oh-my-rime.zip \
+              --clobber
+          else
+            gh release create "$TAG" \
+              packs/rime-ice-full_compiled.zip \
+              packs/rime-frost-schemas.zip \
+              packs/oh-my-rime.zip \
+              --title "Rime packs mirror" \
+              --notes "$NOTES"
+          fi
+          gh release view "$TAG"

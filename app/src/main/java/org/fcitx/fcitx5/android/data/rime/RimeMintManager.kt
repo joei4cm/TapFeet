@@ -27,6 +27,8 @@ import java.util.zip.ZipInputStream
  *
  * 先缓存到 `data/rime-packs/mint/`；用户点选后再替换进 `data/rime/`。
  * 与雾凇 / 白霜缓存可并存。
+ *
+ * 下载优先 TapFeet 自建 `rime-packs` 镜像，失败再回落 CNB / GitHub（见 [RimePackUrls]）。
  */
 object RimeMintManager {
 
@@ -136,11 +138,7 @@ object RimeMintManager {
         val part = File(dir, "$ZIP_NAME.part")
         part.delete()
         var last: Exception? = null
-        val urls = buildList {
-            add(CNB_ZIP)
-            addAll(RimePaths.githubMirrors(GITHUB_ARCHIVE))
-        }
-        for (url in urls) {
+        for (url in RimePackUrls.candidates(RimePackUrls.ASSET_MINT, CNB_ZIP, GITHUB_ARCHIVE)) {
             try {
                 downloadFile(url, part)
                 extractZip(part, dir)

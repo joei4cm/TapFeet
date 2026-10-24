@@ -178,6 +178,9 @@ object HardwareKeyProfiles {
     /**
      * Pick a hardware-keyboard preset from device identity. Used only on first run
      * ([AppPrefs.HardwareKeyboard.ensureInitialized]); afterwards the stored `keyProfile` wins.
+     *
+     * Touch-only / unknown phones still get [BLACKBERRY] as a harmless key-binding seed (those
+     * keys are unused); [looksLikeFullKeyboardDevice] is what drives on-screen vs physical defaults.
      */
     fun detectSuggestedId(
         manufacturer: String,
@@ -190,8 +193,20 @@ object HardwareKeyProfiles {
         val id = HardwareKeyProfileDetect.suggestedId(
             manufacturer, brand, model, device, product, hasKeyboardTouchSurface
         )
-        return if (id in ids()) id else BLACKBERRY
+        return if (id != null && id in ids()) id else BLACKBERRY
     }
+
+    /** Known physical full-keyboard device (Q25 / Titan / Elite / …), not a plain touch phone. */
+    fun looksLikeFullKeyboardDevice(
+        manufacturer: String,
+        brand: String,
+        model: String,
+        device: String,
+        product: String,
+        hasKeyboardTouchSurface: Boolean,
+    ): Boolean = HardwareKeyProfileDetect.isKnownFullKeyboardDevice(
+        manufacturer, brand, model, device, product, hasKeyboardTouchSurface
+    )
 
     /**
      * 「快捷键」动作键的字母。
