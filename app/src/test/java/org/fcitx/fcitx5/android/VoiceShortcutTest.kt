@@ -12,22 +12,22 @@ import org.junit.Test
 class VoiceShortcutTest {
 
     @Test
-    fun holdToTalkStartsOnDownWhenIdle() {
+    fun tapToggleStartsOnDownWhenIdle() {
         assertEquals(VoiceShortcut.Command.Start, VoiceShortcut.onDown(false))
     }
 
     @Test
-    fun holdToTalkIgnoresDownWhileAlreadyRecording() {
-        assertEquals(VoiceShortcut.Command.Ignore, VoiceShortcut.onDown(true))
+    fun tapToggleStopsOnDownWhileRecording() {
+        assertEquals(VoiceShortcut.Command.Stop, VoiceShortcut.onDown(true))
     }
 
     @Test
-    fun holdToTalkStopsOnUpWhileRecording() {
-        assertEquals(VoiceShortcut.Command.Stop, VoiceShortcut.onUp(true))
+    fun tapToggleIgnoresUpWhileRecording() {
+        assertEquals(VoiceShortcut.Command.Ignore, VoiceShortcut.onUp(true))
     }
 
     @Test
-    fun holdToTalkIgnoresUpWhenIdle() {
+    fun tapToggleIgnoresUpWhenIdle() {
         assertEquals(VoiceShortcut.Command.Ignore, VoiceShortcut.onUp(false))
     }
 }

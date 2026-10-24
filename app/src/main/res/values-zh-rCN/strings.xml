@@ -480,7 +480,7 @@
     <string name="edit_theme">编辑主题</string>
     <string name="show_voice_input_button">显示语音输入按钮</string>
     <string name="local_voice_input">本地语音输入</string>
-    <string name="local_voice_input_summary">在工具栏显示麦克风。物理快捷键默认 Sym+R（黑莓为右 Shift+R）按住说话。在下方选择引擎并下载模型文件；SenseVoice 约 230 MB，Qwen3-ASR 约 940 MB。</string>
+    <string name="local_voice_input_summary">在工具栏显示麦克风。物理快捷键默认 Sym+R（黑莓为右 Shift+R）点一下开始/再点结束，停说后会自动转写。在下方选择引擎并下载模型文件；SenseVoice 约 230 MB，Qwen3-ASR 约 940 MB。</string>
     <string name="auto_show_keyboard">微信自动获取输入焦点</string>
     <string name="auto_show_keyboard_summary">进入微信聊天页自动激活输入法，物理键盘可直接打字（不弹出虚拟键盘，实验性）</string>
     <string name="voice_auto_stop">静音自动结束录音</string>
@@ -508,7 +508,7 @@
     <string name="voice_model_status_missing">未下载（约 %1$d MB）。点下方「下载模型」；第一次按 Sym+R 也会自动开始。</string>
     <string name="voice_model_status_downloading">下载中 %1$d%%</string>
     <string name="voice_model_status_downloading_bytes">下载中 %1$d MB</string>
-    <string name="voice_model_status_ready">已就绪。按住 Sym+R 说话（黑莓为右 Shift+R）。点按可重新检查。</string>
+    <string name="voice_model_status_ready">已就绪。点按 Sym+R 说话（黑莓为右 Shift+R）；再按一次或停说后自动结束。点按此处可重新检查。</string>
     <string name="voice_model_status_error">失败：%1$s。点按重试。</string>
     <string name="cat_voice_input">语音设置</string>
     <string name="voice_model_management">模型管理</string>
@@ -522,7 +522,7 @@
     <string name="voice_model_ready_size">已就绪（%1$s）</string>
     <string name="voice_input_permission_required">语音输入需要麦克风权限</string>
     <string name="voice_input_unavailable">语音输入不可用</string>
-    <string name="voice_input_no_speech">未检测到声音，请按住说久一点、靠近麦克风</string>
+    <string name="voice_input_no_speech">未检测到声音，请靠近麦克风再说久一点</string>
     <string name="voice_input_no_transcript">已收到声音但未能识别出文字，请再说一次</string>
     <string name="voice_input_recognize_failed">语音识别失败，请重试</string>
     <string name="fcitx_daemon">Fcitx 守护程序</string>

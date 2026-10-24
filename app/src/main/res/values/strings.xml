@@ -484,7 +484,7 @@
     <string name="edit_theme">Edit Theme</string>
     <string name="show_voice_input_button">Show voice input button</string>
     <string name="local_voice_input">Local voice input</string>
-    <string name="local_voice_input_summary">Toolbar mic button. Hardware shortcut is hold-to-talk, default Sym+R (BlackBerry: Right Shift+R). Choose an engine below and download its files; SenseVoice is ~230 MB, Qwen3-ASR is ~940 MB.</string>
+    <string name="local_voice_input_summary">Toolbar mic button. Hardware shortcut is tap to start/stop, default Sym+R (BlackBerry: Right Shift+R); silence ends the session automatically. Choose an engine below and download its files; SenseVoice is ~230 MB, Qwen3-ASR is ~940 MB.</string>
     <string name="auto_show_keyboard">Auto-activate typing in WeChat</string>
     <string name="auto_show_keyboard_summary">When entering a WeChat chat, activate the IME so the hardware keyboard can type immediately (without popping up the on-screen keyboard; experimental)</string>
     <string name="voice_auto_stop">Auto-stop after silence</string>
@@ -512,7 +512,7 @@
     <string name="voice_model_status_missing">Not downloaded (~%1$d MB). Tap Download below, or press Sym+R once and it will start automatically.</string>
     <string name="voice_model_status_downloading">Downloading %1$d%%</string>
     <string name="voice_model_status_downloading_bytes">Downloading %1$d MB</string>
-    <string name="voice_model_status_ready">Ready. Hold Sym+R to talk (BlackBerry: Right Shift+R). Tap to re-check.</string>
+    <string name="voice_model_status_ready">Ready. Tap Sym+R to talk (BlackBerry: Right Shift+R); tap again or wait for silence to finish. Tap here to re-check.</string>
     <string name="voice_model_status_error">Failed: %1$s. Tap to retry.</string>
     <string name="cat_voice_input">Voice settings</string>
     <string name="voice_model_management">Model management</string>
@@ -526,7 +526,7 @@
     <string name="voice_model_ready_size">Ready (%1$s)</string>
     <string name="voice_input_permission_required">Microphone permission is required for voice input</string>
     <string name="voice_input_unavailable">Voice input is unavailable</string>
-    <string name="voice_input_no_speech">No speech detected — hold longer and speak closer to the mic</string>
+    <string name="voice_input_no_speech">No speech detected — speak closer to the mic, or talk a bit longer</string>
     <string name="voice_input_no_transcript">Heard audio but could not recognize text — try again</string>
     <string name="voice_input_recognize_failed">Voice recognition failed — try again</string>
     <string name="fcitx_daemon">Fcitx Daemon</string>

@@ -92,7 +92,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) { builtInVoiceInput.getValue() }
         val voiceAutoStop =
             switch(
-                R.string.voice_auto_stop, "voice_auto_stop", false,
+                R.string.voice_auto_stop, "voice_auto_stop", true,
                 R.string.voice_auto_stop_summary
             )
         val voiceAutoStopSeconds = int(
