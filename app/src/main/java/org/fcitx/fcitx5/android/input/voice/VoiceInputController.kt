@@ -38,7 +38,7 @@ import kotlin.math.sqrt
  * 所有回调均在主线程发出。
  *
  * Titan Elite 等机：MIC 优先 + 弱音增益；VAD 切不出段时，收尾对整段 PCM 做一次兜底识别
- * （按住说话常无句中停顿，单靠 VAD flush 容易空结果）。
+ * （短说完就停、句中无停顿时，单靠 VAD flush 容易空结果）。
  */
 class VoiceInputController(
     context: Context,
@@ -220,7 +220,7 @@ class VoiceInputController(
             val pending = synchronized(pendingRecognitions) { pendingRecognitions.toList() }
             pending.forEach { it.join() }
             synchronized(pendingRecognitions) { pendingRecognitions.clear() }
-            // VAD 没切出段（按住说话无停顿 / 阈值仍偏严）：对整段 PCM 兜底识别一次
+            // VAD 没切出段（短说无句中停顿 / 阈值仍偏严）：对整段 PCM 兜底识别一次
             if (sessionText.isEmpty() && sessionPcmLen >= MIN_FORCE_RECOGNIZE_SAMPLES) {
                 Timber.i("VAD empty; force-recognize session pcm len=%d peak=%.4f", sessionPcmLen, sessionPeakAbs)
                 val samples = sessionPcm.copyOf(sessionPcmLen)
@@ -532,7 +532,7 @@ class VoiceInputController(
 
         /**
          * 录音源优先级：MIC 优先。Titan Elite 等 OEM 上 VOICE_RECOGNITION 常能 init
-         * 却只吐近零采样，若排第一会白白丢掉按住说话的前一秒。失败/静音再回退其它源。
+         * 却只吐近零采样，若排第一会白白丢掉开录后的前一秒。失败/静音再回退其它源。
          */
         private val AUDIO_SOURCES = intArrayOf(
             MediaRecorder.AudioSource.MIC,

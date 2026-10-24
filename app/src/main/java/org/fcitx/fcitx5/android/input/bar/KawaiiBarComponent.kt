@@ -405,7 +405,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
             },
             onMicReceiving = {
-                // Elite 物理键按住说话时工具栏可能不可见，音浪看不到；进声时再 Toast 一次确认
+                // Elite 物理键语音时工具栏可能不可见，音浪看不到；进声时再 Toast 一次确认
                 idleUi.voiceInputSlot.contentDescription =
                     context.getString(R.string.voice_input_receiving)
                 context.toast(R.string.voice_input_receiving)
@@ -414,8 +414,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     /**
-     * 工具栏麦克风：点一下开始、再点结束。物理快捷键走 [pressVoiceInput] / [releaseVoiceInput]
-     * （按住说话）。
+     * 工具栏麦克风与物理快捷键同一套：点一下开始、再点结束（或等静音自动结束）。
      */
     fun toggleVoiceInput() {
         if (isCapabilityFlagsPassword) {
@@ -429,19 +428,24 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
     }
 
-    /** 物理快捷键按下：空闲则开录；已在录则保持（松手才停）。 */
+    /**
+     * 物理快捷键按下：空闲开录，已在录则强制收尾识别（[VoiceShortcut] 点按切换）。
+     * 松手走 [releaseVoiceInput]，不再停录。
+     */
     fun pressVoiceInput() {
         if (isCapabilityFlagsPassword) {
             context.toast(R.string.voice_input_unavailable)
             return
         }
         val recording = voiceInputController.state == VoiceInputController.State.Recording
-        if (VoiceShortcut.onDown(recording) == VoiceShortcut.Command.Start) {
-            startVoiceInputSession()
+        when (VoiceShortcut.onDown(recording)) {
+            VoiceShortcut.Command.Start -> startVoiceInputSession()
+            VoiceShortcut.Command.Stop -> voiceInputController.stop()
+            VoiceShortcut.Command.Ignore -> Unit
         }
     }
 
-    /** 物理快捷键抬起：正在录才收尾识别。 */
+    /** 物理快捷键抬起：点按模式下忽略（停录靠再按一次或静音自动结束）。 */
     fun releaseVoiceInput() {
         val recording = voiceInputController.state == VoiceInputController.State.Recording
         if (VoiceShortcut.onUp(recording) == VoiceShortcut.Command.Stop) {

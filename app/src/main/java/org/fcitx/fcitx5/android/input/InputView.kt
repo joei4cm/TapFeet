@@ -568,7 +568,8 @@ class InputView(
 
     /**
      * 动作快捷键（开关类 + 文本编辑类）：命中即执行并消费该键。
-     * 语音输入除外：DOWN 只开录，返回 [ShortcutAction.VoiceInput] 让服务在对应 UP 上停录。
+     * 语音输入：DOWN 切换开/停录，返回 [ShortcutAction.VoiceInput] 让服务吞掉对应 UP
+     * 与 auto-repeat（避免按住 R 打出一串 `r`）。
      *
      * 由 [FcitxInputMethodService.onKeyDown] 放在整条派发链**最前面**调用，于是：
      * - 物理 / 虚拟两种模式下都生效（探测点在 `isVirtualKeyboard` 分支之前）；
@@ -601,7 +602,7 @@ class InputView(
         return window.onHardwareKey(event)
     }
 
-    /** 飞字等非按住手势：点一下开始 / 再点结束。物理快捷键是按住说话，不走这里。 */
+    /** 飞字等手势：点一下开始 / 再点结束（与物理快捷键同一套）。 */
     fun toggleVoiceInput() {
         kawaiiBar.toggleVoiceInput()
     }
@@ -691,7 +692,7 @@ class InputView(
                 )
             }
 
-            // 物理快捷键：按住说话（松手由 [releaseVoiceShortcut] 收尾）。工具栏麦克风仍走 toggle。
+            // 物理快捷键：点按切换（松手只吞 UP，不停录；再按或静音自动结束）。
             ShortcutAction.VoiceInput -> kawaiiBar.pressVoiceInput()
 
             ShortcutAction.ToggleIme -> {

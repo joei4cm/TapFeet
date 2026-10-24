@@ -1911,6 +1911,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             forceShowSelf()
         }
+        // 语音快捷键字母仍按着时吞掉 auto-repeat，否则会打出一串 `r`（点按切换后更明显）。
+        if (voiceShortcutHeldKeyCode == keyCode) {
+            return true
+        }
         if (event.repeatCount == 0) {
             // 动作快捷键（开关类 + 文本编辑类）第一优先。刻意放在候选 / 符号 / 翻页判断之前，并且放在
             // `inputDeviceMgr.isVirtualKeyboard` 分支**之外**：
@@ -2002,7 +2006,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // 之后每个字母都会被判成和弦（按 E 就切特效），比单纯不生效危险得多。
         HardwareChord.onKeyUp(keyCode)
 
-        // 语音快捷键松手：必须在和弦清掉之后、吞掉 UP 之前。匹配靠 DOWN 记下的 keyCode。
+        // 语音快捷键松手：只吞掉 UP（点按切换不停录）。匹配靠 DOWN 记下的 keyCode。
         if (voiceShortcutHeldKeyCode == keyCode) {
             voiceShortcutHeldKeyCode = -1
             inputView?.releaseVoiceShortcut()

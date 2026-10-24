@@ -83,9 +83,9 @@ enum class ShortcutAction(
     CycleSoundMode("shortcut_cycle_sound_mode_key", R.string.shortcut_cycle_sound_mode),
 
     /**
-     * 本地语音输入（SenseVoice）。工具栏麦克风仍是点一下开始 / 再点结束
-     * （[org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent.toggleVoiceInput]）；
-     * 物理快捷键是按住说话、松手识别（[VoiceShortcut]）。密码框一律不响应。
+     * 本地语音输入。工具栏麦克风与物理快捷键同一套：点一下开始 / 再点结束
+     * （[org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent.toggleVoiceInput] /
+     * [VoiceShortcut]）；静音可自动收尾。密码框一律不响应。
      */
     VoiceInput("shortcut_voice_input_key", R.string.shortcut_voice_input),
 
