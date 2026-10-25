@@ -54,9 +54,6 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
             return
         }
         RimeSchemaSwitcher.apply(schemaId)
-        if (!RimeSchemaSwitcher.deploy(this)) {
-            Timber.w("rime deploy action not found; schema file written, will apply on next session")
-        }
     }
 
     val enabled = enabledIme().map { it.uniqueName }
@@ -75,5 +72,10 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
     } else if (forceActivate && schemaId != null && currentIme().uniqueName == uniqueName) {
         // 已在 rime 上：再 activate 一次触发重载
         activateIme(uniqueName)
+    }
+
+    // Deploy 必须在 activate 之后：依赖 rime addon 已挂载；旧实现查 statusArea 会在非 rime IM 上找不到 Deploy。
+    if (schemaId != null) {
+        RimeSchemaSwitcher.deploy(this)
     }
 }

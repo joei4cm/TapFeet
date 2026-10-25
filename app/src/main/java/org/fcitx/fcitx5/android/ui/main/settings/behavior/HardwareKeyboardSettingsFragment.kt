@@ -148,7 +148,10 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
                             Toast.LENGTH_SHORT,
                         ).show()
                     }
+                    // 相同引擎再点：SharedPreferences 不会回调，需手动 fireChange 才能重试下载/部署
+                    val same = hw.pinyinEngine.getValue() == kind
                     hw.pinyinEngine.setValue(kind)
+                    if (same) hw.pinyinEngine.fireChange()
                     refreshEngineSummaries()
                     if (!kind.needsDownload || RimeDownloadablePack.isReady(kind)) {
                         Toast.makeText(
@@ -713,7 +716,15 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         val mintState = RimeMintManager.state.value
         enginePrefs.forEach { pref ->
             val kind = PinyinEngineKind.entries.first { "pinyin_engine_pick_${it.name}" == pref.key }
+            val currentError = when {
+                kind != current -> null
+                kind == PinyinEngineKind.RimeIce -> (iceState as? RimeIceManager.State.Error)?.message
+                kind == PinyinEngineKind.RimeFrost -> (frostState as? RimeFrostManager.State.Error)?.message
+                kind == PinyinEngineKind.RimeMint -> (mintState as? RimeMintManager.State.Error)?.message
+                else -> null
+            }
             pref.summary = when {
+                currentError != null -> getString(R.string.pinyin_engine_rime_retry_hint, currentError)
                 kind == current -> getString(R.string.pinyin_engine_in_use)
                 kind == PinyinEngineKind.RimeIce -> downloadableSummary(
                     iceState,
