@@ -86,6 +86,8 @@ object RimeIceManager {
     @Synchronized
     fun refreshState() {
         if (downloadJob?.isActive == true) return
+        // 保留 Error，避免 state 被读取时冲掉失败提示，导致用户无法点同一项重试
+        if (mutableState.value is State.Error) return
         mutableState.value = if (isReady()) State.Ready else State.NotDownloaded
     }
 
@@ -134,7 +136,7 @@ object RimeIceManager {
         if (RimePackStore.readActive()?.first == PACK_ID) {
             RimePackStore.activeMarkerFile().delete()
         }
-        refreshState()
+        mutableState.value = State.NotDownloaded
     }
 
     /** 旧版直接装在 data/rime/ 的雾凇：迁入 packs/ice。 */

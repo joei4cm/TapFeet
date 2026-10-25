@@ -170,6 +170,8 @@
     <string name="pinyin_engine_rime_mint_error">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_rime_mint_download_start">Downloading Oh-my-rime (~%1$d MB)…</string>
     <string name="pinyin_engine_loaded">Loaded %1$s</string>
+    <string name="pinyin_engine_rime_load_failed">Rime pack failed: %1$s</string>
+    <string name="pinyin_engine_rime_retry_hint">Failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_more_im">Input methods</string>
     <string name="pinyin_engine_more_im_summary">Add or remove enabled input methods.</string>
     <string name="pinyin_engine_plugins">Plugins</string>

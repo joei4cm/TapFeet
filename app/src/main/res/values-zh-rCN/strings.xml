@@ -166,6 +166,8 @@
     <string name="pinyin_engine_rime_mint_error">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_rime_mint_download_start">开始下载薄荷拼音（约 %1$d MB）…</string>
     <string name="pinyin_engine_loaded">已加载 %1$s</string>
+    <string name="pinyin_engine_rime_load_failed">Rime 方案加载失败：%1$s</string>
+    <string name="pinyin_engine_rime_retry_hint">失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_more_im">输入法列表</string>
     <string name="pinyin_engine_more_im_summary">查看并增删已启用的输入法。</string>
     <string name="pinyin_engine_plugins">插件</string>

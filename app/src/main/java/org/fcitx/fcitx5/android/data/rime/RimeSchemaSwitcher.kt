@@ -4,7 +4,6 @@
  */
 package org.fcitx.fcitx5.android.data.rime
 
-import org.fcitx.fcitx5.android.core.Action
 import org.fcitx.fcitx5.android.core.FcitxAPI
 import timber.log.Timber
 import java.io.File
@@ -46,24 +45,13 @@ object RimeSchemaSwitcher {
     """.trimIndent() + "\n"
 
     /**
-     * 触发 fcitx5-rime 的 Deploy；找不到动作时返回 false，由调用方决定是否重启 Fcitx。
+     * 触发 fcitx5-rime Deploy。
+     *
+     * 必须在 `rime` 已启用/激活之后调用；走 addon `setSubConfig("deploy")`，
+     * 不依赖状态区动作（状态区在非 rime IM 时根本没有 Deploy 项）。
      */
-    suspend fun deploy(api: FcitxAPI): Boolean {
-        val deploy = findDeploy(api.statusArea()) ?: return false
-        api.activateAction(deploy.id)
-        return true
-    }
-
-    private fun findDeploy(actions: Array<Action>): Action? {
-        for (a in actions) {
-            if (a.name == "fcitx-rime-deploy" || a.icon == "fcitx_rime_deploy") return a
-            if (a.shortText.contains("Deploy", ignoreCase = true) ||
-                a.shortText.contains("部署")
-            ) {
-                return a
-            }
-            a.menu?.let { findDeploy(it)?.let { hit -> return hit } }
-        }
-        return null
+    suspend fun deploy(api: FcitxAPI) {
+        api.setAddonSubConfig("rime", "deploy")
+        Timber.i("rime deploy requested via setAddonSubConfig")
     }
 }
