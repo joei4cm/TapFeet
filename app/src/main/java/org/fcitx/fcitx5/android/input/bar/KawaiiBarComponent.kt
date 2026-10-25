@@ -18,6 +18,7 @@ import android.view.inputmethod.InlineSuggestion
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputMethodSubtype
 import android.widget.FrameLayout
+import android.widget.PopupMenu
 import android.widget.ViewAnimator
 import android.widget.inline.InlineContentView
 import androidx.annotation.Keep
@@ -75,9 +76,9 @@ import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
-import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.VirtualLayout
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.PanelModule
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
@@ -513,6 +514,26 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
     }
 
+    private val softToolbarSettingsClick = View.OnClickListener { anchor ->
+        PopupMenu(context, anchor).apply {
+            menu.add(0, 1, 0, R.string.keyboard_height_drag_hint)
+            menu.add(0, 2, 0, R.string.virtual_keyboard)
+            menu.add(0, 3, 0, R.string.expand_toolbar)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> context.toast(R.string.keyboard_height_drag_toast)
+                    2 -> AppUtil.launchMainToKeyboard(context)
+                    3 -> {
+                        isToolbarManuallyToggled = !expandToolbarByDefault
+                        evalIdleUiState(fromUser = true)
+                    }
+                }
+                true
+            }
+            show()
+        }
+    }
+
     private val idleUi: IdleUi by lazy {
         IdleUi(context, theme, popup, commonKeyActionListener).apply {
             menuButton.setOnClickListener {
@@ -535,25 +556,36 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     launchClipboardTimeoutJob()
                 }
             }
+            softToolbar.apply {
+                statusButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(StatusAreaWindow())
+                }
+                emojiButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(PickerWindow.Key.Emoji)
+                }
+                clipboardButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(ClipboardWindow())
+                }
+                settingsButton.setOnClickListener(softToolbarSettingsClick)
+                themeButton.setOnClickListener {
+                    AppUtil.launchMainToThemeList(context)
+                }
+                // 「开始」与「结束」必须挂在**两个**宿主上，因为录音时可见的子 View 会换人：
+                //  - voiceInputButton 是 ToolButton(CustomGestureView)，其 onTouchEvent 无条件
+                //    return true —— 监听只挂在 slot 上时点击永远到不了父容器；
+                //  - 录音中按钮 GONE、VoiceWaveView 显示，事件才穿透到 slot。
+                voiceInputButton.setOnClickListener { toggleVoiceInput() }
+                voiceInputSlot.setOnClickListener { toggleVoiceInput() }
+            }
             hideKeyboardButton.apply {
                 setOnClickListener(hideKeyboardCallback)
                 swipeEnabled = true
                 swipeThresholdY = dp(HEIGHT.toFloat())
                 swipeThresholdX = swipeThresholdY
                 onGestureListener = swipeHideKeyboardCallback
-            }
-            // 「开始」与「结束」必须挂在**两个**宿主上，因为录音时可见的子 View 会换人：
-            //  - voiceInputButton 是 ToolButton(CustomGestureView)，其 onTouchEvent 无条件
-            //    return true —— 它会把落在自己身上的一切触摸吃掉，监听只挂在 slot 上时点击
-            //    永远到不了父容器，表现就是「麦克风按钮看得见、点了没反应」（进不去录音态，
-            //    于是音浪动画与流式上屏也都无从发生）；
-            //  - 录音中按钮 GONE、VoiceWaveView(普通 View，不可点) 显示，事件才穿透到 slot。
-            // 两者按可见性天然互斥，不会双触发。
-            voiceInputButton.setOnClickListener {
-                toggleVoiceInput()
-            }
-            voiceInputSlot.setOnClickListener {
-                toggleVoiceInput()
             }
             keyboardToggleButton.setOnClickListener {
                 // 主键盘开关：显示中且是主键盘 → 关闭；否则 → 打开主键盘
@@ -590,15 +622,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true, shift = true)
                 }
                 cursorMoveButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true)                
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(TextEditingWindow())
                 }
                 clipboardButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true) 
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(ClipboardWindow())
                 }
                 moreButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true) 
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(StatusAreaWindow())
                 }
             }
@@ -753,15 +785,21 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
      *
      * 收起只影响这一行的高度——`InputView` 里 `windowManager.view` 是用 `below(kawaiiBar.view)`
      * 约束的，横条 GONE 后键盘区自动拉满，而键盘自身高度（屏高 × keyboardHeightPercent）与底边
-     * 位置完全不动。以下三类必须保持显示，别顺手一起收掉：
+     * 位置完全不动。以下必须保持显示，别顺手一起收掉：
      *  - `Candidate`：水平候选栏，这是本开关的核心保证；
      *  - `Title`：扩展窗口（剪贴板 / 文本编辑 / 状态图标区）的标题栏带返回键，收起会把用户困在窗口里；
-     *  - `Idle` 里承载实质内容的子态（剪贴板建议 / 密码数字行 / 内联建议）收起等于功能静默失效。
+     *  - `Idle` 里承载实质内容的子态（剪贴板建议 / 密码数字行 / 内联建议）收起等于功能静默失效；
+     *  - 本地语音麦克风：挂在空闲栏上，收起整栏等于虚拟键盘「没有语音按钮」。
      */
-    private fun shouldHideStatusBar(): Boolean =
-        hideStatusBar &&
-                barStateMachine.currentState == KawaiiBarStateMachine.State.Idle &&
-                idleUi.isDecorativeState
+    private fun shouldHideStatusBar(): Boolean {
+        if (!hideStatusBar) return false
+        if (barStateMachine.currentState != KawaiiBarStateMachine.State.Idle) return false
+        if (!idleUi.isDecorativeState) return false
+        // 屏幕键盘展开时保留顶栏：麦克风与齿轮设置入口挂在这里。
+        if (windowManager.isKeyboardWindowVisible()) return false
+        if (idleUi.voiceInputSlot.visibility == View.VISIBLE) return false
+        return true
+    }
 
     private fun refreshBarVisibility() {
         val target = if (shouldHideStatusBar()) View.GONE else View.VISIBLE
@@ -814,6 +852,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
         prefs.candidateBar.hideStatusBar.registerOnChangeListener(onHideStatusBarChangeListener)
+        windowManager.addKeyboardVisibilityListener {
+            updateKeyboardToggleButton()
+            refreshBarVisibility()
+        }
         // 输入服务销毁时确保录音与识别器资源释放
         service.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
@@ -842,6 +884,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         // 本地语音输入：密码框不显示；切换输入框时中止进行中的录音
         val showBuiltInVoice = builtInVoiceInput && !capFlags.has(CapabilityFlag.Password)
         idleUi.voiceInputSlot.visibility = if (showBuiltInVoice) View.VISIBLE else View.GONE
+        // 麦克风显隐会改变「是否允许收起状态栏」——立刻重算，否则虚拟键盘上看不见语音按钮
+        refreshBarVisibility()
         if (voiceInputController.state != VoiceInputController.State.Idle) {
             // 切输入框一律丢弃进行中的会话：stop 的迟到识别结果会提交到【新】输入框（文字串字段），
             // 丢弃比错位上屏安全得多
