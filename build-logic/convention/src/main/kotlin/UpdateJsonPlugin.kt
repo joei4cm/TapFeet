@@ -15,8 +15,11 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.register
 import java.time.LocalDate
 
-/** Gitee release URL layout — must match how APKs are uploaded per release tag. */
-private const val RELEASE_URL_BASE = "https://gitee.com/zziloong/TapFeet/releases/download"
+/**
+ * GitHub Release URL layout — must match `.github/workflows/production-apk.yml`
+ * (`joei4cm/TapFeet` versioned releases).
+ */
+private const val RELEASE_URL_BASE = "https://github.com/joei4cm/TapFeet/releases/download"
 private const val APP_ID = "tapfeet.ime"
 
 private fun defaultDownloadUrl(versionName: String) =
@@ -24,13 +27,13 @@ private fun defaultDownloadUrl(versionName: String) =
 
 /**
  * Registers the `generateUpdateJson` task, which refreshes the online-update metadata
- * (`update.json`, served via Gitee raw) from the single release source of truth — the LAST
- * `# vX.Y.Z` section of `docs/更新内容.txt`:
+ * (`update.json` on `production`, also mirrored to Gitee when `GITEE_TOKEN` is set) from the
+ * single release source of truth — the LAST `# vX.Y.Z` section of `docs/更新内容.txt`:
  *
  * - `versionName`  <- the section heading (unless BUILD_VERSION_NAME / buildVersionName overrides)
  * - `versionCode`  <- derived from that version name ([Versions.calculateVersionCode])
  * - `releaseNotes` <- the section body (bullet lines)
- * - `downloadUrl`  <- Gitee release template `…/download/<v>/<appId>-<v>.apk` when the version
+ * - `downloadUrl`  <- GitHub release template `…/download/<v>/<appId>-<v>.apk` when the version
  *   changed (kept from the existing file otherwise)
  * - `publishDate`  <- today when the version changed (kept otherwise)
  *

@@ -13,8 +13,13 @@ object Const {
     const val licenseUrl = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1"
     const val privacyPolicyUrl = "https://github.com/izilooong/TapFeet"
     const val faqUrl = "https://fcitx5-android.github.io/faq/"
-    // Where the app fetches online-update metadata (a static JSON file in the repo).
-    // Gitee raw is the PRIMARY update source (mainland-China friendly, CN-direct reachable).
-    // Bump `versionCode` in this file (and set `downloadUrl`) when publishing a new release.
+    // Online-update metadata (`update.json`). Production CI refreshes the copy on
+    // joei4cm/TapFeet@production; APK downloadUrl points at that repo's GitHub Releases.
+    // Gitee remains a mirror for mainland reachability but is often stale — UpdateChecker
+    // picks the highest versionCode across all candidates.
+    const val updateInfoUrlGithub =
+        "https://raw.githubusercontent.com/joei4cm/TapFeet/production/update.json"
+    const val updateInfoUrlJsDelivr =
+        "https://cdn.jsdelivr.net/gh/joei4cm/TapFeet@production/update.json"
     const val updateInfoUrlGitee = "https://gitee.com/zziloong/TapFeet/raw/main/update.json"
 }

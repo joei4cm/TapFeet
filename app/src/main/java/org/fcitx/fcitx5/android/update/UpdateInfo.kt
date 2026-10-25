@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Metadata describing the latest published version. Fetched as a static JSON file
- * (see [org.fcitx.fcitx5.android.utils.Const.updateInfoUrlGitee]).
+ * (see [org.fcitx.fcitx5.android.utils.Const.updateInfoUrlGithub] and related mirrors).
  */
 @Serializable
 data class UpdateInfo(
