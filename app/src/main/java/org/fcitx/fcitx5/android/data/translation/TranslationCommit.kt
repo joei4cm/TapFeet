@@ -15,10 +15,10 @@ object TranslationCommit {
     data class Item(val label: String, val text: String)
 
     fun isLocalEnabled(): Boolean =
-        AppPrefs.getInstance().candidateBar.showTranslationComment.getValue()
+        AppPrefs.getInstance().translation.showTranslationComment.getValue()
 
     fun isOnlineEnabled(): Boolean =
-        AppPrefs.getInstance().candidateBar.onlineSentenceTranslate.getValue()
+        AppPrefs.getInstance().translation.onlineSentenceTranslate.getValue()
 
     fun wantsAny(): Boolean = isLocalEnabled() || isOnlineEnabled()
 

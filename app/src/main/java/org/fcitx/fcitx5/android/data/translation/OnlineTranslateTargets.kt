@@ -37,7 +37,7 @@ object OnlineTranslateTargets {
         langs.distinct().take(MAX_SELECTED).joinToString(",") { it.code }
 
     fun selected(): List<OnlineTranslator.Lang> =
-        parse(AppPrefs.getInstance().candidateBar.onlineTranslateTargets.getValue())
+        parse(AppPrefs.getInstance().translation.onlineTranslateTargets.getValue())
 
     fun summaryCodes(raw: String): String =
         parse(raw).joinToString(" · ") { it.label }

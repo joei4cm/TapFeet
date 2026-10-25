@@ -487,40 +487,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.pinyin_english_candidates_summary
         )
 
-        /**
-         * 候选旁在拼音后追加本地英/日释义（格式：`拼音 · 英 · 日`）。
-         * 同时在候选栏上方给出「英 …」「日 …」芯片，点一下即可上屏。
-         * 词表内置精简版，不联网。不开时只显示拼音/编码。
-         */
-        init { category(R.string.cat_candidate_bar_translation) }
-        val showTranslationComment = switch(
-            R.string.show_translation_comment,
-            "show_translation_comment",
-            false,
-            R.string.show_translation_comment_summary
-        ) { showCandidateComment.getValue() }
-
-        /**
-         * 联网整句翻译：按当前首选候选（或源文）请求所选目标语种译文，
-         * 结果同样以可点芯片上屏。需网络；默认关。
-         */
-        val onlineSentenceTranslate = switch(
-            R.string.online_sentence_translate,
-            "online_sentence_translate",
-            false,
-            R.string.online_sentence_translate_summary
-        )
-
-        /**
-         * 联网翻译目标语种（逗号分隔 code，如 `en,ja,ko`）。无自动 UI，
-         * 由 [org.fcitx.fcitx5.android.ui.main.settings.behavior.CandidateBarSettingsFragment]
-         * 挂 MultiSelectListPreference。
-         */
-        val onlineTranslateTargets = string(
-            OnlineTranslateTargets.PREF_KEY,
-            OnlineTranslateTargets.DEFAULT_RAW,
-        )
-
         val vMode = switch(
             R.string.v_mode,
             "pinyin_v_mode",
@@ -545,6 +511,43 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.candidate_letter_spacing,
             "candidate_letter_spacing",
             0, 0, 30, "%"
+        )
+    }
+
+    /**
+     * 翻译（本地释义芯片 + 联网整句）。独立设置页，避免挂在「候选栏」多 Tab 下
+     * 因 Preference dependency 跨屏找不到而崩溃。偏好 key 与原先候选栏内一致。
+     */
+    inner class Translation : ManagedPreferenceCategory(R.string.translation_settings, sharedPreferences) {
+        init { category(R.string.cat_candidate_bar_translation) }
+
+        /**
+         * 候选旁在拼音后追加本地英/日释义（格式：`拼音 · 英 · 日`）。
+         * 同时在候选栏上方给出「英 …」「日 …」芯片，点一下即可上屏。
+         */
+        val showTranslationComment = switch(
+            R.string.show_translation_comment,
+            "show_translation_comment",
+            false,
+            R.string.show_translation_comment_summary
+        ) { candidateBar.showCandidateComment.getValue() }
+
+        /**
+         * 联网整句翻译：按当前首选候选请求所选目标语种译文，以可点芯片上屏。
+         */
+        val onlineSentenceTranslate = switch(
+            R.string.online_sentence_translate,
+            "online_sentence_translate",
+            false,
+            R.string.online_sentence_translate_summary
+        )
+
+        /**
+         * 联网翻译目标语种（逗号分隔 code）。UI 由 [TranslationSettingsFragment] 挂多选。
+         */
+        val onlineTranslateTargets = string(
+            OnlineTranslateTargets.PREF_KEY,
+            OnlineTranslateTargets.DEFAULT_RAW,
         )
     }
 
@@ -1016,6 +1019,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     val shortcuts = Shortcuts().register()
     val candidates = Candidates().register()
     val candidateBar = CandidateBar().register()
+    val translation = Translation().register()
     val clipboard = Clipboard().register()
     val symbols = Symbols().register()
     val customKeyboard = CustomKeyboard().register()

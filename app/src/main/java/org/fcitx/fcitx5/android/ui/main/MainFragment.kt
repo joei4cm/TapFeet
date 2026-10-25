@@ -164,7 +164,7 @@ class MainFragment : PaddingPreferenceFragment() {
                 addDestinationPreference(
                     R.string.translation_settings,
                     R.drawable.ic_baseline_language_24,
-                    SettingsRoute.CandidateBar
+                    SettingsRoute.Translation
                 )
                 addDestinationPreference(
                     R.string.clipboard,

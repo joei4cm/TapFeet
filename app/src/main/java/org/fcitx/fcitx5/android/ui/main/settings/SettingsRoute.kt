@@ -40,6 +40,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragme
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.PinyinEngineSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.ShortcutKeysSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.TranslationSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.VoiceSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fcitx.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
@@ -100,6 +101,9 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data object CandidateBar : SettingsRoute()
+
+    @Serializable
+    data object Translation : SettingsRoute()
 
     @Serializable
     data object Clipboard : SettingsRoute()
@@ -278,6 +282,9 @@ sealed class SettingsRoute : Parcelable {
             }
             fragment<CandidateBarSettingsFragment, CandidateBar> {
                 label = ctx.getString(R.string.candidate_bar_options)
+            }
+            fragment<TranslationSettingsFragment, Translation> {
+                label = ctx.getString(R.string.translation_settings)
             }
             fragment<ClipboardSettingsFragment, Clipboard> {
                 label = ctx.getString(R.string.clipboard)
