@@ -1184,6 +1184,11 @@ class InputView(
         physicalKeyboardMode = !isVirtualKeyboard
     }
 
+    /** 触摸机开场：确保键盘窗体不是 HiddenKeyboard（状态栏「隐藏键盘」会留下关灯状态）。 */
+    fun ensureSoftKeyboardShown() {
+        windowManager.setKeyboardWindowVisible(true)
+    }
+
     /**
      * Whether this [InputView] is currently revealed in physical-keyboard mode to host a window
      * that is a normal view inside the IME window (the symbol picker, or the number/letter

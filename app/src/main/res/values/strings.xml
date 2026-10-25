@@ -622,6 +622,7 @@
     <string name="crop">Crop</string>
     <string name="candidates_window">Candidates Window</string>
     <string name="show_candidates_window">Show candidates window</string>
+    <string name="candidates_window_always_soft_keyboard">Always on-screen keyboard</string>
     <string name="candidates_window_radius">Candidates window radius</string>
     <string name="candidates_window_shadow">Candidate window shadow</string>
     <string name="candidates_show_preedit">Show preedit in candidate window</string>

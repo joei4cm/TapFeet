@@ -618,6 +618,7 @@
     <string name="crop">裁剪</string>
     <string name="candidates_window">候选窗口</string>
     <string name="show_candidates_window">显示候选窗口</string>
+    <string name="candidates_window_always_soft_keyboard">始终用屏幕键盘</string>
     <string name="candidates_window_radius">候选窗口圆角半径</string>
     <string name="candidates_window_shadow">候选窗口阴影</string>
     <string name="candidates_show_preedit">在候选框显示拼音</string>

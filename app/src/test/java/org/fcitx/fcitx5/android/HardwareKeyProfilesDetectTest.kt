@@ -96,10 +96,27 @@ class HardwareKeyProfilesDetectTest {
     }
 
     @Test
-    fun touchSurfaceAloneIsElite() {
+    fun bareTouchSurfaceIsNotElite() {
+        // Xiaomi and other phones often enumerate KEYBOARD|TOUCHPAD; must stay touch.
+        assertNull(detect(hasKeyboardTouchSurface = true))
+        assertNull(
+            detect(
+                manufacturer = "Xiaomi",
+                model = "23013RK75C",
+                hasKeyboardTouchSurface = true,
+            )
+        )
+        assertEquals("touch", suggested(manufacturer = "Xiaomi", hasKeyboardTouchSurface = true))
+    }
+
+    @Test
+    fun unihertzJellyWithTouchSurfaceStaysTouch() {
+        assertNull(
+            detect(manufacturer = "Unihertz", model = "Jelly Max", hasKeyboardTouchSurface = true),
+        )
         assertEquals(
-            "titan2_elite",
-            detect(hasKeyboardTouchSurface = true)
+            "touch",
+            suggested(manufacturer = "Unihertz", model = "Jelly Max", hasKeyboardTouchSurface = true),
         )
     }
 }
