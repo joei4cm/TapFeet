@@ -620,9 +620,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     inner class HardwareKeyboard :
         ManagedPreferenceCategory(R.string.hardware_keyboard, sharedPreferences) {
-        // Selected key-layout preset: "blackberry" or "tt2". Choosing a preset in the settings
-        // screen overrides all individual key bindings with that preset's values.
-        val keyProfile = string("hw_key_profile", "blackberry")
+        // Selected key-layout preset: "touch" / "blackberry" / "tt2" / Elite…. Choosing a preset
+        // in the settings screen overrides all individual key bindings with that preset's values.
+        // Default touch so plain phones don't look like BlackBerry until first-run detection runs.
+        val keyProfile = string("hw_key_profile", HardwareKeyProfiles.TOUCH)
 
         // 仅控制底排物理键（candidate2-5）是否作为快速选字快捷键，与候选栏的排列顺序无关。
         // 开启（默认）：candidate2-5 按当前 keyProfile 绑定物理键，可快速选字。
@@ -855,24 +856,42 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
 
         fun ensureInitialized() {
+            val fullKeyboard = DeviceInfo.looksLikeFullKeyboardDevice()
             if (seededKeys.any { sharedPreferences.contains(it.key) }) {
                 HardwareKeyProfiles.applyEliteSymSymbolPicker(this)
+                // v1.0.35 及更早把普通触摸机误播成黑莓；一次性纠到触屏预设 + 屏幕键盘。
+                migrateMistakenBlackberryOnTouch(fullKeyboard)
             } else {
                 val id = DeviceInfo.suggestedHardwareKeyProfile()
                 keyProfile.setValue(id)
                 HardwareKeyProfiles.applyProfile(id, this@AppPrefs)
             }
             // 无全键盘手机：强制触屏键盘（悬浮候选「禁用」）+ 默认 26 键；
-            // 已知全键盘机：跟随输入设备（敲物理键切悬浮候选）。仅首次写入，不覆盖用户改动。
-            seedTouchSurfaceDefaults()
+            // 已知全键盘机：跟随输入设备（敲物理键切悬浮候选）。
+            seedTouchSurfaceDefaults(fullKeyboard)
         }
 
-        private fun seedTouchSurfaceDefaults() {
+        private fun migrateMistakenBlackberryOnTouch(fullKeyboard: Boolean) {
+            val marker = "touch_kb_defaults_v1"
+            if (sharedPreferences.contains(marker)) return
+            sharedPreferences.edit { putBoolean(marker, true) }
+            if (fullKeyboard) return
+            // 非全键盘机却挂着黑莓/其它实体预设 → 改触屏；并强制屏幕键盘。
+            if (HardwareKeyProfiles.isFullKeyboardProfile(keyProfile.getValue())) {
+                keyProfile.setValue(HardwareKeyProfiles.TOUCH)
+                HardwareKeyProfiles.applyProfile(HardwareKeyProfiles.TOUCH, this@AppPrefs)
+            }
+            this@AppPrefs.candidates.mode.setValue(FloatingCandidatesMode.Disabled)
+            val layoutPref = this@AppPrefs.keyboard.virtualLayout
+            if (!sharedPreferences.contains(layoutPref.key)) {
+                layoutPref.setValue(VirtualLayout.Qwerty)
+            }
+        }
+
+        private fun seedTouchSurfaceDefaults(fullKeyboard: Boolean) {
             val candidatesPref = this@AppPrefs.candidates.mode
             if (!sharedPreferences.contains(candidatesPref.key)) {
-                val modeName = TouchKeyboardDefaults.floatingCandidatesModeName(
-                    DeviceInfo.looksLikeFullKeyboardDevice()
-                )
+                val modeName = TouchKeyboardDefaults.floatingCandidatesModeName(fullKeyboard)
                 candidatesPref.setValue(FloatingCandidatesMode.valueOf(modeName))
             }
             val layoutPref = this@AppPrefs.keyboard.virtualLayout

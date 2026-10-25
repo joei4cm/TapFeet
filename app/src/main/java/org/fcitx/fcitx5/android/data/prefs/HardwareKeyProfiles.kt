@@ -25,13 +25,19 @@ import org.fcitx.fcitx5.android.input.shortcut.ShortcutChord
  */
 object HardwareKeyProfiles {
 
+    /** 普通全触摸手机：无物理选字键，走屏幕 QWERTY / 九键。 */
+    const val TOUCH = "touch"
     const val BLACKBERRY = "blackberry"
     const val TT2 = "tt2"
     const val TITAN2_ELITE = "titan2_elite"
     const val TITAN2_ELITE_MOD = "titan2_elite_mod"
 
     /** All available profile ids, in display order. */
-    fun ids(): List<String> = listOf(BLACKBERRY, TT2, TITAN2_ELITE, TITAN2_ELITE_MOD)
+    fun ids(): List<String> = listOf(TOUCH, BLACKBERRY, TT2, TITAN2_ELITE, TITAN2_ELITE_MOD)
+
+    fun isFullKeyboardProfile(profileId: String): Boolean =
+        profileId == BLACKBERRY || profileId == TT2 ||
+            profileId == TITAN2_ELITE || profileId == TITAN2_ELITE_MOD
 
     /** First-run Select page appends the 巨硬 candidate-key hint on Elite (and Elite 改键). */
     fun showsEliteCandidateHint(profileId: String): Boolean =
@@ -43,6 +49,7 @@ object HardwareKeyProfiles {
      */
     @StringRes
     fun labelResFor(name: String): Int = when (name) {
+        TOUCH -> R.string.hw_profile_touch
         TT2 -> R.string.hw_profile_tt2
         TITAN2_ELITE -> R.string.hw_profile_titan2_elite
         TITAN2_ELITE_MOD -> R.string.hw_profile_titan2_elite_mod
@@ -79,6 +86,12 @@ object HardwareKeyProfiles {
      * 伪键（只匹配 `KEYCODE_SYM` / `KEYCODE_PICTSYMBOLS`）互不干扰。若想在真机用独立的 SYM 按钮
      * 开符号窗口，把该值改成 `"Sym"` 即可。
      */
+    /** 触屏机：物理键位全空，避免误绑黑莓快捷键。 */
+    private val touchValues = listOf(
+        "", "", "", "", "",
+        "", "", "", "", "", "",
+    )
+
     private val blackberryValues = listOf(
         "space", "0", "Alt_R", "Shift_L", "Shift_R",
         "grave", "Alt+grave", "Alt_R", "Alt+space", "Shift+space", "Alt_L",
@@ -147,6 +160,7 @@ object HardwareKeyProfiles {
     )
 
     private fun valuesFor(name: String): List<String> = when (name) {
+        TOUCH -> touchValues
         TT2 -> tt2Values
         TITAN2_ELITE -> titan2EliteValues
         TITAN2_ELITE_MOD -> titan2EliteModValues
@@ -179,8 +193,7 @@ object HardwareKeyProfiles {
      * Pick a hardware-keyboard preset from device identity. Used only on first run
      * ([AppPrefs.HardwareKeyboard.ensureInitialized]); afterwards the stored `keyProfile` wins.
      *
-     * Touch-only / unknown phones still get [BLACKBERRY] as a harmless key-binding seed (those
-     * keys are unused); [looksLikeFullKeyboardDevice] is what drives on-screen vs physical defaults.
+     * Unknown / plain touch phones get [TOUCH] (on-screen keyboard), not BlackBerry.
      */
     fun detectSuggestedId(
         manufacturer: String,
@@ -193,7 +206,7 @@ object HardwareKeyProfiles {
         val id = HardwareKeyProfileDetect.suggestedId(
             manufacturer, brand, model, device, product, hasKeyboardTouchSurface
         )
-        return if (id != null && id in ids()) id else BLACKBERRY
+        return if (id != null && id in ids()) id else TOUCH
     }
 
     /** Known physical full-keyboard device (Q25 / Titan / Elite / …), not a plain touch phone. */
@@ -267,6 +280,10 @@ object HardwareKeyProfiles {
      * 默认值全是「按住修饰键 + 字母」这种组合，避开所有裸键：裸键（字母）本来就要打字。
      */
     fun shortcutValuesFor(name: String): Map<ShortcutAction, String> {
+        if (name == TOUCH) {
+            // 触屏机没有物理修饰键族，动作快捷键留空（可用屏幕按钮 / 工具栏）。
+            return ShortcutAction.entries.associateWith { "" }
+        }
         if (name == BLACKBERRY) {
             return ShortcutAction.entries.associateWith {
                 HardwareChord.compose(HardwareChord.SHIFT_R, leaderFor(it))

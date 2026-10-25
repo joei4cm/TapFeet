@@ -115,6 +115,7 @@
     <string name="hw_toggle_ime">切换输入法</string>
     <string name="hw_show_picker">显示输入法选择器</string>
     <string name="hw_key_profile">键盘布局预设</string>
+    <string name="hw_profile_touch">触屏键盘</string>
     <string name="hw_profile_blackberry">BlackBerry</string>
     <string name="hw_profile_tt2">Titan2</string>
     <string name="hw_profile_titan2_elite">Titan2 Elite</string>

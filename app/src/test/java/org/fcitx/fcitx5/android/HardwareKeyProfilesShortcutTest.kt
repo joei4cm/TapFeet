@@ -106,6 +106,16 @@ class HardwareKeyProfilesShortcutTest {
         assertTrue(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TITAN2_ELITE_MOD))
         assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.BLACKBERRY))
         assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TT2))
+        assertFalse(HardwareKeyProfiles.showsEliteCandidateHint(HardwareKeyProfiles.TOUCH))
+    }
+
+    @Test
+    fun touchProfileHasNoPhysicalBindings() {
+        val keys = HardwareKeyProfiles.factoryValues(HardwareKeyProfiles.TOUCH)
+        assertTrue(keys.all { it.isEmpty() })
+        val shortcuts = HardwareKeyProfiles.shortcutValuesFor(HardwareKeyProfiles.TOUCH).values
+        assertTrue(shortcuts.all { it.isEmpty() })
+        assertTrue(HardwareKeyProfiles.ids().first() == HardwareKeyProfiles.TOUCH)
     }
 
     @Test
