@@ -95,6 +95,11 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.InputMethodList
                 )
                 addDestinationPreference(
+                    R.string.pinyin_engine,
+                    R.drawable.ic_baseline_language_24,
+                    SettingsRoute.PinyinEngine
+                )
+                addDestinationPreference(
                     R.string.addons,
                     R.drawable.ic_baseline_extension_24,
                     SettingsRoute.AddonList
@@ -154,6 +159,11 @@ class MainFragment : PaddingPreferenceFragment() {
                 addDestinationPreference(
                     R.string.candidate_bar_options,
                     R.drawable.ic_baseline_list_alt_24,
+                    SettingsRoute.CandidateBar
+                )
+                addDestinationPreference(
+                    R.string.translation_settings,
+                    R.drawable.ic_baseline_language_24,
                     SettingsRoute.CandidateBar
                 )
                 addDestinationPreference(

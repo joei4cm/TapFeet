@@ -4,6 +4,8 @@
  */
 package org.fcitx.fcitx5.android.core
 
+import org.fcitx.fcitx5.android.data.rime.RimeApplyState
+import org.fcitx.fcitx5.android.data.rime.RimeDeployState
 import org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack
 import org.fcitx.fcitx5.android.data.rime.RimeSchemaSwitcher
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
@@ -37,9 +39,14 @@ object ChinesePinyinEngine {
     }
 }
 
+/**
+ * @param forceActivate 用户点选时强制切到该引擎；启动恢复时勿抢当前 IM
+ * @param forceDeploy 用户重试时强制 Deploy；否则仅在 schema/pack 指纹变化时 Deploy
+ */
 suspend fun FcitxAPI.syncChinesePinyinEngine(
     kind: PinyinEngineKind,
     forceActivate: Boolean = false,
+    forceDeploy: Boolean = false,
 ) {
     val uniqueName = kind.uniqueName
     if (availableIme().none { it.uniqueName == uniqueName }) {
@@ -53,29 +60,43 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
             Timber.i("rime pack not ready yet kind=%s; skip schema switch", kind)
             return
         }
-        RimeSchemaSwitcher.apply(schemaId)
+        RimeApplyState.begin(kind)
+        try {
+            RimeSchemaSwitcher.apply(schemaId)
+        } catch (e: Exception) {
+            RimeApplyState.end(kind)
+            throw e
+        }
     }
 
-    val enabled = enabledIme().map { it.uniqueName }
-    val next = ChinesePinyinEngine.applyEnabled(enabled, uniqueName)
-    if (next != enabled) {
-        setEnabledIme(next.toTypedArray())
-    }
-    // 同一 uniqueName（rime）在朙月↔雾凇之间切换时也要 force 再激活一次，让引擎重读 schema
-    val activate = ChinesePinyinEngine.shouldActivate(
-        currentIme().uniqueName,
-        uniqueName,
-        forceActivate || schemaId != null,
-    )
-    if (activate != null) {
-        activateIme(activate)
-    } else if (forceActivate && schemaId != null && currentIme().uniqueName == uniqueName) {
-        // 已在 rime 上：再 activate 一次触发重载
-        activateIme(uniqueName)
-    }
+    try {
+        val enabled = enabledIme().map { it.uniqueName }
+        val next = ChinesePinyinEngine.applyEnabled(enabled, uniqueName)
+        if (next != enabled) {
+            setEnabledIme(next.toTypedArray())
+        }
+        val activate = ChinesePinyinEngine.shouldActivate(
+            currentIme().uniqueName,
+            uniqueName,
+            forceActivate,
+        )
+        if (activate != null) {
+            activateIme(activate)
+        } else if (forceActivate && schemaId != null && currentIme().uniqueName == uniqueName) {
+            activateIme(uniqueName)
+        }
 
-    // Deploy 必须在 activate 之后：依赖 rime addon 已挂载；旧实现查 statusArea 会在非 rime IM 上找不到 Deploy。
-    if (schemaId != null) {
-        RimeSchemaSwitcher.deploy(this)
+        if (schemaId != null) {
+            val needDeploy = forceDeploy || !RimeDeployState.isCurrent(schemaId)
+            if (needDeploy) {
+                // Quiet：避免每次切引擎都弹 “Rime has encountered an error”
+                RimeSchemaSwitcher.deployQuiet(this)
+                RimeDeployState.mark(schemaId)
+            } else {
+                Timber.i("rime deploy skipped; fingerprint current for %s", schemaId)
+            }
+        }
+    } finally {
+        if (schemaId != null) RimeApplyState.end(kind)
     }
 }

@@ -492,6 +492,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
          * 同时在候选栏上方给出「英 …」「日 …」芯片，点一下即可上屏。
          * 词表内置精简版，不联网。不开时只显示拼音/编码。
          */
+        init { category(R.string.cat_candidate_bar_translation) }
         val showTranslationComment = switch(
             R.string.show_translation_comment,
             "show_translation_comment",

@@ -45,13 +45,19 @@ object RimeSchemaSwitcher {
     """.trimIndent() + "\n"
 
     /**
-     * 触发 fcitx5-rime Deploy。
-     *
-     * 必须在 `rime` 已启用/激活之后调用；走 addon `setSubConfig("deploy")`，
-     * 不依赖状态区动作（状态区在非 rime IM 时根本没有 Deploy 项）。
+     * 用户主动 Deploy（可弹维护提示）。
+     * 必须在 `rime` 已启用/激活之后调用。
      */
     suspend fun deploy(api: FcitxAPI) {
         api.setAddonSubConfig("rime", "deploy")
-        Timber.i("rime deploy requested via setAddonSubConfig")
+        Timber.i("rime deploy requested")
+    }
+
+    /**
+     * 程序化 Deploy：不弹 Rime 维护/失败 Toast，避免切引擎时误报错。
+     */
+    suspend fun deployQuiet(api: FcitxAPI) {
+        api.setAddonSubConfig("rime", "deploy_quiet")
+        Timber.i("rime deploy_quiet requested")
     }
 }
