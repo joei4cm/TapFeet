@@ -243,3 +243,9 @@ https://github.com/izilooong/TapFeet
 
 # v1.0.38
 - 检查更新改为直接查询 GitHub Releases（joei4cm/TapFeet），不再依赖 Gitee / update.json
+
+# v1.0.39
+- 虚拟键盘空闲顶栏改为 Gboard 风格图标条：状态区 / 表情 / 剪贴板 / 设置 / 主题 / 语音
+- 打字出候选时仍切换为候选行；设置菜单可调高度提示、键盘设置、展开编辑工具栏
+- 支持拖动手柄调整键盘高度；回退时候选栏不再闪一下空条
+- 高度变化后 26 键 / 九键行高保持对齐
