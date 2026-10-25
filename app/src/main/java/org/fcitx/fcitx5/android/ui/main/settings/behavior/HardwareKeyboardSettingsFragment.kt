@@ -9,25 +9,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import com.google.android.material.tabs.TabLayout
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.InputFeedbacks.SoundScheme
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
-import org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack
-import org.fcitx.fcitx5.android.data.rime.RimeFrostManager
-import org.fcitx.fcitx5.android.data.rime.RimeIceManager
-import org.fcitx.fcitx5.android.data.rime.RimeMintManager
-import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
 import org.fcitx.fcitx5.android.ui.main.settings.DialogSeekBarPreference
@@ -41,7 +31,6 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     private lateinit var hw: AppPrefs.HardwareKeyboard
     private lateinit var profileList: ListPreference
     private val keyPrefs = mutableListOf<KeyCapturePreference>()
-    private val enginePrefs = mutableListOf<Preference>()
 
     /** The 巨硬 quick-pick master switch; its summary shows the LIVE key bindings (task: 键位描述). */
     private lateinit var quickPickSwitch: SwitchPreference
@@ -117,75 +106,15 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(applyEliteMod)
 
-        // Chinese IMs: bundled four + optional 雾凇 / 白霜 / 薄荷（按需下载）。点选即启用并切换。
-        enginePrefs.clear()
+        // 中文拼音引擎已挪到设置首页「中文拼音引擎」（与物理键盘无关）
         profileScreen.addPreference(Preference(context).apply {
-            key = "pinyin_engine_help"
+            key = "pinyin_engine_link"
             title = getString(R.string.pinyin_engine)
-            summary = getString(R.string.pinyin_engine_summary)
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            isSelectable = false
-        })
-        PinyinEngineKind.entries.forEach { kind ->
-            val row = Preference(context).apply {
-                key = "pinyin_engine_pick_${kind.name}"
-                title = getString(kind.stringRes)
-                isIconSpaceReserved = false
-                isSingleLineTitle = false
-                setOnPreferenceClickListener {
-                    if (kind.needsDownload && !RimeDownloadablePack.isReady(kind)) {
-                        val startRes = when (kind) {
-                            PinyinEngineKind.RimeFrost ->
-                                R.string.pinyin_engine_rime_frost_download_start
-                            PinyinEngineKind.RimeMint ->
-                                R.string.pinyin_engine_rime_mint_download_start
-                            else -> R.string.pinyin_engine_rime_ice_download_start
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            getString(startRes, RimeDownloadablePack.approxSizeMb(kind)),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                    // 相同引擎再点：SharedPreferences 不会回调，需手动 fireChange 才能重试下载/部署
-                    val same = hw.pinyinEngine.getValue() == kind
-                    hw.pinyinEngine.setValue(kind)
-                    if (same) hw.pinyinEngine.fireChange()
-                    refreshEngineSummaries()
-                    if (!kind.needsDownload || RimeDownloadablePack.isReady(kind)) {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.pinyin_engine_loaded, getString(kind.stringRes)),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                    true
-                }
-            }
-            enginePrefs += row
-            profileScreen.addPreference(row)
-        }
-        refreshEngineSummaries()
-        profileScreen.addPreference(Preference(context).apply {
-            key = "pinyin_engine_im_list"
-            title = getString(R.string.pinyin_engine_more_im)
-            summary = getString(R.string.pinyin_engine_more_im_summary)
+            summary = getString(R.string.pinyin_engine_link_summary)
             isIconSpaceReserved = false
             isSingleLineTitle = false
             setOnPreferenceClickListener {
-                navigateWithAnim(SettingsRoute.InputMethodList)
-                true
-            }
-        })
-        profileScreen.addPreference(Preference(context).apply {
-            key = "pinyin_engine_plugins"
-            title = getString(R.string.pinyin_engine_plugins)
-            summary = getString(R.string.pinyin_engine_plugins_summary)
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            setOnPreferenceClickListener {
-                navigateWithAnim(SettingsRoute.Plugin)
+                navigateWithAnim(SettingsRoute.PinyinEngine)
                 true
             }
         })
@@ -696,94 +625,6 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupTabLayout()
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(
-                    RimeIceManager.state,
-                    RimeFrostManager.state,
-                    RimeMintManager.state,
-                ) { _, _, _ -> }
-                    .collect { refreshEngineSummaries() }
-            }
-        }
-    }
-
-    private fun refreshEngineSummaries() {
-        if (enginePrefs.isEmpty()) return
-        val current = hw.pinyinEngine.getValue()
-        val iceState = RimeIceManager.state.value
-        val frostState = RimeFrostManager.state.value
-        val mintState = RimeMintManager.state.value
-        enginePrefs.forEach { pref ->
-            val kind = PinyinEngineKind.entries.first { "pinyin_engine_pick_${it.name}" == pref.key }
-            val currentError = when {
-                kind != current -> null
-                kind == PinyinEngineKind.RimeIce -> (iceState as? RimeIceManager.State.Error)?.message
-                kind == PinyinEngineKind.RimeFrost -> (frostState as? RimeFrostManager.State.Error)?.message
-                kind == PinyinEngineKind.RimeMint -> (mintState as? RimeMintManager.State.Error)?.message
-                else -> null
-            }
-            pref.summary = when {
-                currentError != null -> getString(R.string.pinyin_engine_rime_retry_hint, currentError)
-                kind == current -> getString(R.string.pinyin_engine_in_use)
-                kind == PinyinEngineKind.RimeIce -> downloadableSummary(
-                    iceState,
-                    tapRes = R.string.pinyin_engine_rime_ice_tap,
-                    readyRes = R.string.pinyin_engine_rime_ice_ready,
-                    downloadingRes = R.string.pinyin_engine_rime_ice_downloading,
-                    errorRes = R.string.pinyin_engine_rime_ice_error,
-                    sizeMb = RimeIceManager.approxSizeMb(),
-                )
-                kind == PinyinEngineKind.RimeFrost -> downloadableSummary(
-                    frostState,
-                    tapRes = R.string.pinyin_engine_rime_frost_tap,
-                    readyRes = R.string.pinyin_engine_rime_frost_ready,
-                    downloadingRes = R.string.pinyin_engine_rime_frost_downloading,
-                    errorRes = R.string.pinyin_engine_rime_frost_error,
-                    sizeMb = RimeFrostManager.approxSizeMb(),
-                )
-                kind == PinyinEngineKind.RimeMint -> downloadableSummary(
-                    mintState,
-                    tapRes = R.string.pinyin_engine_rime_mint_tap,
-                    readyRes = R.string.pinyin_engine_rime_mint_ready,
-                    downloadingRes = R.string.pinyin_engine_rime_mint_downloading,
-                    errorRes = R.string.pinyin_engine_rime_mint_error,
-                    sizeMb = RimeMintManager.approxSizeMb(),
-                )
-                else -> getString(R.string.pinyin_engine_tap_to_load)
-            }
-        }
-    }
-
-    private fun downloadableSummary(
-        state: Any,
-        tapRes: Int,
-        readyRes: Int,
-        downloadingRes: Int,
-        errorRes: Int,
-        sizeMb: Int,
-    ): String {
-        val downloading = when (state) {
-            is RimeIceManager.State.Downloading -> state.downloadedBytes to state.totalBytes
-            is RimeFrostManager.State.Downloading -> state.downloadedBytes to state.totalBytes
-            is RimeMintManager.State.Downloading -> state.downloadedBytes to state.totalBytes
-            else -> null
-        }
-        if (downloading != null) {
-            val (done, total) = downloading
-            val pct = if (total > 0) (done * 100 / total).toInt() else 0
-            return getString(downloadingRes, pct)
-        }
-        return when (state) {
-            RimeIceManager.State.Ready,
-            RimeFrostManager.State.Ready,
-            RimeMintManager.State.Ready,
-            -> getString(readyRes)
-            is RimeIceManager.State.Error -> getString(errorRes, state.message)
-            is RimeFrostManager.State.Error -> getString(errorRes, state.message)
-            is RimeMintManager.State.Error -> getString(errorRes, state.message)
-            else -> getString(tapRes, sizeMb)
-        }
     }
 
     private fun setupTabLayout() {

@@ -544,7 +544,10 @@ class HorizontalCandidateComponent :
                         // Aggregate every laid-out candidate's width once — consumed by both the
                         // 5→3→1 overflow fallback below and the AutoFillWidth fill-on-demand pass.
                         var totalWidth = 0
-                        for (i in 0 until cnt) totalWidth += getChildAt(i)!!.width
+                        for (i in 0 until cnt) {
+                            // Deploy / 候选刷新可能在 layout 中途卸掉 child，勿 !! 崩
+                            totalWidth += getChildAt(i)?.width ?: 0
+                        }
                         // Responsive 5→3→1 fallback: if the laid-out children overflow the
                         // candidate bar's width, the candidate words are too wide to fit at the
                         // current tier — snap down to the next smaller one (5→3 or 3→1) and

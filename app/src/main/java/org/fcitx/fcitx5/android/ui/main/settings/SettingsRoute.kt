@@ -37,6 +37,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.InputMethodTestFragmen
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.CandidatesSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragment
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.PinyinEngineSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.ShortcutKeysSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.VoiceSettingsFragment
@@ -66,6 +67,10 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data class InputMethodConfig(val name: String, val uniqueName: String) : SettingsRoute()
+
+    /** 中文拼音引擎（小企鹅 / 双拼 / 中州韵 / 雾凇等），与物理键盘无关。 */
+    @Serializable
+    data object PinyinEngine : SettingsRoute()
 
     @Serializable
     data object AddonList : SettingsRoute()
@@ -243,6 +248,9 @@ sealed class SettingsRoute : Parcelable {
                 label = ctx.getString(R.string.input_methods)
             }
             fragment<InputMethodConfigFragment, InputMethodConfig>()
+            fragment<PinyinEngineSettingsFragment, PinyinEngine> {
+                label = ctx.getString(R.string.pinyin_engine)
+            }
             fragment<AddonListFragment, AddonList> {
                 label = ctx.getString(R.string.addons)
             }

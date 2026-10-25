@@ -56,23 +56,25 @@ object RimePackStore {
 
     /**
      * 把 [packId] 缓存目录整包替换进 `data/rime/`。
-     * 保留用户可能自建的 `default.custom.yaml` 之外的策略：由 [RimeSchemaSwitcher] 随后重写。
+     * @return true 若实际拷贝了文件；false 若已是当前 active（跳过）。
      */
     @Synchronized
-    fun activate(packId: String, version: String) {
+    fun activate(packId: String, version: String): Boolean {
         val src = packDir(packId)
         if (!isPackCached(packId, version)) {
             throw IOException("pack not cached: $packId@$version")
         }
         if (isActive(packId, version) && RimePaths.userDir().resolvePresence()) {
             Timber.i("rime pack already active: %s@%s", packId, version)
-            return
+            return false
         }
         val dest = RimePaths.userDir()
         clearActiveDir(dest)
         copyTree(src, dest)
         activeMarkerFile().writeText("$packId\n$version\n")
+        RimeDeployState.invalidate()
         Timber.i("rime pack activated: %s@%s -> %s", packId, version, dest.absolutePath)
+        return true
     }
 
     /** 删除某套缓存（不影响当前 active，除非调方随后处理）。 */

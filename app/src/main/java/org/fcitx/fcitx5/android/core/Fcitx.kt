@@ -49,24 +49,32 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
     @Keep
     private val onPinyinEngineChange = ManagedPreference.OnChangeListener<PinyinEngineKind> { _, value ->
-        lifecycle.launchWhenReady { applyPinyinEngine(value) }
+        // SharedPreferences 变化 = 用户点选（含同项 fireChange 重试）
+        lifecycle.launchWhenReady { applyPinyinEngine(value, userInitiated = true) }
     }
 
     /**
-     * 应用中文拼音引擎。雾凇/白霜/薄荷会先确保包已下载；失败可再点同一项重试
-     *（调用方对相同 pref 值需 [ManagedPreference.fireChange]）。
+     * 应用中文拼音引擎。
+     * @param userInitiated 用户点选：强制激活并允许重试 Deploy / 失败 Toast；
+     *   启动恢复：只确保启用与指纹 Deploy，不抢当前 IM、不弹失败 Toast。
      */
-    private suspend fun applyPinyinEngine(value: PinyinEngineKind) {
+    private suspend fun applyPinyinEngine(value: PinyinEngineKind, userInitiated: Boolean) {
         if (value.needsDownload) {
             org.fcitx.fcitx5.android.data.rime.RimeDownloadablePack.ensureDownloaded(
                 value,
                 onSuccess = {
                     lifecycle.launchWhenReady {
-                        syncChinesePinyinEngine(value, forceActivate = true)
+                        // 用户点选：允许重新 Deploy（修复失败后的重试）；启动恢复走指纹门闩
+                        syncChinesePinyinEngine(
+                            value,
+                            forceActivate = userInitiated,
+                            forceDeploy = userInitiated,
+                        )
                     }
                 },
                 onFailure = { msg ->
                     Timber.w("rime pack load failed kind=%s: %s", value, msg)
+                    if (!userInitiated) return@ensureDownloaded
                     ContextCompat.getMainExecutor(context).execute {
                         context.toast(
                             context.getString(R.string.pinyin_engine_rime_load_failed, msg)
@@ -76,7 +84,11 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             )
             return
         }
-        syncChinesePinyinEngine(value, forceActivate = true)
+        syncChinesePinyinEngine(
+            value,
+            forceActivate = userInitiated,
+            forceDeploy = userInitiated,
+        )
     }
 
     override val eventFlow = eventFlow_.asSharedFlow()
@@ -518,9 +530,10 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             lifecycle.launchWhenReady {
                 this@Fcitx.syncAndroidKeyboardPrefs()
                 this@Fcitx.syncPinyinSpellPrefs()
-                // 启动时也走完整 apply：上次下载失败的雾凇等会自动重试，不再只 sync 后静默跳过
+                // 启动恢复：下载失败会静默重试；已就绪则按指纹决定是否 Deploy，不抢当前 IM
                 this@Fcitx.applyPinyinEngine(
-                    AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue()
+                    AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue(),
+                    userInitiated = false,
                 )
             }
         }

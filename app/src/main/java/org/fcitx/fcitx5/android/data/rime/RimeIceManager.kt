@@ -122,6 +122,7 @@ object RimeIceManager {
                 if (!isActive) return@launch
                 Timber.e(e, "rime-ice download/activate failed")
                 val message = e.message ?: "download failed"
+                RimeDeployState.invalidate()
                 mutableState.value = State.Error(message)
                 onFailure?.let { cb -> mainHandler.post { cb(message) } }
             }

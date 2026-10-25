@@ -45,10 +45,8 @@ object RimeSchemaSwitcher {
     """.trimIndent() + "\n"
 
     /**
-     * 触发 fcitx5-rime Deploy。
-     *
-     * 必须在 `rime` 已启用/激活之后调用；走 addon `setSubConfig("deploy")`，
-     * 不依赖状态区动作（状态区在非 rime IM 时根本没有 Deploy 项）。
+     * 触发 fcitx5-rime Deploy（addon setSubConfig）。
+     * 必须在 `rime` 已启用之后调用。调用方应通过 [RimeDeployState] 避免启动时无谓全量维护。
      */
     suspend fun deploy(api: FcitxAPI) {
         api.setAddonSubConfig("rime", "deploy")
