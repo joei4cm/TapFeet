@@ -65,10 +65,6 @@ gradlePlugin {
             id = "org.fcitx.fcitx5.android.native-lib-convention"
             implementationClass = "NativeLibConventionPlugin"
         }
-        register("updateJson") {
-            id = "org.fcitx.fcitx5.android.update-json"
-            implementationClass = "UpdateJsonPlugin"
-        }
     }
 }
 
