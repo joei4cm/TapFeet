@@ -18,11 +18,10 @@ import org.fcitx.fcitx5.android.data.translation.TranslationGloss
 fun CandidateWord.displayComment(): String {
     if (comment.isNotBlank()) return comment
 
-    val prefs = AppPrefs.getInstance().candidateBar
     val latin = text.isNotEmpty() && text.all { it.isLetter() && it.code < 128 }
     val pinyin = if (!latin) PinyinLookup.pinyinOf(text).orEmpty() else ""
 
-    if (!prefs.showTranslationComment.getValue()) {
+    if (!AppPrefs.getInstance().translation.showTranslationComment.getValue()) {
         return pinyin
     }
 

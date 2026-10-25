@@ -163,6 +163,7 @@
     <string name="pinyin_engine_status_download_failed">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_status_load_failed">Load failed: %1$s · tap to retry</string>
     <string name="translation_settings">Translation</string>
+    <string name="translation_settings_link_summary">Gloss chips and online sentence translate</string>
     <string name="cat_candidate_bar_translation">Translation</string>
     <string name="pinyin_engine_rime_ice_tap">Download ~%1$d MB · tap to install</string>
     <string name="pinyin_engine_rime_ice_ready">Cached · tap to make active</string>

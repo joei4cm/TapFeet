@@ -159,6 +159,7 @@
     <string name="pinyin_engine_status_download_failed">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_status_load_failed">加载失败：%1$s · 点按重试</string>
     <string name="translation_settings">翻译</string>
+    <string name="translation_settings_link_summary">翻译释义芯片与联网整句翻译</string>
     <string name="cat_candidate_bar_translation">翻译</string>
     <string name="pinyin_engine_rime_ice_tap">需下载约 %1$d MB · 点按安装</string>
     <string name="pinyin_engine_rime_ice_ready">已缓存 · 点按切换为当前方案</string>
