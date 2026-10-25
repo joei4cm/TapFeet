@@ -30,6 +30,7 @@ import org.fcitx.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.EmojiModifier
 import org.fcitx.fcitx5.android.input.shortcut.ShortcutAction
+import org.fcitx.fcitx5.android.data.translation.OnlineTranslateTargets
 import org.fcitx.fcitx5.android.utils.DeviceInfo
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.appContext
@@ -499,7 +500,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) { showCandidateComment.getValue() }
 
         /**
-         * 联网整句翻译：按当前首选候选（或源文）请求英/日（或中）译文，
+         * 联网整句翻译：按当前首选候选（或源文）请求所选目标语种译文，
          * 结果同样以可点芯片上屏。需网络；默认关。
          */
         val onlineSentenceTranslate = switch(
@@ -507,6 +508,16 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "online_sentence_translate",
             false,
             R.string.online_sentence_translate_summary
+        )
+
+        /**
+         * 联网翻译目标语种（逗号分隔 code，如 `en,ja,ko`）。无自动 UI，
+         * 由 [org.fcitx.fcitx5.android.ui.main.settings.behavior.CandidateBarSettingsFragment]
+         * 挂 MultiSelectListPreference。
+         */
+        val onlineTranslateTargets = string(
+            OnlineTranslateTargets.PREF_KEY,
+            OnlineTranslateTargets.DEFAULT_RAW,
         )
 
         val vMode = switch(
