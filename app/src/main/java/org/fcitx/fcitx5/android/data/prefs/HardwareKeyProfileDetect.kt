@@ -9,9 +9,10 @@ package org.fcitx.fcitx5.android.data.prefs
  * Pure matching for [HardwareKeyProfiles.detectSuggestedId]. Kept free of Android types so JVM
  * unit tests can cover the fingerprint rules without `R` / `InputDevice`.
  *
- * Matching is conservative: only known full-keyboard fingerprints (and keyboard+touchpad surface)
- * return a profile id. Ordinary touch phones return `null` so first-run can default to the
- * on-screen keyboard instead of seeding BlackBerry hardware bindings as if they were Q25.
+ * Matching is conservative: only known full-keyboard fingerprints return a profile id.
+ * Keyboard+touchpad surface is an Elite hint **only** together with Titan / Unihertz identity —
+ * bare `SOURCE_KEYBOARD|TOUCHPAD` appears on many plain phones (incl. Xiaomi) and must not
+ * promote them to a hardware-keyboard preset (that hid the soft keyboard).
  */
 internal object HardwareKeyProfileDetect {
 
@@ -29,6 +30,8 @@ internal object HardwareKeyProfileDetect {
             blob.contains("titan2e") ||
             blob.contains("titan 2e")
         if (isElite) return "titan2_elite"
+        // Elite capacitive face enumerates KEYBOARD|TOUCHPAD — only trust that with a Titan name.
+        // Bare touch-surface on Xiaomi / Jelly / etc. must NOT become Elite (hides soft keyboard).
         if (hasKeyboardTouchSurface && isTitan) return "titan2_elite"
         // Titan Slim / Pocket / original Titan share the Titan 2 row (Fn / Sym), not Elite's
         // capacitive face or BlackBerry's 0/Alt_R.
@@ -47,7 +50,6 @@ internal object HardwareKeyProfileDetect {
         ) {
             return "blackberry"
         }
-        if (hasKeyboardTouchSurface) return "titan2_elite"
         return null
     }
 

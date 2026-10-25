@@ -77,6 +77,7 @@ import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 import org.fcitx.fcitx5.android.data.prefs.HardwareChord
 import org.fcitx.fcitx5.android.data.prefs.HardwareSpecialKeys
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
@@ -2598,6 +2599,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // because onStartInputView will always be called after onStartInput,
             // editorInfo and capFlags should be up-to-date
             inputView?.startInput(info, capabilityFlags, restarting)
+            // 触摸机：确保键盘窗体可见，并强制系统拉起 IME（MIUI 等偶发不弹）。
+            if (!DeviceInfo.looksLikeFullKeyboardDevice() ||
+                AppPrefs.getInstance().hardwareKeyboard.keyProfile.getValue() ==
+                HardwareKeyProfiles.TOUCH
+            ) {
+                inputView?.ensureSoftKeyboardShown()
+                if (!restarting) {
+                    forceShowSelf()
+                }
+            }
             if (!restarting) {
                 updateInputViewShown()
             }
