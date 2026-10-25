@@ -273,6 +273,8 @@
     <string name="clipboard">剪贴板</string>
     <string name="keyboard_height">键盘高度</string>
     <string name="virtual_keyboard">虚拟键盘</string>
+    <string name="virtual_keyboard_settings">键盘设置</string>
+    <string name="virtual_keyboard_theme_summary">配色、按键描边与键面样式</string>
     <string name="input_effects">输入特效</string>
     <string name="effects_enabled">启用输入特效</string>
     <string name="effects_mode">特效样式</string>

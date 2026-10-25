@@ -277,6 +277,8 @@
     <string name="clipboard">Clipboard</string>
     <string name="keyboard_height">Keyboard height</string>
     <string name="virtual_keyboard">Virtual Keyboard</string>
+    <string name="virtual_keyboard_settings">Keyboard settings</string>
+    <string name="virtual_keyboard_theme_summary">Colors, key borders, and key style</string>
     <string name="input_effects">Input Effects</string>
     <string name="effects_enabled">Enable input effects</string>
     <string name="effects_mode">Effect style</string>

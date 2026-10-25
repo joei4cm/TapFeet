@@ -87,6 +87,11 @@ class IdleUi(
         rotation = menuButtonRotation
     }
 
+    /** 虚拟键盘设置入口：高度 / 主题等。 */
+    val settingsButton = ToolButton(ctx, R.drawable.ic_baseline_settings_24, theme).apply {
+        contentDescription = ctx.getString(R.string.virtual_keyboard_settings)
+    }
+
     val keyboardToggleButton = ToolButton(ctx, R.drawable.ic_baseline_keyboard_24, theme)
 
     /** 本地语音输入（SenseVoice）触发按钮，仅在设置开启且非密码框时显示。 */
@@ -166,6 +171,10 @@ class IdleUi(
             startOfParent()
             centerVertically()
         })
+        add(settingsButton, lParams(size, size) {
+            after(menuButton)
+            centerVertically()
+        })
         add(hideKeyboardButton, lParams(size, size) {
             endOfParent()
             centerVertically()
@@ -195,7 +204,7 @@ class IdleUi(
             centerVertically()
         })
         add(animator, lParams(matchConstraints, matchParent) {
-            after(menuButton)
+            after(settingsButton)
             before(capsLockButton)
             centerVertically()
         })
