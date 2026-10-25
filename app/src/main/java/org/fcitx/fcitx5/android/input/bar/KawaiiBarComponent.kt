@@ -538,12 +538,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
             settingsButton.setOnClickListener { anchor ->
                 PopupMenu(context, anchor).apply {
-                    menu.add(0, 1, 0, R.string.keyboard_height)
-                    menu.add(0, 2, 0, R.string.theme)
+                    menu.add(0, 1, 0, R.string.keyboard_height_drag_hint)
+                    menu.add(0, 2, 0, R.string.virtual_keyboard)
+                    menu.add(0, 3, 0, R.string.theme)
                     setOnMenuItemClickListener { item ->
                         when (item.itemId) {
-                            1 -> AppUtil.launchMainToKeyboard(context)
-                            2 -> AppUtil.launchMainToThemeList(context)
+                            1 -> context.toast(R.string.keyboard_height_drag_toast)
+                            2 -> AppUtil.launchMainToKeyboard(context)
+                            3 -> AppUtil.launchMainToThemeList(context)
                         }
                         true
                     }
@@ -835,7 +837,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
         prefs.candidateBar.hideStatusBar.registerOnChangeListener(onHideStatusBarChangeListener)
-        windowManager.setKeyboardVisibilityListener {
+        windowManager.addKeyboardVisibilityListener {
             updateKeyboardToggleButton()
             refreshBarVisibility()
         }

@@ -37,7 +37,7 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
     private var keyboardWindowKey: EssentialWindow.Key? = null
     private var hiddenKeyboardWindowKey: EssentialWindow.Key? = null
     private var keyboardWindowVisible = true
-    private var keyboardVisibilityListener: ((Boolean) -> Unit)? = null
+    private val keyboardVisibilityListeners = mutableListOf<(Boolean) -> Unit>()
 
     private var currentWindow: InputWindow? = null
 
@@ -106,14 +106,14 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
 
     fun isKeyboardWindowVisible() = keyboardWindowVisible
 
-    fun setKeyboardVisibilityListener(listener: (Boolean) -> Unit) {
-        keyboardVisibilityListener = listener
+    fun addKeyboardVisibilityListener(listener: (Boolean) -> Unit) {
+        keyboardVisibilityListeners += listener
     }
 
     fun setKeyboardWindowVisible(visible: Boolean) {
         if (keyboardWindowVisible == visible) return
         keyboardWindowVisible = visible
-        keyboardVisibilityListener?.invoke(visible)
+        keyboardVisibilityListeners.forEach { it.invoke(visible) }
         val current = currentWindow
         val keyboard = keyboardWindowKey?.let { essentialWindows[it]?.first }
         val hidden = hiddenKeyboardWindowKey?.let { essentialWindows[it]?.first }

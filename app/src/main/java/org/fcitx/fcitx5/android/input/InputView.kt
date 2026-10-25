@@ -48,6 +48,7 @@ import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateC
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
+import org.fcitx.fcitx5.android.input.keyboard.KeyboardHeightHandle
 import org.fcitx.fcitx5.android.input.keyboard.HiddenKeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.KeyAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyActionListener
@@ -252,7 +253,7 @@ class InputView(
             HiddenKeyboardWindow,
             visible = false
         )
-        windowManager.setKeyboardVisibilityListener {
+        windowManager.addKeyboardVisibilityListener {
             if (windowManager.view.layoutParams != null) {
                 windowManager.view.updateLayoutParams {
                     height = keyboardWindowHeightPx()
@@ -280,6 +281,18 @@ class InputView(
 
         customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
 
+        val heightHandle = KeyboardHeightHandle(context, theme) {
+            updateKeyboardSize()
+            service.requestInsetsUpdate()
+        }.apply {
+            contentDescription = context.getString(R.string.keyboard_height_drag_handle)
+            // Only show when the soft keyboard surface is up (not HiddenKeyboard).
+            visibility = if (windowManager.isKeyboardWindowVisible()) VISIBLE else GONE
+        }
+        windowManager.addKeyboardVisibilityListener { visible ->
+            heightHandle.visibility = if (visible) VISIBLE else GONE
+        }
+
         keyboardView = constraintLayout {
             // allow MotionEvent to be delivered to keyboard while pressing on padding views.
             // although it should be default for apps targeting Honeycomb (3.0, API 11) and higher,
@@ -293,18 +306,22 @@ class InputView(
                 topOfParent()
                 centerHorizontally()
             })
-            add(leftPaddingSpace, lParams {
+            add(heightHandle, lParams(matchParent, wrapContent) {
                 below(kawaiiBar.view)
+                centerHorizontally()
+            })
+            add(leftPaddingSpace, lParams {
+                below(heightHandle)
                 startOfParent()
                 bottomOfParent()
             })
             add(rightPaddingSpace, lParams {
-                below(kawaiiBar.view)
+                below(heightHandle)
                 endOfParent()
                 bottomOfParent()
             })
             add(windowManager.view, lParams {
-                below(kawaiiBar.view)
+                below(heightHandle)
                 above(bottomPaddingSpace)
                 /**
                  * set start and end constrain in [updateKeyboardSize]

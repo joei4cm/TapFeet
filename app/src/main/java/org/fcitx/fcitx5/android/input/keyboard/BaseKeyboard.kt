@@ -132,8 +132,13 @@ abstract class BaseKeyboard(
                 }
             }
         }
+        // Equal row bands for every keyboardHeightPercent — avoids QWERTY/T9 row skew when
+        // taller T9 key chrome would otherwise steal height from unconstrained wrap rows.
+        val rowPercent = 1f / keyRows.size
         keyRows.forEachIndexed { index, row ->
             add(row, lParams {
+                height = 0 // MATCH_CONSTRAINT
+                matchConstraintPercentHeight = rowPercent
                 if (index == 0) topOfParent()
                 else below(keyRows[index - 1])
                 if (index == keyRows.size - 1) bottomOfParent()

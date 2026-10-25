@@ -272,6 +272,9 @@
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
     <string name="keyboard_height">键盘高度</string>
+    <string name="keyboard_height_drag_handle">拖动调整键盘高度</string>
+    <string name="keyboard_height_drag_hint">拖动手柄调高度</string>
+    <string name="keyboard_height_drag_toast">在按键上方的细条上下拖动即可调整高度</string>
     <string name="virtual_keyboard">虚拟键盘</string>
     <string name="virtual_keyboard_settings">键盘设置</string>
     <string name="virtual_keyboard_theme_summary">配色、按键描边与键面样式</string>

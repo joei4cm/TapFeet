@@ -276,6 +276,9 @@
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
     <string name="keyboard_height">Keyboard height</string>
+    <string name="keyboard_height_drag_handle">Drag to resize keyboard</string>
+    <string name="keyboard_height_drag_hint">Drag handle to resize</string>
+    <string name="keyboard_height_drag_toast">Drag the bar above the keys up or down to resize</string>
     <string name="virtual_keyboard">Virtual Keyboard</string>
     <string name="virtual_keyboard_settings">Keyboard settings</string>
     <string name="virtual_keyboard_theme_summary">Colors, key borders, and key style</string>
