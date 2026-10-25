@@ -240,3 +240,6 @@ https://github.com/izilooong/TapFeet
 - 修复小米等触摸机选大脚拼音后输入框不弹虚拟键盘：不再把 KEYBOARD|TOUCHPAD 误判成 Elite；非全键盘机强制屏幕键盘并在聚焦时拉起 IME
 - 候选窗口「禁用」文案改为「始终用屏幕键盘」
 - 修复「检查更新」看不到新版本：更新元数据改为跟 GitHub production 发布；多源取最高版本号，不再被过期的 Gitee 镜像挡住
+
+# v1.0.38
+- 检查更新改为直接查询 GitHub Releases（joei4cm/TapFeet），不再依赖 Gitee / update.json

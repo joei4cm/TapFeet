@@ -7,14 +7,14 @@ package org.fcitx.fcitx5.android.update
 import kotlinx.serialization.Serializable
 
 /**
- * Metadata describing the latest published version. Fetched as a static JSON file
- * (see [org.fcitx.fcitx5.android.utils.Const.updateInfoUrlGithub] and related mirrors).
+ * Metadata describing the latest published version.
+ * Built from the GitHub Releases API (see [UpdateChecker]).
  */
 @Serializable
 data class UpdateInfo(
-    /** Monotonic version code; compared against [android.os.Build.VERSION_CODES] via BuildConfig. */
+    /** Monotonic version code; compared against the installed PackageManager versionCode. */
     val versionCode: Int,
-    /** Human-readable version, e.g. "V1.0.3". */
+    /** Human-readable version, e.g. "v1.0.37". */
     val versionName: String,
     /** Direct, HTTPS-accessible APK download URL. */
     val downloadUrl: String,

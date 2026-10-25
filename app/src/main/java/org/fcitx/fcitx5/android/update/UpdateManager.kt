@@ -29,11 +29,9 @@ import java.util.concurrent.TimeUnit
  * Designed to work on the Q25's Android version (API 23+), including the
  * "install unknown apps" gate introduced in API 26.
  *
- * Downloads go through OkHttp (not the system [android.app.DownloadManager]):
- * Gitee release attachments are served via a 302 redirect to a
- * `foruda.gitee.com` URL carrying a time-limited token, and the DownloadManager
- * frequently fails that redirect (token/Referer checks). OkHttp follows the
- * redirect and writes the bytes straight to the app-private dir.
+ * Downloads go through OkHttp (not the system [android.app.DownloadManager]) so
+ * redirects from GitHub (and any CDN mirrors) are followed reliably into the
+ * app-private external files dir.
  */
 object UpdateManager {
 
