@@ -6,8 +6,11 @@
 package org.fcitx.fcitx5.android
 
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfileDetect
+import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HardwareKeyProfilesDetectTest {
@@ -20,6 +23,17 @@ class HardwareKeyProfilesDetectTest {
         product: String = "",
         hasKeyboardTouchSurface: Boolean = false,
     ): String? = HardwareKeyProfileDetect.suggestedId(
+        manufacturer, brand, model, device, product, hasKeyboardTouchSurface
+    )
+
+    private fun suggested(
+        manufacturer: String = "",
+        brand: String = "",
+        model: String = "",
+        device: String = "",
+        product: String = "",
+        hasKeyboardTouchSurface: Boolean = false,
+    ) = HardwareKeyProfiles.detectSuggestedId(
         manufacturer, brand, model, device, product, hasKeyboardTouchSurface
     )
 
@@ -70,6 +84,15 @@ class HardwareKeyProfilesDetectTest {
         // Touch / unknown phones must not pretend to be Q25; profile seeding falls back elsewhere.
         assertNull(detect(manufacturer = "Unihertz", model = "Jelly Max"))
         assertNull(detect())
+    }
+
+    @Test
+    fun unknownPhoneSeedsTouchProfileNotBlackberry() {
+        assertEquals("touch", suggested(manufacturer = "Unihertz", model = "Jelly Max"))
+        assertEquals("touch", suggested(manufacturer = "Xiaomi", model = "23013RK75C"))
+        assertEquals("touch", suggested())
+        assertFalse(HardwareKeyProfiles.isFullKeyboardProfile(HardwareKeyProfiles.TOUCH))
+        assertTrue(HardwareKeyProfiles.isFullKeyboardProfile(HardwareKeyProfiles.BLACKBERRY))
     }
 
     @Test

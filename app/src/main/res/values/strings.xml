@@ -115,6 +115,7 @@
     <string name="hw_toggle_ime">Toggle IME</string>
     <string name="hw_show_picker">Show input method picker</string>
     <string name="hw_key_profile">Key layout preset</string>
+    <string name="hw_profile_touch">Touchscreen</string>
     <string name="hw_profile_blackberry">BlackBerry</string>
     <string name="hw_profile_tt2">Titan2</string>
     <string name="hw_profile_titan2_elite">Titan2 Elite</string>

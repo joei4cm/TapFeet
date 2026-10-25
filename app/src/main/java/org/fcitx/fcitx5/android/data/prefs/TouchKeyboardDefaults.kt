@@ -11,6 +11,14 @@ package org.fcitx.fcitx5.android.data.prefs
  */
 object TouchKeyboardDefaults {
 
+    /** Profile id for plain touch phones ([HardwareKeyProfiles.TOUCH]). */
+    fun profileId(knownFullKeyboard: Boolean, detectedFullKeyboardProfile: String?): String =
+        if (knownFullKeyboard) {
+            detectedFullKeyboardProfile ?: HardwareKeyProfiles.BLACKBERRY
+        } else {
+            HardwareKeyProfiles.TOUCH
+        }
+
     /**
      * @param knownFullKeyboard true for Q25 / Titan / Elite fingerprints (and keyboard touch surface).
      * @return preference name for [org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode]:

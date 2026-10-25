@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android
 
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfileDetect
+import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 import org.fcitx.fcitx5.android.data.prefs.TouchKeyboardDefaults
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -18,11 +19,22 @@ class TouchKeyboardDefaultsTest {
     fun touchPhoneUsesDisabledCandidatesAndQwerty() {
         assertEquals("Disabled", TouchKeyboardDefaults.floatingCandidatesModeName(false))
         assertEquals("Qwerty", TouchKeyboardDefaults.virtualLayoutName())
+        assertEquals(
+            HardwareKeyProfiles.TOUCH,
+            TouchKeyboardDefaults.profileId(knownFullKeyboard = false, detectedFullKeyboardProfile = null),
+        )
     }
 
     @Test
     fun fullKeyboardUsesFollowInputDevice() {
         assertEquals("InputDevice", TouchKeyboardDefaults.floatingCandidatesModeName(true))
+        assertEquals(
+            HardwareKeyProfiles.TITAN2_ELITE,
+            TouchKeyboardDefaults.profileId(
+                knownFullKeyboard = true,
+                detectedFullKeyboardProfile = HardwareKeyProfiles.TITAN2_ELITE,
+            ),
+        )
     }
 
     @Test
