@@ -89,8 +89,7 @@ suspend fun FcitxAPI.syncChinesePinyinEngine(
         if (schemaId != null) {
             val needDeploy = forceDeploy || !RimeDeployState.isCurrent(schemaId)
             if (needDeploy) {
-                // Quiet：避免每次切引擎都弹 “Rime has encountered an error”
-                RimeSchemaSwitcher.deployQuiet(this)
+                RimeSchemaSwitcher.deploy(this)
                 RimeDeployState.mark(schemaId)
             } else {
                 Timber.i("rime deploy skipped; fingerprint current for %s", schemaId)
