@@ -9,8 +9,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
 import org.fcitx.fcitx5.android.utils.Const
+import timber.log.Timber
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -27,7 +27,7 @@ object UpdateChecker {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     // Plain direct connection (no system proxy). The app targets a mainland-China audience
-    // and reaches Gitee directly, so we don't honor the Wi-Fi/manual proxy.
+    // and reaches Gitee / jsDelivr directly, so we don't honor the Wi-Fi/manual proxy.
     private val client by lazy {
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -37,44 +37,53 @@ object UpdateChecker {
     }
 
     /**
-     * Candidate URLs, all on Gitee (the mainland-China-friendly primary source).
-     * Gitee's default branch can be "master" or "main"; try both so a wrong guess doesn't 404.
-     * The first URL that returns a successful response wins.
+     * Candidate metadata URLs. Stale mirrors (e.g. Gitee stuck on an old release) must not win
+     * just because they answer first — [fetchUpdateInfo] keeps the highest [UpdateInfo.versionCode].
      */
-    private fun candidateUrls(): List<String> {
+    private fun candidateUrls(): List<String> = buildList {
+        add(Const.updateInfoUrlGithub)
+        add(Const.updateInfoUrlJsDelivr)
+        add(Const.updateInfoUrlGitee)
+        // Gitee default branch may be main or master.
         val gitee = Const.updateInfoUrlGitee
-        val candidates = mutableListOf<String>()
-        candidates += gitee
         if (gitee.contains("/raw/main/")) {
-            candidates += gitee.replace("/raw/main/", "/raw/master/")
+            add(gitee.replace("/raw/main/", "/raw/master/"))
         } else if (gitee.contains("/raw/master/")) {
-            candidates += gitee.replace("/raw/master/", "/raw/main/")
+            add(gitee.replace("/raw/master/", "/raw/main/"))
         }
-        return candidates
-    }
+    }.distinct()
 
     /**
      * Fetch update metadata on an IO dispatcher.
-     * When [overrideUrl] is provided (advanced setting), only that URL is tried; otherwise the
-     * ordered [candidateUrls] are tried in turn. Returns a [Result] so callers can branch on
-     * success/failure without try/catch boilerplate.
+     * When [overrideUrl] is provided (advanced setting), only that URL is tried; otherwise every
+     * [candidateUrls] entry is tried and the payload with the highest [UpdateInfo.versionCode] wins.
      */
     suspend fun fetchUpdateInfo(overrideUrl: String? = null): Result<UpdateInfo> = withContext(Dispatchers.IO) {
         val urls = if (!overrideUrl.isNullOrBlank()) listOf(overrideUrl.trim()) else candidateUrls()
+        var best: UpdateInfo? = null
         var lastError: Throwable? = null
         for (url in urls) {
             runCatching {
                 client.newCall(Request.Builder().url(url).build()).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IOException("HTTP ${response.code}")
+                        throw IOException("HTTP ${response.code} from $url")
                     }
                     val body = response.body?.string().orEmpty()
                     json.decodeFromString<UpdateInfo>(body)
                 }
-            }.onSuccess { return@withContext Result.success(it) }
-                .onFailure { lastError = it }
+            }.onSuccess { info ->
+                val prev = best
+                if (prev == null || info.versionCode > prev.versionCode) {
+                    best = info
+                    Timber.d("Update metadata from %s → %s (%d)", url, info.versionName, info.versionCode)
+                }
+            }.onFailure {
+                lastError = it
+                Timber.w(it, "Update metadata fetch failed: %s", url)
+            }
         }
-        Result.failure(lastError ?: IOException("All update sources failed"))
+        best?.let { Result.success(it) }
+            ?: Result.failure(lastError ?: IOException("All update sources failed"))
     }
 
     fun isUpdateAvailable(info: UpdateInfo, currentVersionCode: Long): Boolean =

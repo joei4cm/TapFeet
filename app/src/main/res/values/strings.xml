@@ -702,7 +702,7 @@
     <string name="about_app">About TapFeet</string>
     <string name="changelog">Changelog</string>
     <string name="update_source_url">Update source URL (advanced)</string>
-    <string name="update_source_url_default">Default (Gitee mirror)</string>
+    <string name="update_source_url_default">Default (GitHub + Gitee)</string>
     <string name="update_source_url_saved">Update source saved</string>
     <string name="update_source_url_placeholder">Leave empty for the built-in default</string>
     <string name="added_n_items">Added %1$d item(s)</string>

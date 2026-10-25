@@ -17,6 +17,9 @@ name: Production APK
 on:
   push:
     branches: [production]
+    # Committing refreshed update.json after a release must not re-trigger assemble.
+    paths-ignore:
+      - "update.json"
   workflow_dispatch:
 
 concurrency:
@@ -173,3 +176,76 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release delete ci-production --yes --cleanup-tag || true
+
+      - name: Refresh update.json for in-app updater
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/${{ github.repository }}/releases/download/${VERSION}/tapfeet.ime-${VERSION}.apk"
+          ./gradlew generateUpdateJson --no-daemon \
+            -PupdateDownloadUrl="$url"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          if git diff --cached --quiet; then
+            echo "update.json unchanged"
+          else
+            git commit -m "Refresh update.json for ${VERSION}."
+            git push origin HEAD:production
+          fi
+
+      - name: Mirror update.json to Gitee (optional)
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_OWNER: ${{ secrets.GITEE_OWNER }}
+          GITEE_REPO: ${{ secrets.GITEE_REPO }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GITEE_TOKEN:-}" ]; then
+            echo "GITEE_TOKEN not set — skip Gitee mirror (in-app clients still prefer GitHub/jsDelivr)."
+            exit 0
+          fi
+          python3 <<'PY'
+          import base64, json, os, urllib.error, urllib.request
+
+          owner = os.environ.get("GITEE_OWNER") or "zziloong"
+          repo = os.environ.get("GITEE_REPO") or "TapFeet"
+          token = os.environ["GITEE_TOKEN"]
+          path = "update.json"
+          content = open(path, "rb").read()
+          b64 = base64.b64encode(content).decode("ascii")
+
+          def api(method, url, payload=None):
+              data = None if payload is None else json.dumps(payload).encode()
+              req = urllib.request.Request(
+                  url,
+                  data=data,
+                  method=method,
+                  headers={
+                      "Content-Type": "application/json;charset=UTF-8",
+                      "User-Agent": "TapFeet-production-apk",
+                  },
+              )
+              with urllib.request.urlopen(req) as resp:
+                  return json.load(resp)
+
+          base = f"https://gitee.com/api/v5/repos/{owner}/{repo}/contents/{path}"
+          sha = None
+          try:
+              meta = api("GET", f"{base}?access_token={token}&ref=main")
+              sha = meta.get("sha")
+          except urllib.error.HTTPError as e:
+              if e.code != 404:
+                  raise
+          payload = {
+              "access_token": token,
+              "content": b64,
+              "message": "Refresh update.json for in-app updater",
+              "branch": "main",
+          }
+          if sha:
+              payload["sha"] = sha
+          api("PUT", base, payload)
+          print(f"Gitee {owner}/{repo}:{path} updated")
+          PY
