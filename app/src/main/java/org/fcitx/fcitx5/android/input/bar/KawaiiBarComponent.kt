@@ -76,9 +76,9 @@ import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
-import org.fcitx.fcitx5.android.input.keyboard.CustomKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.keyboard.VirtualLayout
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.quickphrase.QuickPhraseWindow
 import org.fcitx.fcitx5.android.input.PanelModule
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
@@ -514,6 +514,26 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
     }
 
+    private val softToolbarSettingsClick = View.OnClickListener { anchor ->
+        PopupMenu(context, anchor).apply {
+            menu.add(0, 1, 0, R.string.keyboard_height_drag_hint)
+            menu.add(0, 2, 0, R.string.virtual_keyboard)
+            menu.add(0, 3, 0, R.string.expand_toolbar)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> context.toast(R.string.keyboard_height_drag_toast)
+                    2 -> AppUtil.launchMainToKeyboard(context)
+                    3 -> {
+                        isToolbarManuallyToggled = !expandToolbarByDefault
+                        evalIdleUiState(fromUser = true)
+                    }
+                }
+                true
+            }
+            show()
+        }
+    }
+
     private val idleUi: IdleUi by lazy {
         IdleUi(context, theme, popup, commonKeyActionListener).apply {
             menuButton.setOnClickListener {
@@ -536,21 +556,29 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     launchClipboardTimeoutJob()
                 }
             }
-            settingsButton.setOnClickListener { anchor ->
-                PopupMenu(context, anchor).apply {
-                    menu.add(0, 1, 0, R.string.keyboard_height_drag_hint)
-                    menu.add(0, 2, 0, R.string.virtual_keyboard)
-                    menu.add(0, 3, 0, R.string.theme)
-                    setOnMenuItemClickListener { item ->
-                        when (item.itemId) {
-                            1 -> context.toast(R.string.keyboard_height_drag_toast)
-                            2 -> AppUtil.launchMainToKeyboard(context)
-                            3 -> AppUtil.launchMainToThemeList(context)
-                        }
-                        true
-                    }
-                    show()
+            softToolbar.apply {
+                statusButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(StatusAreaWindow())
                 }
+                emojiButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(PickerWindow.Key.Emoji)
+                }
+                clipboardButton.setOnClickListener {
+                    windowManager.setKeyboardWindowVisible(true)
+                    windowManager.attachWindow(ClipboardWindow())
+                }
+                settingsButton.setOnClickListener(softToolbarSettingsClick)
+                themeButton.setOnClickListener {
+                    AppUtil.launchMainToThemeList(context)
+                }
+                // 「开始」与「结束」必须挂在**两个**宿主上，因为录音时可见的子 View 会换人：
+                //  - voiceInputButton 是 ToolButton(CustomGestureView)，其 onTouchEvent 无条件
+                //    return true —— 监听只挂在 slot 上时点击永远到不了父容器；
+                //  - 录音中按钮 GONE、VoiceWaveView 显示，事件才穿透到 slot。
+                voiceInputButton.setOnClickListener { toggleVoiceInput() }
+                voiceInputSlot.setOnClickListener { toggleVoiceInput() }
             }
             hideKeyboardButton.apply {
                 setOnClickListener(hideKeyboardCallback)
@@ -558,19 +586,6 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 swipeThresholdY = dp(HEIGHT.toFloat())
                 swipeThresholdX = swipeThresholdY
                 onGestureListener = swipeHideKeyboardCallback
-            }
-            // 「开始」与「结束」必须挂在**两个**宿主上，因为录音时可见的子 View 会换人：
-            //  - voiceInputButton 是 ToolButton(CustomGestureView)，其 onTouchEvent 无条件
-            //    return true —— 它会把落在自己身上的一切触摸吃掉，监听只挂在 slot 上时点击
-            //    永远到不了父容器，表现就是「麦克风按钮看得见、点了没反应」（进不去录音态，
-            //    于是音浪动画与流式上屏也都无从发生）；
-            //  - 录音中按钮 GONE、VoiceWaveView(普通 View，不可点) 显示，事件才穿透到 slot。
-            // 两者按可见性天然互斥，不会双触发。
-            voiceInputButton.setOnClickListener {
-                toggleVoiceInput()
-            }
-            voiceInputSlot.setOnClickListener {
-                toggleVoiceInput()
             }
             keyboardToggleButton.setOnClickListener {
                 // 主键盘开关：显示中且是主键盘 → 关闭；否则 → 打开主键盘
@@ -607,15 +622,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true, shift = true)
                 }
                 cursorMoveButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true)                
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(TextEditingWindow())
                 }
                 clipboardButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true) 
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(ClipboardWindow())
                 }
                 moreButton.setOnClickListener {
-                    windowManager.setKeyboardWindowVisible(true) 
+                    windowManager.setKeyboardWindowVisible(true)
                     windowManager.attachWindow(StatusAreaWindow())
                 }
             }

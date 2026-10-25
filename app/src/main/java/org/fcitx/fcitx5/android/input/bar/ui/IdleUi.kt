@@ -13,7 +13,6 @@ import android.view.Gravity
 import android.view.animation.AlphaAnimation
 import android.view.animation.AnimationSet
 import android.view.animation.TranslateAnimation
-import android.widget.Space
 import android.widget.ViewAnimator
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -23,7 +22,7 @@ import org.fcitx.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.ClipboardSuggestionUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.InlineSuggestionsUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.NumberRow
-import org.fcitx.fcitx5.android.input.voice.VoiceWaveView
+import org.fcitx.fcitx5.android.input.bar.ui.idle.SoftToolbarUi
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import splitties.dimensions.dp
@@ -40,7 +39,6 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
-import splitties.views.dsl.core.textView
 import splitties.views.imageResource
 import timber.log.Timber
 
@@ -59,8 +57,9 @@ class IdleUi(
         private set
 
     /**
-     * 纯装饰态（空行 / 工具栏按钮排）——不含任何实质内容，可被「隐藏状态栏」整行收起。
-     * 剪贴板建议、密码数字行、内联建议都是真的内容，必须照常显示，否则对应功能会静默失效。
+     * 可被「隐藏状态栏」整行收起的子态。
+     * SoftToolbar / ButtonsBar 在软键盘展开时仍会由 KawaiiBar 强制保留；
+     * 剪贴板建议、密码数字行、内联建议是实质内容，不可收起。
      */
     val isDecorativeState: Boolean
         get() = currentState == State.Empty || currentState == State.Toolbar
@@ -87,27 +86,18 @@ class IdleUi(
         rotation = menuButtonRotation
     }
 
-    /** 虚拟键盘设置入口：高度 / 主题等。 */
-    val settingsButton = ToolButton(ctx, R.drawable.ic_baseline_settings_24, theme).apply {
-        contentDescription = ctx.getString(R.string.virtual_keyboard_settings)
-    }
+    /** Gboard 风格空闲条：设置 / 主题 / 语音等入口。 */
+    val softToolbar = SoftToolbarUi(ctx, theme)
+
+    /** 兼容旧引用：设置齿轮挂在 SoftToolbar 上。 */
+    val settingsButton get() = softToolbar.settingsButton
 
     val keyboardToggleButton = ToolButton(ctx, R.drawable.ic_baseline_keyboard_24, theme)
 
-    /** 本地语音输入（SenseVoice）触发按钮，仅在设置开启且非密码框时显示。 */
-    val voiceInputButton = ToolButton(ctx, R.drawable.ic_baseline_mic_24, theme)
-
-    /** 录音音量动画 / 识别中动画，与 [voiceInputButton] 在同一槽位互换显示。 */
-    val voiceWaveView = VoiceWaveView(ctx).apply {
-        visibility = View.GONE
-        setBarColor(theme.altKeyTextColor)
-    }
-
-    /** 语音输入槽位：点按=开始/结束，录音时显示 [voiceWaveView] 动画。 */
-    val voiceInputSlot = frameLayout {
-        add(voiceInputButton, lParams(matchParent, matchParent))
-        add(voiceWaveView, lParams(matchParent, matchParent))
-    }
+    /** 兼容旧引用：语音槽位挂在 SoftToolbar 上。 */
+    val voiceInputButton get() = softToolbar.voiceInputButton
+    val voiceWaveView get() = softToolbar.voiceWaveView
+    val voiceInputSlot get() = softToolbar.voiceInputSlot
 
     val inputMethodButton = ToolButton(ctx, R.drawable.ic_status_pinyin, theme)
 
@@ -129,8 +119,6 @@ class IdleUi(
         visibility = View.VISIBLE
     }
 
-    val emptyBar = Space(ctx)
-
     val buttonsUi = ButtonsBarUi(ctx, theme)
 
     val clipboardUi = ClipboardSuggestionUi(ctx, theme)
@@ -142,7 +130,8 @@ class IdleUi(
     val inlineSuggestionsBar = InlineSuggestionsUi(ctx)
 
     private val animator = ViewAnimator(ctx).apply {
-        add(emptyBar, lParams(matchParent, matchParent))
+        // index 0 占位：Empty 时改走 softToolbar 全宽覆盖，不经过 animator
+        add(View(ctx), lParams(matchParent, matchParent))
         add(buttonsUi.root, lParams(matchParent, matchParent))
         add(clipboardUi.root, lParams(matchParent, matchParent))
         add(inlineSuggestionsBar.root, lParams(matchParent, matchParent))
@@ -171,19 +160,11 @@ class IdleUi(
             startOfParent()
             centerVertically()
         })
-        add(settingsButton, lParams(size, size) {
-            after(menuButton)
-            centerVertically()
-        })
         add(hideKeyboardButton, lParams(size, size) {
             endOfParent()
             centerVertically()
         })
         add(keyboardToggleButton, lParams(size, size) {
-            before(voiceInputSlot)
-            centerVertically()
-        })
-        add(voiceInputSlot, lParams(size, size) {
             before(hideKeyboardButton)
             centerVertically()
         })
@@ -204,7 +185,7 @@ class IdleUi(
             centerVertically()
         })
         add(animator, lParams(matchConstraints, matchParent) {
-            after(settingsButton)
+            after(menuButton)
             before(capsLockButton)
             centerVertically()
         })
@@ -212,7 +193,15 @@ class IdleUi(
 
     override val root = frameLayout {
         add(idleBody, lParams(matchParent, matchParent))
+        add(softToolbar.root, lParams(matchParent, matchParent))
         add(numberRow, lParams(matchParent, matchParent))
+    }
+
+    init {
+        // 默认 Empty：全宽 SoftToolbar
+        idleBody.visibility = View.GONE
+        softToolbar.root.visibility = View.VISIBLE
+        numberRow.visibility = View.GONE
     }
 
     fun privateMode(activate: Boolean = true) {
@@ -311,36 +300,52 @@ class IdleUi(
             !fromUser ||
             disableAnimation ||
             (state == State.InlineSuggestion || currentState == State.InlineSuggestion) ||
-            (state == State.NumberRow || currentState == State.NumberRow)
+            (state == State.NumberRow || currentState == State.NumberRow) ||
+            (state == State.Empty || currentState == State.Empty)
         ) {
             clearAnimation()
         } else {
             setAnimation()
         }
         when (state) {
-            State.Empty -> animator.displayedChild = 0
+            State.Empty -> {}
             State.Toolbar -> animator.displayedChild = 1
             State.Clipboard -> animator.displayedChild = 2
             State.NumberRow -> {}
             State.InlineSuggestion -> animator.displayedChild = 3
         }
-        if (state == State.NumberRow) {
-            numberRow.keyActionListener = commonKeyActionListener.listener
-            numberRow.popupActionListener = popup.listener
-            if (fromUser && !disableAnimation) {
-                enableSlideTransition(numberRow, idleBody, Gravity.END, Gravity.START)
+        when (state) {
+            State.Empty -> {
+                softToolbar.root.visibility = View.VISIBLE
+                idleBody.visibility = View.GONE
+                numberRow.visibility = View.GONE
+                numberRow.keyActionListener = null
+                numberRow.popupActionListener = null
             }
-            numberRow.visibility = View.VISIBLE
-            idleBody.visibility = View.GONE
-        } else if (currentState == State.NumberRow) {
-            if (fromUser && !disableAnimation) {
-                enableSlideTransition(idleBody, numberRow, Gravity.START, Gravity.END)
+            State.NumberRow -> {
+                softToolbar.root.visibility = View.GONE
+                numberRow.keyActionListener = commonKeyActionListener.listener
+                numberRow.popupActionListener = popup.listener
+                if (fromUser && !disableAnimation) {
+                    val out = if (currentState == State.Empty) softToolbar.root else idleBody
+                    enableSlideTransition(numberRow, out, Gravity.END, Gravity.START)
+                }
+                numberRow.visibility = View.VISIBLE
+                idleBody.visibility = View.GONE
             }
-            idleBody.visibility = View.VISIBLE
-            numberRow.visibility = View.GONE
-            numberRow.keyActionListener = null
-            numberRow.popupActionListener = null
-            popup.dismissAll()
+            else -> {
+                softToolbar.root.visibility = View.GONE
+                if (currentState == State.NumberRow) {
+                    if (fromUser && !disableAnimation) {
+                        enableSlideTransition(idleBody, numberRow, Gravity.START, Gravity.END)
+                    }
+                    numberRow.keyActionListener = null
+                    numberRow.popupActionListener = null
+                    popup.dismissAll()
+                }
+                idleBody.visibility = View.VISIBLE
+                numberRow.visibility = View.GONE
+            }
         }
         currentState = state
         updateMenuButtonContentDescription()
