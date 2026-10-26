@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 
 package org.fcitx.fcitx5.android.input.candidates
@@ -19,6 +19,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
+import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -27,11 +28,16 @@ import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
 import splitties.views.gravityCenter
+import splitties.views.gravityCenterHorizontal
+import kotlin.math.max
 
+/**
+ * 候选项：序号在左，右侧竖排「字 / 拼音」，比左右并排更窄，一行能放下更多词。
+ */
 class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
 
     private val index = textView {
-        textSize = 10f // sp, half of candidate text size
+        textSize = 10f // sp
         setTextColor(ColorUtils.blendARGB(theme.candidateLabelColor, theme.candidateCommentColor, 0.5f))
         includeFontPadding = false
         gravity = gravityCenter
@@ -41,6 +47,7 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         scaleMode = AutoScaleTextView.Mode.Proportional
         textSize = 20f // sp
         isSingleLine = true
+        includeFontPadding = false
         gravity = gravityCenter
         setTextColor(theme.candidateTextColor)
     }
@@ -48,18 +55,26 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     private val comment = textView {
         textSize = 10f
         isSingleLine = true
+        includeFontPadding = false
         gravity = gravityCenter
         setTextColor(theme.candidateCommentColor)
         visibility = View.GONE
     }
 
+    private val wordColumn = view(::LinearLayout) {
+        orientation = LinearLayout.VERTICAL
+        gravity = gravityCenterHorizontal
+        add(text, lParams(wrapContent, wrapContent))
+        add(comment, lParams(wrapContent, wrapContent))
+    }
+
     private val content = view(::LinearLayout) {
         orientation = LinearLayout.HORIZONTAL
         gravity = gravityCenter
-
-        add(index, lParams(wrapContent, wrapContent))
-        add(text, lParams(wrapContent, matchParent))
-        add(comment, lParams(wrapContent, wrapContent))
+        add(index, lParams(wrapContent, wrapContent) {
+            marginEnd = dp(2)
+        })
+        add(wordColumn, lParams(wrapContent, wrapContent))
     }
 
     private val pressHighlight = pressHighlightDrawable(theme.keyPressHighlightColor)
@@ -89,10 +104,18 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         })
     }
 
-    fun updateCandidate(candidate: CandidateWord, indexLabel: String = "", isActive: Boolean = false, showIndex: Boolean = true, indexFontSize: Int = 10, textFontSize: Int = 20) {
+    fun updateCandidate(
+        candidate: CandidateWord,
+        indexLabel: String = "",
+        isActive: Boolean = false,
+        showIndex: Boolean = true,
+        indexFontSize: Int = 10,
+        textFontSize: Int = 20,
+    ) {
         val prefs = org.fcitx.fcitx5.android.data.prefs.AppPrefs.getInstance().candidateBar
         val showComment = prefs.showCandidateComment.getValue()
-        index.text = if (showIndex && indexLabel.isNotBlank()) "$indexLabel " else ""
+        index.text = if (showIndex && indexLabel.isNotBlank()) indexLabel else ""
+        index.visibility = if (index.text.isNotEmpty()) View.VISIBLE else View.GONE
         index.setTextSize(TypedValue.COMPLEX_UNIT_SP, indexFontSize.toFloat())
         text.text = candidate.text
         text.setTextSize(TypedValue.COMPLEX_UNIT_SP, textFontSize.toFloat())
@@ -106,7 +129,12 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         val hint = if (showComment) candidate.displayComment() else ""
         if (hint.isNotBlank()) {
             comment.visibility = View.VISIBLE
-            comment.text = if (candidate.spaceBetweenComment) " $hint" else hint
+            comment.text = hint
+            // 拼音略小于汉字；跟序号档位对齐，避免挤爆 40dp 候选栏
+            comment.setTextSize(
+                TypedValue.COMPLEX_UNIT_SP,
+                max(8, textFontSize / 2).toFloat(),
+            )
         } else {
             comment.visibility = View.GONE
             comment.text = ""
