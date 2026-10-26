@@ -79,7 +79,7 @@
     <string name="hw_long_press_symbol_threshold">长按输入符号时长</string>
     <string name="hw_long_press_symbol_threshold_summary">输入符号所需的按住时长。</string>
     <string name="hw_keyboard_flytext">键盘飞字</string>
-    <string name="hw_keyboard_flytext_summary">键盘面上滑选中文，下滑上屏拼音/英文（空闲下滑切拼音/英文），左右滑翻页。按住不放说话。每个方向可改动作。</string>
+    <string name="hw_keyboard_flytext_summary">实体键盘面或虚拟键盘候选栏：上滑选词，左右滑翻页。键盘面上还可下滑上屏拼音/英文（空闲下滑切输入法）。按住不放说话。每个方向可改动作。</string>
     <string name="flytext_up_action">上滑</string>
     <string name="flytext_down_action">下滑</string>
     <string name="flytext_left_action">左滑</string>
