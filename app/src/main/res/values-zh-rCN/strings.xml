@@ -148,7 +148,6 @@
     <string name="pinyin_engine_rime_mint">薄荷拼音</string>
     <string name="pinyin_engine_wubi">五笔</string>
     <string name="pinyin_engine_summary">选择打字用的中文引擎（不是 Sym+N 循环切换输入法）。小企鹅 / 双拼 / 中州韵（朙月）/ 五笔已内置；雾凇 / 白霜 / 薄荷需另下，摘要会区分「下载」与「加载」。粤语等插件到「输入法」启用。</string>
-    <string name="pinyin_engine_link_summary">已从「物理键盘」挪出 · 点按打开</string>
     <string name="pinyin_engine_in_use">使用中 · 已加载</string>
     <string name="pinyin_engine_tap_to_load">已内置 · 点按加载</string>
     <string name="pinyin_engine_loading">正在加载 %1$s…</string>
@@ -159,7 +158,6 @@
     <string name="pinyin_engine_status_download_failed">下载失败：%1$s · 点按重试</string>
     <string name="pinyin_engine_status_load_failed">加载失败：%1$s · 点按重试</string>
     <string name="translation_settings">翻译</string>
-    <string name="translation_settings_link_summary">翻译释义芯片与联网整句翻译</string>
     <string name="cat_candidate_bar_translation">翻译</string>
     <string name="pinyin_engine_rime_ice_tap">需下载约 %1$d MB · 点按安装</string>
     <string name="pinyin_engine_rime_ice_ready">已缓存 · 点按切换为当前方案</string>

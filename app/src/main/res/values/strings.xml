@@ -152,7 +152,6 @@
     <string name="pinyin_engine_rime_mint">Oh-my-rime (薄荷拼音)</string>
     <string name="pinyin_engine_wubi">Wubi</string>
     <string name="pinyin_engine_summary">Choose the Chinese engine used for typing (not the same as Sym+N cycling input methods). Fcitx pinyin, Shuangpin, Rime (Luna), and Wubi are bundled. Optional Rime Ice / Frost / Mint download separately — status shows download vs load. Plugins (Jyutping, etc.) go under Input Methods.</string>
-    <string name="pinyin_engine_link_summary">Moved here from Hardware Keyboard — tap to open</string>
     <string name="pinyin_engine_in_use">In use · loaded</string>
     <string name="pinyin_engine_tap_to_load">Bundled · tap to load</string>
     <string name="pinyin_engine_loading">Loading %1$s…</string>
@@ -163,7 +162,6 @@
     <string name="pinyin_engine_status_download_failed">Download failed: %1$s · tap to retry</string>
     <string name="pinyin_engine_status_load_failed">Load failed: %1$s · tap to retry</string>
     <string name="translation_settings">Translation</string>
-    <string name="translation_settings_link_summary">Gloss chips and online sentence translate</string>
     <string name="cat_candidate_bar_translation">Translation</string>
     <string name="pinyin_engine_rime_ice_tap">Download ~%1$d MB · tap to install</string>
     <string name="pinyin_engine_rime_ice_ready">Cached · tap to make active</string>
