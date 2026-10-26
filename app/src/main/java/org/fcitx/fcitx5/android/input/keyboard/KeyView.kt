@@ -255,6 +255,9 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
 @SuppressLint("ViewConstructor")
 open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) :
     KeyView(ctx, theme, def) {
+    /** Constructor [def] is typed; parent [KeyView.def] is only [KeyDef.Appearance]. */
+    protected val textAppearance: KeyDef.Appearance.Text = def
+
     val mainText = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
@@ -279,6 +282,26 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
                 centerInParent()
             })
         }
+    }
+
+    /** Shrink label DIP size so glyphs stay inside the key when keyboard height is dragged down. */
+    protected fun clampDip(baseDip: Float, availPx: Int): Float {
+        if (availPx <= 0) return baseDip * 0.4f
+        val maxDip = availPx / resources.displayMetrics.density
+        return min(baseDip, maxDip).coerceAtLeast(baseDip * 0.4f)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        applyLabelSizes(h)
+    }
+
+    protected open fun applyLabelSizes(keyHeight: Int) {
+        val avail = keyHeight - 2 * vMargin
+        mainText.setTextSize(
+            TypedValue.COMPLEX_UNIT_DIP,
+            clampDip(textAppearance.textSize, avail),
+        )
     }
 }
 
@@ -378,6 +401,52 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
             return
         }
         applyLayout(newConfig.orientation)
+        applyLabelSizes(height)
+    }
+
+    override fun applyLabelSizes(keyHeight: Int) {
+        val density = resources.displayMetrics.density
+        val mainDip = textAppearance.textSize
+        val altDip = 9.5f
+        when (ThemeManager.prefs.punctuationPosition.getValue()) {
+            PunctuationPosition.Bottom -> {
+                if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    // Main centered; alt is a corner hint.
+                    mainText.setTextSize(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        clampDip(mainDip, keyHeight - 2 * vMargin),
+                    )
+                    altText.setTextSize(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        clampDip(altDip, (keyHeight - 2 * vMargin) / 3),
+                    )
+                } else {
+                    val avail = (keyHeight - 2 * vMargin - dp(2)).toFloat()
+                    val needed = (mainDip + altDip) * density
+                    val scale =
+                        if (avail > 0f && needed > avail) (avail / needed).coerceIn(0.4f, 1f)
+                        else 1f
+                    mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, mainDip * scale)
+                    altText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, altDip * scale)
+                }
+            }
+            PunctuationPosition.TopRight -> {
+                mainText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    clampDip(mainDip, keyHeight - 2 * vMargin),
+                )
+                altText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    clampDip(altDip, (keyHeight - 2 * vMargin) / 3),
+                )
+            }
+            PunctuationPosition.None -> {
+                mainText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    clampDip(mainDip, keyHeight - 2 * vMargin),
+                )
+            }
+        }
     }
 }
 
@@ -455,21 +524,37 @@ class ImageTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.ImageT
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         updateMargins(newConfig.orientation)
+        applyLabelSizes(height)
+    }
+
+    override fun applyLabelSizes(keyHeight: Int) {
+        val imgBudget = dp(13) + when (resources.configuration.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> vMargin + dp(4)
+            else -> vMargin + dp(8)
+        }
+        val textBudget = vMargin + dp(4)
+        val availForText = keyHeight - imgBudget - textBudget
+        mainText.setTextSize(
+            TypedValue.COMPLEX_UNIT_DIP,
+            clampDip(textAppearance.textSize, availForText.coerceAtLeast(0)),
+        )
     }
 }
 
 /**
  * 九键：数字大、字母在下，不跟 QWERTY 标点角标抢位置。
+ * 高度被拖矮时按键高缩放字号，避免数字/字母撑出键框。
  */
 @SuppressLint("ViewConstructor")
 class T9KeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.T9) :
     TextKeyView(ctx, theme, def) {
+    private val lettersDip = 13f
     private val letters = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
         background = null
         text = def.altText
-        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f)
+        setTextSize(TypedValue.COMPLEX_UNIT_DIP, lettersDip)
         setTypeface(CandidateFont.uiTypeface(ctx, Typeface.BOLD))
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         setTextColor(theme.altKeyTextColor)
@@ -497,5 +582,18 @@ class T9KeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.T9) :
             rightToRight = parentId
             bottomMargin = vMargin + dp(6)
         }
+    }
+
+    override fun applyLabelSizes(keyHeight: Int) {
+        val topPad = vMargin + dp(4)
+        val bottomPad = vMargin + dp(6)
+        val avail = (keyHeight - topPad - bottomPad).toFloat()
+        val density = resources.displayMetrics.density
+        val digitDip = textAppearance.textSize
+        val needed = (digitDip + lettersDip) * density
+        val scale =
+            if (avail > 0f && needed > avail) (avail / needed).coerceIn(0.4f, 1f) else 1f
+        mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, digitDip * scale)
+        letters.setTextSize(TypedValue.COMPLEX_UNIT_DIP, lettersDip * scale)
     }
 }

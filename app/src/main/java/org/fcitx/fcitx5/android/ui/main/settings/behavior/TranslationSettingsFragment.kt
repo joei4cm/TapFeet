@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.ui.main.settings.behavior
 import androidx.preference.MultiSelectListPreference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreference
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceFragment
@@ -14,7 +15,8 @@ import org.fcitx.fcitx5.android.data.translation.OnlineTranslateTargets
 import org.fcitx.fcitx5.android.data.translation.OnlineTranslator
 
 /**
- * 翻译设置：偏好挂在同一 PreferenceCategory 内，避免多 Tab 下 dependency 跨屏崩溃。
+ * 翻译设置。目标语种多选不用 Preference.dependency —— 动态建屏时 dependency
+ * 查找会在 preferenceScreen 挂上前跑，直接 IllegalStateException。
  */
 class TranslationSettingsFragment :
     ManagedPreferenceFragment(AppPrefs.getInstance().translation) {
@@ -29,6 +31,8 @@ class TranslationSettingsFragment :
     ) {
         val ctx = preferenceManager.context
         val langs = OnlineTranslateTargets.allSelectable
+        val onlineKey = tr.onlineSentenceTranslate.key
+        val onlineSwitch = findOnlineSwitch(screen, onlineKey)
         val pref = MultiSelectListPreference(ctx).apply {
             key = tr.onlineTranslateTargets.key
             title = getString(R.string.online_translate_targets)
@@ -45,7 +49,7 @@ class TranslationSettingsFragment :
                 R.string.online_translate_targets_summary,
                 OnlineTranslateTargets.summaryCodes(tr.onlineTranslateTargets.getValue()),
             )
-            dependency = tr.onlineSentenceTranslate.key
+            isEnabled = onlineSwitch?.isChecked ?: tr.onlineSentenceTranslate.getValue()
             setOnPreferenceChangeListener { preference, newValue ->
                 @Suppress("UNCHECKED_CAST")
                 val picked = (newValue as? Set<String>).orEmpty()
@@ -66,7 +70,10 @@ class TranslationSettingsFragment :
                 false
             }
         }
-        val onlineKey = tr.onlineSentenceTranslate.key
+        onlineSwitch?.setOnPreferenceChangeListener { _, newValue ->
+            pref.isEnabled = newValue as Boolean
+            true
+        }
         var host: PreferenceCategory? = null
         var afterOrder = 0
         for (i in 0 until screen.preferenceCount) {
@@ -84,5 +91,19 @@ class TranslationSettingsFragment :
         }
         pref.order = afterOrder
         (host ?: screen).addPreference(pref)
+    }
+
+    private fun findOnlineSwitch(screen: PreferenceScreen, onlineKey: String): SwitchPreference? {
+        for (i in 0 until screen.preferenceCount) {
+            val p = screen.getPreference(i)
+            if (p is SwitchPreference && p.key == onlineKey) return p
+            if (p is PreferenceCategory) {
+                for (j in 0 until p.preferenceCount) {
+                    val child = p.getPreference(j)
+                    if (child is SwitchPreference && child.key == onlineKey) return child
+                }
+            }
+        }
+        return null
     }
 }

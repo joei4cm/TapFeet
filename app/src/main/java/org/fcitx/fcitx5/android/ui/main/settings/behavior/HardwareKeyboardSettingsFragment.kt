@@ -23,8 +23,6 @@ import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
 import org.fcitx.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fcitx.fcitx5.android.ui.main.settings.KeyCapturePreference
 import org.fcitx.fcitx5.android.ui.main.settings.KeyCaptureUi
-import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
-import org.fcitx.fcitx5.android.utils.navigateWithAnim
 
 class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
 
@@ -105,19 +103,6 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             }
         }
         profileScreen.addPreference(applyEliteMod)
-
-        // 中文拼音引擎已挪到设置首页「中文拼音引擎」（与物理键盘无关）
-        profileScreen.addPreference(Preference(context).apply {
-            key = "pinyin_engine_link"
-            title = getString(R.string.pinyin_engine)
-            summary = getString(R.string.pinyin_engine_link_summary)
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            setOnPreferenceClickListener {
-                navigateWithAnim(SettingsRoute.PinyinEngine)
-                true
-            }
-        })
 
         // 底排物理键快速选字开关：仅控制"物理键是否选词"，与候选栏排列顺序无关
         // （排列顺序在"候选栏选项 → Candidate arrangement"中设置）。

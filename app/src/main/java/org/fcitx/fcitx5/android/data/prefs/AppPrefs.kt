@@ -515,8 +515,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     }
 
     /**
-     * 翻译（本地释义芯片 + 联网整句）。独立设置页，避免挂在「候选栏」多 Tab 下
-     * 因 Preference dependency 跨屏找不到而崩溃。偏好 key 与原先候选栏内一致。
+     * 翻译（本地释义芯片 + 联网整句）。仅设置首页入口；目标语种多选在
+     * [org.fcitx.fcitx5.android.ui.main.settings.behavior.TranslationSettingsFragment]
+     * 里手动跟「联网整句」开关联动（不用 Preference.dependency）。
      */
     inner class Translation : ManagedPreferenceCategory(R.string.translation_settings, sharedPreferences) {
         init { category(R.string.cat_candidate_bar_translation) }

@@ -18,8 +18,6 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.ui.main.MainViewModel
-import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
-import org.fcitx.fcitx5.android.utils.navigateWithAnim
 
 class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance().candidateBar) {
 
@@ -48,18 +46,6 @@ class CandidateBarSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInsta
     override fun onPreferenceUiCreated(screen: PreferenceScreen) {
         val ctx = preferenceManager.context
         val bar = AppPrefs.getInstance().candidateBar
-        // 翻译已独立成页，避免挂在多 Tab 候选栏下 dependency 跨屏崩溃
-        screen.addPreference(Preference(ctx).apply {
-            key = "candidate_bar_translation_link"
-            title = getString(R.string.translation_settings)
-            summary = getString(R.string.translation_settings_link_summary)
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            setOnPreferenceClickListener {
-                navigateWithAnim(SettingsRoute.Translation)
-                true
-            }
-        })
         val fontStatus = Preference(ctx).apply {
             key = "candidate_font_status"
             title = getString(R.string.candidate_font_status)
