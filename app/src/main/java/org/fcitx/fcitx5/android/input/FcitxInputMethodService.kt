@@ -2583,13 +2583,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         if (restarting && isNullType && currentInputStarted &&
             (now - lastNonNullStartInputViewUptime) < 1500
         ) {
+            // WeChat emoji-search etc.: ignore the TYPE_NULL blip, but do NOT SHOW_FORCED —
+            // that fights outside-tap dismiss and makes the soft keyboard "reload".
             suppressTransientFinishInputView = true
             Timber.d("onStartInputView: suppress transient TYPE_NULL restarting inputView")
-            decorView.post {
-                if (currentInputStarted) {
-                    forceShowSelf()
-                }
-            }
             return
         }
         postFcitxJob {
@@ -2599,15 +2596,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // because onStartInputView will always be called after onStartInput,
             // editorInfo and capFlags should be up-to-date
             inputView?.startInput(info, capabilityFlags, restarting)
-            // 触摸机：确保键盘窗体可见，并强制系统拉起 IME（MIUI 等偶发不弹）。
+            // 触摸机：揭开 HiddenKeyboard 残留即可。勿 SHOW_FORCED，否则点空白处无法收起。
             if (!DeviceInfo.looksLikeFullKeyboardDevice() ||
                 AppPrefs.getInstance().hardwareKeyboard.keyProfile.getValue() ==
                 HardwareKeyProfiles.TOUCH
             ) {
                 inputView?.ensureSoftKeyboardShown()
-                if (!restarting) {
-                    forceShowSelf()
-                }
             }
             if (!restarting) {
                 updateInputViewShown()
@@ -2894,12 +2888,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         )
         if (suppressTransientFinishInputView && !finishingInput && currentInputStarted) {
             suppressTransientFinishInputView = false
+            // Keep session state; system already owns visibility — no SHOW_FORCED reload.
             Timber.d("onFinishInputView: ignored transient finishInputView(false)")
-            decorView.post {
-                if (currentInputStarted) {
-                    forceShowSelf()
-                }
-            }
             return
         }
         decorLocationUpdated = false
