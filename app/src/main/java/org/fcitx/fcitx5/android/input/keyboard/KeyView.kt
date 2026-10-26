@@ -17,6 +17,7 @@ import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.ColorInt
@@ -265,6 +266,9 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
         text = def.displayText
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize)
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        gravity = Gravity.CENTER
+        // Fit key bounds (incl. short keyboard heights) and center by glyph, not CJK em-box.
+        scaleMode = AutoScaleTextView.Mode.Proportional
         // Do not use setTypeface(typeface, style): Typeface.create drops fallbacks.
         setTypeface(CandidateFont.uiTypeface(ctx, def.textStyle))
         setTextColor(
@@ -278,30 +282,18 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
 
     init {
         appearanceView.apply {
-            add(mainText, lParams(wrapContent, wrapContent) {
-                centerInParent()
+            // Fill the key face so Proportional can scale against real bounds.
+            add(mainText, lParams(0, 0) {
+                topToTop = parentId
+                bottomToBottom = parentId
+                leftToLeft = parentId
+                rightToRight = parentId
+                topMargin = vMargin
+                bottomMargin = vMargin
+                leftMargin = hMargin
+                rightMargin = hMargin
             })
         }
-    }
-
-    /** Shrink label DIP size so glyphs stay inside the key when keyboard height is dragged down. */
-    protected fun clampDip(baseDip: Float, availPx: Int): Float {
-        if (availPx <= 0) return baseDip * 0.4f
-        val maxDip = availPx / resources.displayMetrics.density
-        return min(baseDip, maxDip).coerceAtLeast(baseDip * 0.4f)
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        applyLabelSizes(h)
-    }
-
-    protected open fun applyLabelSizes(keyHeight: Int) {
-        val avail = keyHeight - 2 * vMargin
-        mainText.setTextSize(
-            TypedValue.COMPLEX_UNIT_DIP,
-            clampDip(textAppearance.textSize, avail),
-        )
     }
 }
 
@@ -311,12 +303,13 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
     val altText = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
-        // TODO hardcoded alt text size
         // Quieter than letter size — closer to Gboard's secondary symbols.
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9.5f)
         setTypeface(CandidateFont.uiTypeface(ctx, Typeface.NORMAL))
         text = def.altText
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        gravity = Gravity.CENTER
+        scaleMode = AutoScaleTextView.Mode.Proportional
         setTextColor(
             when (def.variant) {
                 Variant.Normal, Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
@@ -328,59 +321,93 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
 
     init {
         appearanceView.apply {
-            add(altText, lParams(wrapContent, wrapContent))
+            add(altText, lParams(0, 0))
         }
         applyLayout(resources.configuration.orientation)
     }
 
     private fun applyTopRightAltTextPosition() {
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            topMargin = 0
-            bottomToTop = unset
-            // set
+            width = 0
+            height = 0
             topToTop = parentId
             bottomToBottom = parentId
+            leftToLeft = parentId
+            rightToRight = parentId
+            bottomToTop = unset
+            verticalWeight = 0f
+            topMargin = vMargin
+            bottomMargin = vMargin
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
         altText.visibility = View.VISIBLE
+        altText.gravity = Gravity.TOP or Gravity.END
         altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            bottomToBottom = unset; bottomMargin = 0
-            // set
-            topToTop = parentId; topMargin = vMargin
+            width = wrapContent
+            height = wrapContent
+            topToTop = parentId
+            bottomToBottom = unset
+            topToBottom = unset
             leftToLeft = unset
-            rightToRight = parentId; rightMargin = hMargin + dp(4)
+            rightToRight = parentId
+            verticalWeight = 0f
+            topMargin = vMargin
+            bottomMargin = 0
+            rightMargin = hMargin + dp(4)
+            leftMargin = 0
         }
     }
 
     private fun applyBottomAltTextPosition() {
+        // Vertical chain: letter band heavier than hint band; both Proportional-fit.
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            bottomToBottom = unset
-            // set
-            topToTop = parentId; topMargin = vMargin
+            width = 0
+            height = 0
+            topToTop = parentId
             bottomToTop = altText.existingOrNewId
-        }
-        altText.visibility = View.VISIBLE
-        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            topToTop = unset; topMargin = 0
-            rightMargin = 0
-            // set
             leftToLeft = parentId
             rightToRight = parentId
-            bottomToBottom = parentId; bottomMargin = vMargin + dp(2)
+            bottomToBottom = unset
+            verticalChainStyle = ConstraintLayout.LayoutParams.CHAIN_SPREAD
+            verticalWeight = 1.7f
+            topMargin = vMargin
+            bottomMargin = 0
+            leftMargin = hMargin
+            rightMargin = hMargin
+        }
+        altText.visibility = View.VISIBLE
+        altText.gravity = Gravity.CENTER
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            height = 0
+            topToTop = unset
+            topToBottom = mainText.existingOrNewId
+            bottomToBottom = parentId
+            leftToLeft = parentId
+            rightToRight = parentId
+            verticalWeight = 1f
+            topMargin = 0
+            bottomMargin = vMargin + dp(2)
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
     }
 
     private fun applyNoAltTextPosition() {
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            topMargin = 0
-            bottomToTop = unset
-            // set
+            width = 0
+            height = 0
             topToTop = parentId
             bottomToBottom = parentId
+            leftToLeft = parentId
+            rightToRight = parentId
+            bottomToTop = unset
+            verticalWeight = 0f
+            topMargin = vMargin
+            bottomMargin = vMargin
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
         altText.visibility = View.GONE
     }
@@ -401,52 +428,6 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
             return
         }
         applyLayout(newConfig.orientation)
-        applyLabelSizes(height)
-    }
-
-    override fun applyLabelSizes(keyHeight: Int) {
-        val density = resources.displayMetrics.density
-        val mainDip = textAppearance.textSize
-        val altDip = 9.5f
-        when (ThemeManager.prefs.punctuationPosition.getValue()) {
-            PunctuationPosition.Bottom -> {
-                if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    // Main centered; alt is a corner hint.
-                    mainText.setTextSize(
-                        TypedValue.COMPLEX_UNIT_DIP,
-                        clampDip(mainDip, keyHeight - 2 * vMargin),
-                    )
-                    altText.setTextSize(
-                        TypedValue.COMPLEX_UNIT_DIP,
-                        clampDip(altDip, (keyHeight - 2 * vMargin) / 3),
-                    )
-                } else {
-                    val avail = (keyHeight - 2 * vMargin - dp(2)).toFloat()
-                    val needed = (mainDip + altDip) * density
-                    val scale =
-                        if (avail > 0f && needed > avail) (avail / needed).coerceIn(0.4f, 1f)
-                        else 1f
-                    mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, mainDip * scale)
-                    altText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, altDip * scale)
-                }
-            }
-            PunctuationPosition.TopRight -> {
-                mainText.setTextSize(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    clampDip(mainDip, keyHeight - 2 * vMargin),
-                )
-                altText.setTextSize(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    clampDip(altDip, (keyHeight - 2 * vMargin) / 3),
-                )
-            }
-            PunctuationPosition.None -> {
-                mainText.setTextSize(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    clampDip(mainDip, keyHeight - 2 * vMargin),
-                )
-            }
-        }
     }
 }
 
@@ -489,14 +470,23 @@ class ImageTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.ImageT
             add(img, lParams(dp(13), dp(13)))
         }
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            centerHorizontally()
+            width = 0
+            height = 0
+            topToBottom = img.existingOrNewId
             bottomToBottom = parentId
-            bottomMargin = vMargin + dp(4)
+            leftToLeft = parentId
+            rightToRight = parentId
             topToTop = unset
+            bottomMargin = vMargin + dp(4)
+            topMargin = 0
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
         img.updateLayoutParams<ConstraintLayout.LayoutParams> {
             centerHorizontally()
             topToTop = parentId
+            bottomToBottom = unset
+            bottomToTop = mainText.existingOrNewId
         }
         updateMargins(resources.configuration.orientation)
     }
@@ -524,39 +514,26 @@ class ImageTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.ImageT
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         updateMargins(newConfig.orientation)
-        applyLabelSizes(height)
-    }
-
-    override fun applyLabelSizes(keyHeight: Int) {
-        val imgBudget = dp(13) + when (resources.configuration.orientation) {
-            Configuration.ORIENTATION_LANDSCAPE -> vMargin + dp(4)
-            else -> vMargin + dp(8)
-        }
-        val textBudget = vMargin + dp(4)
-        val availForText = keyHeight - imgBudget - textBudget
-        mainText.setTextSize(
-            TypedValue.COMPLEX_UNIT_DIP,
-            clampDip(textAppearance.textSize, availForText.coerceAtLeast(0)),
-        )
     }
 }
 
 /**
  * 九键：数字大、字母在下，不跟 QWERTY 标点角标抢位置。
- * 高度被拖矮时按键高缩放字号，避免数字/字母撑出键框。
+ * 两段竖向 chain + Proportional，矮键盘时缩进键框内并保持居中。
  */
 @SuppressLint("ViewConstructor")
 class T9KeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.T9) :
     TextKeyView(ctx, theme, def) {
-    private val lettersDip = 13f
     private val letters = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
         background = null
         text = def.altText
-        setTextSize(TypedValue.COMPLEX_UNIT_DIP, lettersDip)
+        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f)
         setTypeface(CandidateFont.uiTypeface(ctx, Typeface.BOLD))
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        gravity = Gravity.CENTER
+        scaleMode = AutoScaleTextView.Mode.Proportional
         setTextColor(theme.altKeyTextColor)
         letterSpacing = 0.08f
     }
@@ -564,36 +541,35 @@ class T9KeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.T9) :
     init {
         mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize)
         appearanceView.apply {
-            add(letters, lParams(wrapContent, wrapContent))
+            add(letters, lParams(0, 0))
         }
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            height = 0
             topToTop = parentId
-            bottomToBottom = unset
+            bottomToTop = letters.existingOrNewId
             leftToLeft = parentId
             rightToRight = parentId
-            bottomToTop = letters.existingOrNewId
+            bottomToBottom = unset
+            verticalChainStyle = ConstraintLayout.LayoutParams.CHAIN_SPREAD
+            verticalWeight = 1.8f
             topMargin = vMargin + dp(4)
             bottomMargin = 0
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
         letters.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            height = 0
             topToBottom = mainText.existingOrNewId
             bottomToBottom = parentId
             leftToLeft = parentId
             rightToRight = parentId
+            verticalWeight = 1f
             bottomMargin = vMargin + dp(6)
+            topMargin = 0
+            leftMargin = hMargin
+            rightMargin = hMargin
         }
-    }
-
-    override fun applyLabelSizes(keyHeight: Int) {
-        val topPad = vMargin + dp(4)
-        val bottomPad = vMargin + dp(6)
-        val avail = (keyHeight - topPad - bottomPad).toFloat()
-        val density = resources.displayMetrics.density
-        val digitDip = textAppearance.textSize
-        val needed = (digitDip + lettersDip) * density
-        val scale =
-            if (avail > 0f && needed > avail) (avail / needed).coerceIn(0.4f, 1f) else 1f
-        mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, digitDip * scale)
-        letters.setTextSize(TypedValue.COMPLEX_UNIT_DIP, lettersDip * scale)
     }
 }

@@ -14,6 +14,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.Gravity
 import android.widget.TextView
 import androidx.core.graphics.withSave
@@ -25,7 +26,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Single-line text that can shrink to fit its width.
+ * Single-line text that can shrink to fit its width (and height in [Mode.Proportional]).
  *
  * Drawing goes through [StaticLayout] so fallback fonts apply. The default face is bundled
  * Noto Sans SC ([CandidateFont.uiTypeface]) so Elite-class ROMs without system CJK still render
@@ -49,7 +50,8 @@ class AutoScaleTextView @JvmOverloads constructor(
         Horizontal,
 
         /**
-         * scale both in X and Y axis, align center vertically
+         * scale both in X and Y to fit the view; center with glyph bounds (not full em-box)
+         * so Latin digits/letters stay visually centered inside soft-keyboard keys.
          */
         Proportional
     }
@@ -63,6 +65,7 @@ class AutoScaleTextView @JvmOverloads constructor(
     private var needsMeasureText = true
     private val fontMetrics = Paint.FontMetrics()
     private val textBounds = Rect()
+    private val glyphBounds = Rect()
 
     private var needsCalculateTransform = true
     private var baselineX = 0.0f
@@ -78,6 +81,16 @@ class AutoScaleTextView @JvmOverloads constructor(
             requestLayout()
             invalidate()
         }
+    }
+
+    override fun setTextSize(unit: Int, size: Float) {
+        needsMeasureText = true
+        needsCalculateTransform = true
+        super.setTextSize(unit, size)
+    }
+
+    override fun setTextSize(size: Float) {
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
     }
 
     override fun setTypeface(tf: Typeface?) {
@@ -102,8 +115,9 @@ class AutoScaleTextView @JvmOverloads constructor(
         val widthSize = MeasureSpec.getSize(widthMeasureSpec)
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
         val heightSize = MeasureSpec.getSize(heightMeasureSpec)
-        val width = measureTextBounds().width() + paddingLeft + paddingRight
-        val height = ceil(fontMetrics.bottom - fontMetrics.top + paddingTop + paddingBottom).toInt()
+        measureTextBounds()
+        val width = textBounds.width() + paddingLeft + paddingRight
+        val height = ceil(measureHeightPx() + paddingTop + paddingBottom).toInt()
         val maxHeight = if (maxHeight >= 0) maxHeight else Int.MAX_VALUE
         val maxWidth = if (maxWidth >= 0) maxWidth else Int.MAX_VALUE
         setMeasuredDimension(
@@ -135,6 +149,7 @@ class AutoScaleTextView @JvmOverloads constructor(
             val src = text.toString()
             if (src.isEmpty()) {
                 textBounds.setEmpty()
+                glyphBounds.setEmpty()
             } else {
                 val layout = layoutFor(src)
                 val left = floor(layout.getLineLeft(0)).toInt()
@@ -145,10 +160,20 @@ class AutoScaleTextView @JvmOverloads constructor(
                     right,
                     ceil(fontMetrics.bottom).toInt()
                 )
+                paint.getTextBounds(src, 0, src.length, glyphBounds)
             }
             needsMeasureText = false
         }
         return textBounds
+    }
+
+    private fun measureHeightPx(): Float {
+        measureTextBounds()
+        return if (scaleMode == Mode.Proportional && !glyphBounds.isEmpty) {
+            (glyphBounds.bottom - glyphBounds.top).toFloat()
+        } else {
+            fontMetrics.bottom - fontMetrics.top
+        }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -164,27 +189,37 @@ class AutoScaleTextView @JvmOverloads constructor(
         measureTextBounds()
         val textLeft: Float = textBounds.left.toFloat()
         val textWidth: Float = textBounds.width().toFloat()
-        val textTop: Float = fontMetrics.top
-        val textHeight: Float = fontMetrics.bottom - fontMetrics.top
-        if (textWidth > contentWidth) {
-            when (scaleMode) {
-                Mode.None -> {
-                    textScaleX = 1.0f
-                    textScaleY = 1.0f
-                }
-                Mode.Horizontal -> {
-                    textScaleX = contentWidth / textWidth
-                    textScaleY = 1.0f
-                }
-                Mode.Proportional -> {
-                    val scale = contentWidth / textWidth
-                    textScaleX = scale
-                    textScaleY = scale
-                }
-            }
+        val useGlyph = scaleMode == Mode.Proportional && !glyphBounds.isEmpty
+        val textTop: Float = if (useGlyph) glyphBounds.top.toFloat() else fontMetrics.top
+        val textHeight: Float = if (useGlyph) {
+            (glyphBounds.bottom - glyphBounds.top).toFloat()
         } else {
-            textScaleX = 1.0f
-            textScaleY = 1.0f
+            fontMetrics.bottom - fontMetrics.top
+        }
+        when (scaleMode) {
+            Mode.None -> {
+                textScaleX = 1.0f
+                textScaleY = 1.0f
+            }
+            Mode.Horizontal -> {
+                textScaleX = if (textWidth > contentWidth && contentWidth > 0) {
+                    contentWidth / textWidth
+                } else {
+                    1.0f
+                }
+                textScaleY = 1.0f
+            }
+            Mode.Proportional -> {
+                var scale = 1.0f
+                if (textWidth > contentWidth && contentWidth > 0) {
+                    scale = min(scale, contentWidth / textWidth)
+                }
+                if (textHeight > contentHeight && contentHeight > 0) {
+                    scale = min(scale, contentHeight / textHeight)
+                }
+                textScaleX = scale
+                textScaleY = scale
+            }
         }
         baselineX = calculateBaselineX(paddingLeft, contentWidth, textLeft, textWidth, textScaleX)
         baselineY = calculateBaselineY(paddingTop, contentHeight, textTop, textHeight, textScaleY)
