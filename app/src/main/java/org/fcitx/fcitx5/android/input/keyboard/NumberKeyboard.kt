@@ -8,7 +8,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.popup.PopupAction
 import splitties.views.imageResource
 
 @SuppressLint("ViewConstructor")
@@ -62,9 +61,6 @@ class NumberKeyboard(
         `return`.img.imageResource = returnDrawable
     }
 
-    @SuppressLint("MissingSuperCall")
-    override fun onPopupAction(action: PopupAction) {
-        // leave empty on purpose to disable popup in NumberKeyboard
-    }
+    // Digit press preview matches QWERTY (Gboard-like); keep popups enabled.
 
 }

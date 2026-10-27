@@ -265,8 +265,8 @@ abstract class BaseKeyboard(
                         setOnLongClickListener { view ->
                             view as KeyView
                             onPopupAction(PopupAction.ShowMenuAction(view.id, it, view.bounds))
-                            // do not consume this LongClick gesture
-                            false
+                            // Consume so UP does not also performClick the base key (Gboard-like).
+                            true
                         }
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         swipeEnabled = true
@@ -287,8 +287,8 @@ abstract class BaseKeyboard(
                         setOnLongClickListener { view ->
                             view as KeyView
                             onPopupAction(PopupAction.ShowKeyboardAction(view.id, it, view.bounds))
-                            // do not consume this LongClick gesture
-                            false
+                            // Consume so UP does not also performClick the base key (Gboard-like).
+                            true
                         }
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         swipeEnabled = true

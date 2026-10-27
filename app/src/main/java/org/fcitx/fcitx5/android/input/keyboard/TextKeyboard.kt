@@ -171,9 +171,12 @@ class TextKeyboard(
     }
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
-        space.mainText.text = buildString {
-            append(ime.displayName)
-            ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
+        // Short IME badge on the spacebar (Gboard-like); drop noisy "(subMode)" suffixes.
+        space.mainText.apply {
+            text = ime.displayName
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            alpha = 0.85f
         }
         if (capsState != CapsState.None) {
             switchCapsState()
