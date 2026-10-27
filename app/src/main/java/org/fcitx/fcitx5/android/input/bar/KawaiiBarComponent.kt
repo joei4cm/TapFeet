@@ -579,6 +579,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 //  - 录音中按钮 GONE、VoiceWaveView 显示，事件才穿透到 slot。
                 voiceInputButton.setOnClickListener { toggleVoiceInput() }
                 voiceInputSlot.setOnClickListener { toggleVoiceInput() }
+                hideKeyboardButton.apply {
+                    setOnClickListener(hideKeyboardCallback)
+                    swipeEnabled = true
+                    swipeThresholdY = dp(HEIGHT.toFloat())
+                    swipeThresholdX = swipeThresholdY
+                    onGestureListener = swipeHideKeyboardCallback
+                }
             }
             hideKeyboardButton.apply {
                 setOnClickListener(hideKeyboardCallback)

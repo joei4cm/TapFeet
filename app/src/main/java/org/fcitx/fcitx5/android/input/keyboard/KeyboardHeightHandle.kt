@@ -31,7 +31,8 @@ class KeyboardHeightHandle(
     private val prefs = AppPrefs.getInstance().keyboard
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = theme.altKeyTextColor
-        alpha = 90
+        // Quieter chrome — closer to Gboard’s thin resize cue, not a permanent tool strip.
+        alpha = 55
         style = Paint.Style.FILL
     }
     private val pill = RectF()
@@ -52,8 +53,8 @@ class KeyboardHeightHandle(
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
-        val pillW = dp(40).toFloat()
-        val pillH = dp(4).toFloat()
+        val pillW = dp(36).toFloat()
+        val pillH = dp(3).toFloat()
         pill.set(
             (w - pillW) / 2f,
             (h - pillH) / 2f,
@@ -96,7 +97,8 @@ class KeyboardHeightHandle(
     }
 
     companion object {
-        const val HANDLE_DP = 16
+        /** Slim strip between candidate bar and keys (was 16dp — felt like a permanent toolbar). */
+        const val HANDLE_DP = 10
         const val MIN_PERCENT = 10
         const val MAX_PERCENT = 90
     }

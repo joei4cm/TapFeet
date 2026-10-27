@@ -23,7 +23,7 @@ import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.view
 
 /**
- * Gboard 风格空闲顶栏：整行均分图标（状态区 / 表情 / 剪贴板 / 设置 / 主题 / 语音）。
+ * Gboard 风格空闲顶栏：整行均分图标（状态区 / 表情 / 剪贴板 / 设置 / 主题 / 语音 / 收起）。
  * 打字出候选时由 [org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent] 切到 Candidate 行替换本条。
  */
 class SoftToolbarUi(override val ctx: Context, private val theme: Theme) : Ui {
@@ -75,5 +75,10 @@ class SoftToolbarUi(override val ctx: Context, private val theme: Theme) : Ui {
     }.also {
         val size = ctx.dp(40)
         root.addView(it, FlexboxLayout.LayoutParams(size, size))
+    }
+
+    /** Gboard 式 ↓：收起虚拟键盘。 */
+    val hideKeyboardButton = toolButton(R.drawable.ic_baseline_arrow_drop_down_24).apply {
+        contentDescription = ctx.getString(R.string.hide_keyboard)
     }
 }

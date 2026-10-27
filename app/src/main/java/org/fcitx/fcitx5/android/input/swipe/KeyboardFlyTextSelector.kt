@@ -11,9 +11,9 @@ import kotlin.math.hypot
 import timber.log.Timber
 
 /**
- * Gesture state machine for the "keyboard fly-text" feature: physical-keyboard mode only, driven by
- * the keyboard surface's motion samples as the IME receives them on its own window
- * (`FcitxInputMethodService.installDecorMotionListener`).
+ * Gesture state machine for the "keyboard fly-text" feature. Driven by:
+ *  - keyboard-surface (TOUCHPAD) motion via `FcitxInputMethodService.installDecorMotionListener`
+ *  - soft candidate-bar finger swipes via `HorizontalCandidateComponent`'s item-touch listener
  *
  * Gestures:
  *  - **Up-swipe** (vertical-dominant, upward): pick the candidate whose on-screen column the finger
@@ -161,6 +161,12 @@ class KeyboardFlyTextSelector(
      * was reset) counts as NOT active.
      */
     val gestureActive: Boolean get() = downTime != 0L
+
+    /**
+     * True once travel locked a swipe direction (or classified / cursor-dragging). Soft candidate
+     * bar uses this to intercept the RecyclerView stream so a swipe doesn't also fire a tap.
+     */
+    val swipePending: Boolean get() = pendingDir != null || classified || cursorDragging
 
     /**
      * If a touch source only streams MOVE (no UP), the latched [classified] flag would otherwise

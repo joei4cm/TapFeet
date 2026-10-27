@@ -90,9 +90,11 @@ class NineKeyKeyboard(
     }
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
-        space.mainText.text = buildString {
-            append(ime.displayName)
-            ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
+        space.mainText.apply {
+            text = ime.displayName
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            alpha = 0.85f
         }
     }
 

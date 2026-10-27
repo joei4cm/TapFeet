@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.graphics.Rect
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
+import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.Keep
@@ -47,6 +48,9 @@ import org.fcitx.fcitx5.android.input.dependency.fcitx
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
 import org.fcitx.fcitx5.android.input.dependency.inputView
 import org.fcitx.fcitx5.android.input.dependency.theme
+import org.fcitx.fcitx5.android.input.swipe.FlyTextPaging
+import org.fcitx.fcitx5.android.input.swipe.FlyTextAction
+import org.fcitx.fcitx5.android.input.swipe.KeyboardFlyTextSelector
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
@@ -65,6 +69,65 @@ class HorizontalCandidateComponent :
     private var pendingFlyText: String? = null
     private var pendingFlyX = 0f
     private var pendingFlyY = 0f
+
+    /**
+     * Soft candidate-bar fly-text: same selector as the physical keyboard surface, fed by an
+     * [RecyclerView.OnItemTouchListener] so finger swipes on the bar can pick / page without
+     * fighting soft-key typing (TOUCHSCREEN never hits the surface motion channel).
+     */
+    private var softFlyIntercepting = false
+    private val softFlySelector by lazy {
+        KeyboardFlyTextSelector(
+            density = context.resources.displayMetrics.density,
+            candidateRectsProvider = { flyCandidateRects() },
+            onSelect = { selIdx -> softFlySelect(selIdx) },
+            onPage = { dir -> softFlyPage(dir) },
+            cornerRegionProvider = { null },
+            cornerDeleteEnabled = { false },
+            onDelete = {},
+            typingGuard = { false },
+            sensitivityProvider = {
+                AppPrefs.getInstance().hardwareKeyboard.keyboardFlyTextSensitivity.getValue()
+            },
+            // Soft bar: only select + page. Surface-only gestures stay off.
+            cursorModeProvider = { false },
+            downSwipeEnabled = { false },
+            twoFingerEnabled = { false },
+        )
+    }
+
+    private fun softFlyEnabled(): Boolean =
+        AppPrefs.getInstance().hardwareKeyboard.keyboardFlyText.getValue()
+
+    private fun softFlySelect(selectionIndex: Int) {
+        if (selectionIndex < 0) return
+        val rv = view
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i) ?: continue
+            val displayPos = rv.getChildAdapterPosition(child)
+            if (displayPos < 0) continue
+            if (adapter.selectionIndexAtDisplayPosition(displayPos) != selectionIndex) continue
+            val holder = rv.getChildViewHolder(child) as? CandidateViewHolder
+            if (holder != null) {
+                prepareFlyAnimation(holder.candidate.text, holder.ui.text)
+            }
+            break
+        }
+        fcitx.launchOnReady { it.select(selectionIndex) }
+    }
+
+    private fun softFlyPage(dir: Int) {
+        val hw = AppPrefs.getInstance().hardwareKeyboard
+        val action = if (dir > 0) hw.flyTextLeftAction.getValue()
+        else hw.flyTextRightAction.getValue()
+        val delta = FlyTextPaging.delta(action, hw.keyboardFlyTextSwapPage.getValue())
+        when {
+            delta != null -> page(delta)
+            // Prefer paging even if the surface binding was remapped away from Page*.
+            action == FlyTextAction.None -> Unit
+            else -> page(dir)
+        }
+    }
 
     fun prepareFlyAnimation(text: String, sourceView: View) {
         pendingFlyText = text
@@ -649,7 +712,57 @@ class HorizontalCandidateComponent :
                     adapter = this@HorizontalCandidateComponent.adapter
                     layoutManager = this@HorizontalCandidateComponent.layoutManager
                     addItemDecoration(FlexboxVerticalDecoration(dividerDrawable))
+                    addOnItemTouchListener(softFlyItemTouchListener)
                 }
+    }
+
+    /**
+     * Feeds [softFlySelector] from bar touches. Tap still reaches item click/long-press; once a
+     * swipe locks direction the listener intercepts so the swipe does not also fire a tap.
+     */
+    private val softFlyItemTouchListener = object : RecyclerView.SimpleOnItemTouchListener() {
+        override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+            if (!softFlyEnabled()) {
+                softFlyIntercepting = false
+                softFlySelector.reset()
+                return false
+            }
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    softFlySelector.onTouchEvent(e)
+                    softFlyIntercepting = false
+                    return false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!softFlyIntercepting) {
+                        softFlySelector.onTouchEvent(e)
+                        if (softFlySelector.swipePending) {
+                            softFlyIntercepting = true
+                            return true
+                        }
+                    }
+                    return softFlyIntercepting
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (!softFlyIntercepting) {
+                        softFlySelector.onTouchEvent(e)
+                    }
+                    val was = softFlyIntercepting
+                    softFlyIntercepting = false
+                    return was
+                }
+            }
+            return false
+        }
+
+        override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+            softFlySelector.onTouchEvent(e)
+            if (e.actionMasked == MotionEvent.ACTION_UP ||
+                e.actionMasked == MotionEvent.ACTION_CANCEL
+            ) {
+                softFlyIntercepting = false
+            }
+        }
     }
 
     override fun onScopeSetupFinished(scope: DynamicScope) {
