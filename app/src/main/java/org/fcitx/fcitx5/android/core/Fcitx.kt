@@ -19,6 +19,7 @@ import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.quickphrase.QuickPhraseManager
 import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeyboardPrefs
+import org.fcitx.fcitx5.android.data.prefs.PinyinFuzzyPrefs.syncPinyinFuzzyPrefs
 import org.fcitx.fcitx5.android.data.prefs.PinyinSpellPrefs.syncPinyinSpellPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
@@ -530,6 +531,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             lifecycle.launchWhenReady {
                 this@Fcitx.syncAndroidKeyboardPrefs()
                 this@Fcitx.syncPinyinSpellPrefs()
+                this@Fcitx.syncPinyinFuzzyPrefs()
                 // 启动恢复：下载失败会静默重试；已就绪则按指纹决定是否 Deploy，不抢当前 IM
                 this@Fcitx.applyPinyinEngine(
                     AppPrefs.getInstance().hardwareKeyboard.pinyinEngine.getValue(),

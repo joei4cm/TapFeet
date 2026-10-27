@@ -61,6 +61,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val appDisplayName = string("app_display_name", "default")
         // Gates the "App display name" settings entry behind a tap-5-times-on-About unlock.
         val appDisplayNameUnlocked = bool("app_display_name_unlocked", false)
+        /** One-shot: push soft-KB typo-resilience defaults (expand hit area, no swipe-symbol). */
+        val softKbTypoDefaultsV1 = bool("soft_kb_typo_defaults_v1", false)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -214,17 +216,21 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
         init { category(R.string.cat_keyboard_swipe) }
 
+        // Soft KB: grow edge keys so A-row dead zones don't eat taps (Gboard-like hit targets).
         val expandKeypressArea =
-            switch(R.string.expand_keypress_area, "expand_keypress_area", false)
+            switch(R.string.expand_keypress_area, "expand_keypress_area", true)
+        // Default off: accidental down-swipe inserts punctuation and cancels the letter,
+        // which is a top cause of "pinyin unrecognized" after a near-miss tap.
         val swipeSymbolDirection = enumList(
             R.string.swipe_symbol_behavior,
             "swipe_symbol_behavior",
-            SwipeSymbolDirection.Down
+            SwipeSymbolDirection.Disabled
         )
+        // Slightly longer than 300ms so normal taps are not eaten by long-press popup.
         val longPressDelay = int(
             R.string.keyboard_long_press_delay,
             "keyboard_long_press_delay",
-            300,
+            450,
             100,
             700,
             "ms",
@@ -1001,6 +1007,18 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     private val providers = mutableListOf<ManagedPreferenceProvider>()
 
+    /**
+     * One-shot soft-KB defaults so upgrades pick up typo-resilience (expand hit area, no
+     * swipe-symbol, longer long-press). Users can still change them afterward.
+     */
+    private fun ensureSoftKbTypoDefaults() {
+        if (internal.softKbTypoDefaultsV1.getValue()) return
+        keyboard.expandKeypressArea.setValue(true)
+        keyboard.swipeSymbolDirection.setValue(SwipeSymbolDirection.Disabled)
+        keyboard.longPressDelay.setValue(450)
+        internal.softKbTypoDefaultsV1.setValue(true)
+    }
+
     fun <T : ManagedPreferenceProvider> registerProvider(
         providerF: (SharedPreferences) -> T
     ): T {
@@ -1081,6 +1099,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             // 快捷键单独补一次：老安装升级上来时物理键位早已存在，上面那一步会直接早退，
             // 不单独播的话快捷键永远是空的。
             getInstance().shortcuts.ensureInitialized()
+            getInstance().ensureSoftKbTypoDefaults()
             sharedPreferences.registerOnSharedPreferenceChangeListener(getInstance().onSharedPreferenceChangeListener)
         }
 
