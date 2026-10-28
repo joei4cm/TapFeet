@@ -63,6 +63,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val appDisplayNameUnlocked = bool("app_display_name_unlocked", false)
         /** One-shot: push soft-KB typo-resilience defaults (expand hit area, no swipe-symbol). */
         val softKbTypoDefaultsV1 = bool("soft_kb_typo_defaults_v1", false)
+        /** One-shot: smaller overlay candidate index (was 10sp default). */
+        val softKbCandidateIndexV1 = bool("soft_kb_candidate_index_v1", false)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -448,9 +450,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val candidateIndexFontSize = int(
             R.string.candidate_index_font_size,
             "candidate_index_font_size",
-            10,
+            7,
             6,
-            16,
+            12,
             "sp"
         ) { showCandidateIndex.getValue() }
 
@@ -1019,6 +1021,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         internal.softKbTypoDefaultsV1.setValue(true)
     }
 
+    /** One-shot: shrink overlay candidate index so it stops covering the first glyph. */
+    private fun ensureSoftKbCandidateIndexDefault() {
+        if (internal.softKbCandidateIndexV1.getValue()) return
+        candidateBar.candidateIndexFontSize.setValue(7)
+        internal.softKbCandidateIndexV1.setValue(true)
+    }
+
     fun <T : ManagedPreferenceProvider> registerProvider(
         providerF: (SharedPreferences) -> T
     ): T {
@@ -1100,6 +1109,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             // 不单独播的话快捷键永远是空的。
             getInstance().shortcuts.ensureInitialized()
             getInstance().ensureSoftKbTypoDefaults()
+            getInstance().ensureSoftKbCandidateIndexDefault()
             sharedPreferences.registerOnSharedPreferenceChangeListener(getInstance().onSharedPreferenceChangeListener)
         }
 

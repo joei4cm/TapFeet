@@ -760,7 +760,19 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         candidateUi.expandButton.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
+    /** Last paging affordance from [HorizontalCandidateComponent]; kept so keyboard show/hide can re-apply. */
+    private var pageHasPrev = false
+    private var pageHasNext = false
+
     private fun updateCandidatePageButtons(ui: CandidateUi, hasPrev: Boolean, hasNext: Boolean) {
+        pageHasPrev = hasPrev
+        pageHasNext = hasNext
+        // Soft keyboard: swipe / expand cover paging — drop the ← → chrome so the row is wider.
+        if (windowManager.isKeyboardWindowVisible()) {
+            ui.prevPageButton.visibility = View.GONE
+            ui.nextPageButton.visibility = View.GONE
+            return
+        }
         val multiPage = hasPrev || hasNext
         ui.prevPageButton.visibility = if (multiPage) View.VISIBLE else View.INVISIBLE
         ui.nextPageButton.visibility = if (multiPage) View.VISIBLE else View.INVISIBLE
@@ -862,6 +874,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         windowManager.addKeyboardVisibilityListener {
             updateKeyboardToggleButton()
             refreshBarVisibility()
+            updateCandidatePageButtons(candidateUi, pageHasPrev, pageHasNext)
         }
         // 输入服务销毁时确保录音与识别器资源释放
         service.lifecycle.addObserver(object : DefaultLifecycleObserver {

@@ -476,7 +476,7 @@ class InputView(
         val activeIndex = horizontalCandidate.selectionIndexAtVisiblePosition(position) ?: return false
         val vh = horizontalCandidate.view.findViewHolderForAdapterPosition(position) as? CandidateViewHolder
         vh?.let {
-            horizontalCandidate.prepareFlyAnimation(it.candidate.text, it.ui.text)
+            horizontalCandidate.prepareSelectFeedback(it.candidate.text, it.ui.text)
         }
         service.postFcitxJob {
             setCandidatePagingMode(horizontalCandidate.currentCandidatePagingMode())

@@ -109,7 +109,7 @@ class HorizontalCandidateComponent :
             if (adapter.selectionIndexAtDisplayPosition(displayPos) != selectionIndex) continue
             val holder = rv.getChildViewHolder(child) as? CandidateViewHolder
             if (holder != null) {
-                prepareFlyAnimation(holder.candidate.text, holder.ui.text)
+                prepareSelectFeedback(holder.candidate.text, holder.ui.text)
             }
             break
         }
@@ -127,6 +127,33 @@ class HorizontalCandidateComponent :
             action == FlyTextAction.None -> Unit
             else -> page(dir)
         }
+    }
+
+    /**
+     * Soft keyboard (no physical surface): just fade the picked cell — no fly/bubble overlay.
+     * Physical keyboard mode keeps the full fly-text arm via [prepareFlyAnimation].
+     */
+    fun prepareSelectFeedback(text: String, sourceView: View) {
+        if (!inputView.physicalKeyboardMode) {
+            pendingFlyText = null
+            playSelectFadeOut(sourceView)
+            return
+        }
+        prepareFlyAnimation(text, sourceView)
+    }
+
+    private fun playSelectFadeOut(sourceView: View) {
+        if (AppPrefs.getInstance().advanced.disableAnimation.getValue()) return
+        sourceView.animate().cancel()
+        sourceView.alpha = 1f
+        sourceView.animate()
+            .alpha(0.2f)
+            .setDuration(110L)
+            .withEndAction {
+                // Recycled / rebound views must not stay translucent.
+                sourceView.alpha = 1f
+            }
+            .start()
     }
 
     fun prepareFlyAnimation(text: String, sourceView: View) {
@@ -576,7 +603,7 @@ class HorizontalCandidateComponent :
                     flexShrink = 0f
                 }
                 holder.itemView.setOnClickListener {
-                    prepareFlyAnimation(holder.candidate.text, holder.ui.text)
+                    prepareSelectFeedback(holder.candidate.text, holder.ui.text)
                     fcitx.launchOnReady { it.select(holder.idx) }
                 }
                 holder.itemView.setOnLongClickListener {
@@ -855,6 +882,12 @@ class HorizontalCandidateComponent :
         // clicks via the physical key itself.
         val picked = pendingFlyText
         pendingFlyText = null
+
+        // Soft keyboard only: selection already played a local fade — skip fly/bubble overlay.
+        if (!inputView.physicalKeyboardMode) {
+            Timber.d("effects: soft KB skip overlay (fade already played) text=%s", text)
+            return
+        }
 
         val effects = AppPrefs.getInstance().effects
         val disableAnimation = AppPrefs.getInstance().advanced.disableAnimation.getValue()

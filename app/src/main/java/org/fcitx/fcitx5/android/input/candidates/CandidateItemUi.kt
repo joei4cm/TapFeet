@@ -20,6 +20,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
+import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -32,13 +33,18 @@ import splitties.views.gravityCenterHorizontal
 import kotlin.math.max
 
 /**
- * 候选项：竖排「字 / 拼音」，序号叠在左上角不占横向宽度，一行能多放下几个词。
+ * 候选项：竖排「字 / 拼音」；小号序号贴在左上角 gutter，尽量不挡字、不占行宽。
  */
 class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
 
     private val index = textView {
-        textSize = 10f // sp
-        setTextColor(ColorUtils.blendARGB(theme.candidateLabelColor, theme.candidateCommentColor, 0.5f))
+        textSize = 7f // sp — badge default; prefs can nudge within a small range
+        setTextColor(
+            ColorUtils.setAlphaComponent(
+                ColorUtils.blendARGB(theme.candidateLabelColor, theme.candidateCommentColor, 0.55f),
+                0x99
+            )
+        )
         includeFontPadding = false
         gravity = gravityCenter
     }
@@ -69,15 +75,23 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     }
 
     /**
-     * FrameLayout so the index overlays the top-start corner instead of sitting in a horizontal
-     * chain beside the word (which stole ~1 digit of width per item).
+     * Thin start/top gutter so the index sits outside the glyph box instead of covering it.
+     * clipChildren off so a slightly oversized badge can peek into item padding.
      */
     private val content = view(::FrameLayout) {
+        val gutterStart = dp(7)
+        val gutterTop = dp(2)
+        setPadding(gutterStart, gutterTop, 0, 0)
+        clipToPadding = false
+        clipChildren = false
         add(wordColumn, lParams(wrapContent, wrapContent) {
             gravity = Gravity.CENTER
         })
         add(index, lParams(wrapContent, wrapContent) {
             gravity = Gravity.TOP or Gravity.START
+            // Sit in the gutter, slightly above/left of the word.
+            marginStart = -gutterStart + dp(1)
+            topMargin = -gutterTop
         })
     }
 
@@ -97,6 +111,8 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
 
     override val root = view(::CustomGestureView) {
         background = pressHighlight
+        clipChildren = false
+        clipToPadding = false
 
         /**
          * candidate long press feedback is handled by [org.fcitx.fcitx5.android.input.BaseInputView.showCandidateActionMenu]
@@ -113,14 +129,18 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         indexLabel: String = "",
         isActive: Boolean = false,
         showIndex: Boolean = true,
-        indexFontSize: Int = 10,
+        indexFontSize: Int = 7,
         textFontSize: Int = 20,
     ) {
         val prefs = org.fcitx.fcitx5.android.data.prefs.AppPrefs.getInstance().candidateBar
         val showComment = prefs.showCandidateComment.getValue()
         index.text = if (showIndex && indexLabel.isNotBlank()) indexLabel else ""
         index.visibility = if (index.text.isNotEmpty()) View.VISIBLE else View.GONE
-        index.setTextSize(TypedValue.COMPLEX_UNIT_SP, indexFontSize.toFloat())
+        // Overlay badge stays small so it never swallows the first glyph.
+        index.setTextSize(
+            TypedValue.COMPLEX_UNIT_SP,
+            indexFontSize.coerceIn(6, 9).toFloat(),
+        )
         text.text = candidate.text
         text.setTextSize(TypedValue.COMPLEX_UNIT_SP, textFontSize.toFloat())
         val face = CandidateFont.typeface(
@@ -128,13 +148,13 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         )
         text.typeface = face
         comment.typeface = face
-        index.typeface = face
+        // Index stays light / non-bold so it reads as a caption, not part of the word.
+        index.typeface = CandidateFont.typeface(ctx, bold = false)
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
         val hint = if (showComment) candidate.displayComment() else ""
         if (hint.isNotBlank()) {
             comment.visibility = View.VISIBLE
             comment.text = hint
-            // 拼音略小于汉字；跟序号档位对齐，避免挤爆 40dp 候选栏
             comment.setTextSize(
                 TypedValue.COMPLEX_UNIT_SP,
                 max(8, textFontSize / 2).toFloat(),
