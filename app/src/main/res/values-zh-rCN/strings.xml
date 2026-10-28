@@ -381,6 +381,8 @@
     <string name="hide_status_bar_summary">空闲时收起顶栏；打字时照常显示候选栏。</string>
     <string name="show_candidate_comment">显示拼音</string>
     <string name="show_candidate_comment_summary">在候选字下方显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。关掉可让一行多放几个词。</string>
+    <string name="candidate_frequency_color">按使用频率着色</string>
+    <string name="candidate_frequency_color_summary">常选的候选偏向主题强调色；从未选过的保持原色。记忆留在本机。</string>
     <string name="pinyin_english_candidates">拼音中显示英文单词</string>
     <string name="pinyin_english_candidates_summary">默认关。打开后，在拼音里打 hello 等拉丁字母也会出英文候选（完整单词优先）。纯英文请用 Sym+N 切英文输入法。与中文候选混排可能显得乱。</string>
     <string name="show_translation_comment">翻译释义</string>

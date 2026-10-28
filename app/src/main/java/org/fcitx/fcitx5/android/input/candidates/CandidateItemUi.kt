@@ -15,6 +15,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.graphics.ColorUtils
 import org.fcitx.fcitx5.android.core.CandidateWord
+import org.fcitx.fcitx5.android.data.CandidateFrequency
 import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
@@ -151,6 +152,18 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         // Index stays light / non-bold so it reads as a caption, not part of the word.
         index.typeface = CandidateFont.typeface(ctx, bold = false)
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
+        // Frequency tint: never-picked keeps theme original; often-picked leans toward accent.
+        val baseFg = if (isActive) theme.genericActiveForegroundColor else theme.candidateTextColor
+        val textFg = if (!isActive && prefs.candidateFrequencyColor.getValue()) {
+            CandidateFrequency.colorFor(
+                CandidateFrequency.countOf(candidate.text),
+                theme.candidateTextColor,
+                theme.genericActiveForegroundColor,
+            )
+        } else {
+            baseFg
+        }
+        text.setTextColor(textFg)
         val hint = if (showComment) candidate.displayComment() else ""
         if (hint.isNotBlank()) {
             comment.visibility = View.VISIBLE
@@ -158,6 +171,9 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
             comment.setTextSize(
                 TypedValue.COMPLEX_UNIT_SP,
                 max(8, textFontSize / 2).toFloat(),
+            )
+            comment.setTextColor(
+                if (isActive) theme.genericActiveForegroundColor else theme.candidateCommentColor
             )
         } else {
             comment.visibility = View.GONE
