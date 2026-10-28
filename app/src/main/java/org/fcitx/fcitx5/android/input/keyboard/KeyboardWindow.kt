@@ -24,10 +24,13 @@ import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.dependency.fcitx
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
+import org.fcitx.fcitx5.android.input.dependency.inputView
 import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.PopupActionListener
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
+import org.fcitx.fcitx5.android.input.swipe.FlyTextPaging
+import org.fcitx.fcitx5.android.input.swipe.SoftKeyFlyText
 import org.fcitx.fcitx5.android.input.wm.EssentialWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
@@ -43,11 +46,29 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private val service by manager.inputMethodService()
     private val fcitx by manager.fcitx()
     private val theme by manager.theme()
+    private val inputView by manager.inputView()
     private val commonKeyActionListener: CommonKeyActionListener by manager.must()
     private val windowManager: InputWindowManager by manager.must()
     private val popup: PopupComponent by manager.must()
     private val bar: KawaiiBarComponent by manager.must()
     private val returnKeyDrawable: ReturnKeyDrawableComponent by manager.must()
+
+    /** Soft letter-key fly-text: up = pick by column, left/right = page (same master 飞字 switch). */
+    private val softKeyFlyText by lazy {
+        SoftKeyFlyText(
+            density = context.resources.displayMetrics.density,
+            candidatesAvailable = { inputView.flyCandidateRects().isNotEmpty() },
+            candidateRectsProvider = { inputView.flyCandidateRects() },
+            onSelect = { idx -> inputView.flySelectSelectionIndex(idx) },
+            onPage = { dir ->
+                val hw = AppPrefs.getInstance().hardwareKeyboard
+                val action = if (dir > 0) hw.flyTextLeftAction.getValue()
+                else hw.flyTextRightAction.getValue()
+                val delta = FlyTextPaging.delta(action, hw.keyboardFlyTextSwapPage.getValue())
+                inputView.flyPageCandidates(delta ?: dir)
+            },
+        )
+    }
 
     companion object : EssentialWindow.Key {
         const val PreferredText = "@text"
@@ -173,6 +194,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             keyboardView.removeView(it)
             it.keyActionListener = null
             it.popupActionListener = null
+            it.softFlyTextListener = null
         }
     }
 
@@ -181,6 +203,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         currentKeyboard?.let {
             it.keyActionListener = keyActionListener
             it.popupActionListener = popupActionListener
+            it.softFlyTextListener = softKeyFlyText
             keyboardView.apply { add(it, lParams(matchParent, matchParent)) }
             it.onAttach()
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)

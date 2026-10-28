@@ -51,6 +51,12 @@ abstract class BaseKeyboard(
 
     var keyActionListener: KeyActionListener? = null
 
+    /**
+     * Soft-keyboard fly-text (Titan Elite–style up-swipe by column). Wired by [KeyboardWindow]
+     * onto letter / T9 keys; null when the input view is detached.
+     */
+    var softFlyTextListener: OnGestureListener? = null
+
     private val prefs = AppPrefs.getInstance()
 
     private val popupOnKeyPress by prefs.keyboard.popupOnKeyPress
@@ -351,7 +357,25 @@ abstract class BaseKeyboard(
                     }
                 }
             }
+            // Titan Elite–style fly-text on soft letter/T9 keys: check before swipe-symbol so an
+            // up-swipe with candidates picks a word instead of inserting punctuation.
+            if (supportsSoftFlyText(def)) {
+                swipeEnabled = true
+                if (swipeThresholdY >= disabledSwipeThreshold) {
+                    swipeThresholdY = inputSwipeThreshold
+                }
+                val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
+                onGestureListener = OnGestureListener { view, event ->
+                    val fly = softFlyTextListener?.onGesture(view, event) == true
+                    fly || oldOnGestureListener.onGesture(view, event)
+                }
+            }
         }
+    }
+
+    private fun supportsSoftFlyText(def: KeyDef): Boolean = when (def) {
+        is AlphabetKey, is AlphabetDigitKey, is T9Key, is SymbolKey, is CommaKey, is NumPadKey -> true
+        else -> false
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

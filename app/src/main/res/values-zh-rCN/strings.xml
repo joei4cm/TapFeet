@@ -79,7 +79,7 @@
     <string name="hw_long_press_symbol_threshold">长按输入符号时长</string>
     <string name="hw_long_press_symbol_threshold_summary">输入符号所需的按住时长。</string>
     <string name="hw_keyboard_flytext">键盘飞字</string>
-    <string name="hw_keyboard_flytext_summary">实体键盘面或虚拟键盘候选栏：上滑选词，左右滑翻页。键盘面上还可下滑上屏拼音/英文（空闲下滑切输入法）。按住不放说话。每个方向可改动作。</string>
+    <string name="hw_keyboard_flytext_summary">实体键盘面、虚拟键盘候选栏或软键盘字母键：对着候选正上方上滑选词，左右滑翻页。键盘面上还可下滑上屏拼音/英文（空闲下滑切输入法）。按住不放说话。每个方向可改动作。</string>
     <string name="flytext_up_action">上滑</string>
     <string name="flytext_down_action">下滑</string>
     <string name="flytext_left_action">左滑</string>
@@ -379,12 +379,12 @@
     <string name="expand_toolbar_by_default">默认展开工具栏</string>
     <string name="hide_status_bar">隐藏状态栏</string>
     <string name="hide_status_bar_summary">空闲时收起顶栏；打字时照常显示候选栏。</string>
-    <string name="show_candidate_comment">编码提示</string>
-    <string name="show_candidate_comment_summary">候选旁显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。</string>
+    <string name="show_candidate_comment">显示拼音</string>
+    <string name="show_candidate_comment_summary">在候选字下方显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。关掉可让一行多放几个词。</string>
     <string name="pinyin_english_candidates">拼音中显示英文单词</string>
     <string name="pinyin_english_candidates_summary">默认关。打开后，在拼音里打 hello 等拉丁字母也会出英文候选（完整单词优先）。纯英文请用 Sym+N 切英文输入法。与中文候选混排可能显得乱。</string>
     <string name="show_translation_comment">翻译释义</string>
-    <string name="show_translation_comment_summary">可选。在拼音后追加英/日释义（拼音 · en · 日），并在候选上方给出「英 …」「日 …」芯片，点一下即可把该译文上屏。内置精简词表，不联网。这不是日语输入法；要打日文请装 Anthy。需先打开「编码提示」。</string>
+    <string name="show_translation_comment_summary">可选。在拼音后追加英/日释义（拼音 · en · 日），并在候选上方给出「英 …」「日 …」芯片，点一下即可把该译文上屏。内置精简词表，不联网。这不是日语输入法；要打日文请装 Anthy。需先打开「显示拼音」。</string>
     <string name="online_sentence_translate">联网整句翻译</string>
     <string name="online_sentence_translate_summary">可选。把当前首选候选联网译成下方勾选的目标语言，以芯片显示，点选即可直接上屏。默认关，需要网络。优先高质量引擎并做结果校验，仍属机器翻译，无法保证句句完美。</string>
     <string name="online_translate_targets">翻译目标语言</string>
