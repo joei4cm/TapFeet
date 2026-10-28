@@ -28,6 +28,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fcitx.fcitx5.android.daemon.launchOnReady
+import org.fcitx.fcitx5.android.data.CandidateFrequency
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.input.effects.EffectMode
@@ -135,7 +136,8 @@ class HorizontalCandidateComponent :
      */
     fun prepareSelectFeedback(text: String, sourceView: View) {
         if (!inputView.physicalKeyboardMode) {
-            pendingFlyText = null
+            // Arm text for frequency memory in onCommitText; skip fly/bubble overlay.
+            pendingFlyText = text
             playSelectFadeOut(sourceView)
             return
         }
@@ -882,6 +884,9 @@ class HorizontalCandidateComponent :
         // clicks via the physical key itself.
         val picked = pendingFlyText
         pendingFlyText = null
+        if (picked != null && picked == text) {
+            CandidateFrequency.record(text)
+        }
 
         // Soft keyboard only: selection already played a local fade — skip fly/bubble overlay.
         if (!inputView.physicalKeyboardMode) {

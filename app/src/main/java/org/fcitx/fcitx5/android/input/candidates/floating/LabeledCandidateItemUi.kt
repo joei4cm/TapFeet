@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import org.fcitx.fcitx5.android.core.CandidateWord
+import org.fcitx.fcitx5.android.data.CandidateFrequency
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.CandidateFont
 import org.fcitx.fcitx5.android.data.theme.Theme
@@ -30,8 +31,17 @@ class LabeledCandidateItemUi(
     }
 
     fun update(candidate: CandidateWord, active: Boolean) {
+        val prefs = AppPrefs.getInstance().candidateBar
         val labelFg = if (active) theme.genericActiveForegroundColor else theme.candidateLabelColor
-        val fg = if (active) theme.genericActiveForegroundColor else theme.candidateTextColor
+        val fg = when {
+            active -> theme.genericActiveForegroundColor
+            prefs.candidateFrequencyColor.getValue() -> CandidateFrequency.colorFor(
+                CandidateFrequency.countOf(candidate.text),
+                theme.candidateTextColor,
+                theme.genericActiveForegroundColor,
+            )
+            else -> theme.candidateTextColor
+        }
         val altFg = if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor
         root.text = buildSpannedString {
             color(labelFg) {
@@ -53,7 +63,6 @@ class LabeledCandidateItemUi(
         }
         root.backgroundColor =
             if (active) theme.genericActiveBackgroundColor else Color.TRANSPARENT
-        val prefs = AppPrefs.getInstance().candidateBar
         root.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
         root.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
     }

@@ -21,6 +21,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
+import org.fcitx.fcitx5.android.data.CandidateFrequency
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.translation.TranslationChipHelper
@@ -402,6 +403,8 @@ class CandidatesView(
 
     private fun selectAtVisiblePosition(position: Int): Boolean {
         if (position !in 0 until paged.candidates.size) return false
+        val candidate = paged.candidates.getOrNull(position) ?: return false
+        org.fcitx.fcitx5.android.data.CandidateFrequency.record(candidate.text)
         armPickEffect(position)
         fcitx.launchOnReady { it.select(position) }
         return true

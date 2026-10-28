@@ -484,6 +484,16 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
 
         /**
+         * Tint candidate text by local pick frequency (never-picked keeps theme original color).
+         */
+        val candidateFrequencyColor = switch(
+            R.string.candidate_frequency_color,
+            "candidate_frequency_color",
+            true,
+            R.string.candidate_frequency_color_summary
+        )
+
+        /**
          * 拼音输入时把英文单词插进候选（引擎 SpellEnabled）。
          * 默认关：开着会和中文候选混在一起显得乱；需要中英混打时再开。
          * key 带 _v2：升级后重新落到默认关，不受旧默认「开」影响。
