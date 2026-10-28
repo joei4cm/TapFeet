@@ -256,6 +256,15 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
         val consumed = onGestureListener?.onGesture(this, event) ?: return
         if (consumed && !gestureConsumed) {
             gestureConsumed = true
+            // Soft-fly (and similar) can consume before swipe-threshold counts accumulate.
+            // Cancel long-press/repeat so a Popup.Keyboard cannot open under a live swipe —
+            // that overlay "stretches" keys and then steals the touch stream.
+            longPressJob?.cancel()
+            longPressJob = null
+            longPressTriggered = false
+            repeatJob?.cancel()
+            repeatJob = null
+            repeatStarted = false
         }
     }
 
