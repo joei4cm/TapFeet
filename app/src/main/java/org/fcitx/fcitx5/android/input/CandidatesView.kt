@@ -404,7 +404,7 @@ class CandidatesView(
     private fun selectAtVisiblePosition(position: Int): Boolean {
         if (position !in 0 until paged.candidates.size) return false
         val candidate = paged.candidates.getOrNull(position) ?: return false
-        org.fcitx.fcitx5.android.data.CandidateFrequency.record(candidate.text)
+        CandidateFrequency.record(candidate.text)
         armPickEffect(position)
         fcitx.launchOnReady { it.select(position) }
         return true
