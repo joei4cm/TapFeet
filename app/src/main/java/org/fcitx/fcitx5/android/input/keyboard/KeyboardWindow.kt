@@ -67,6 +67,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                 val delta = FlyTextPaging.delta(action, hw.keyboardFlyTextSwapPage.getValue())
                 inputView.flyPageCandidates(delta ?: dir)
             },
+            onDismissPopups = { popup.dismissAll() },
         )
     }
 
