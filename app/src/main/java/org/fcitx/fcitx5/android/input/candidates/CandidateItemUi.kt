@@ -11,6 +11,7 @@ import android.graphics.drawable.LayerDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.graphics.ColorUtils
 import org.fcitx.fcitx5.android.core.CandidateWord
@@ -19,7 +20,6 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
-import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -32,7 +32,7 @@ import splitties.views.gravityCenterHorizontal
 import kotlin.math.max
 
 /**
- * 候选项：序号在左，右侧竖排「字 / 拼音」，比左右并排更窄，一行能放下更多词。
+ * 候选项：竖排「字 / 拼音」，序号叠在左上角不占横向宽度，一行能多放下几个词。
  */
 class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
 
@@ -68,13 +68,17 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         add(comment, lParams(wrapContent, wrapContent))
     }
 
-    private val content = view(::LinearLayout) {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = gravityCenter
-        add(index, lParams(wrapContent, wrapContent) {
-            marginEnd = dp(2)
+    /**
+     * FrameLayout so the index overlays the top-start corner instead of sitting in a horizontal
+     * chain beside the word (which stole ~1 digit of width per item).
+     */
+    private val content = view(::FrameLayout) {
+        add(wordColumn, lParams(wrapContent, wrapContent) {
+            gravity = Gravity.CENTER
         })
-        add(wordColumn, lParams(wrapContent, wrapContent))
+        add(index, lParams(wrapContent, wrapContent) {
+            gravity = Gravity.TOP or Gravity.START
+        })
     }
 
     private val pressHighlight = pressHighlightDrawable(theme.keyPressHighlightColor)
