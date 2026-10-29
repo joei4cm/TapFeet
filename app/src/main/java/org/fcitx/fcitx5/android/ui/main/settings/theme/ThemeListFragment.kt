@@ -1,17 +1,20 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.Keep
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +29,7 @@ import org.fcitx.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 import org.fcitx.fcitx5.android.utils.importErrorDialog
 import org.fcitx.fcitx5.android.utils.queryFileName
 import org.fcitx.fcitx5.android.utils.toast
+import splitties.dimensions.dp
 import splitties.resources.styledDrawable
 import java.util.UUID
 
@@ -38,6 +42,8 @@ class ThemeListFragment : Fragment() {
     private lateinit var exportLauncher: ActivityResultLauncher<String>
 
     private lateinit var themeListAdapter: ThemeListAdapter
+
+    private lateinit var followSystemSwitch: SwitchCompat
 
     private var followSystemDayNightTheme by ThemeManager.prefs.followSystemDayNightTheme
 
@@ -141,9 +147,53 @@ class ThemeListFragment : Fragment() {
         themeListAdapter.setThemes(ThemeManager.getAllThemes())
         updateSelectedThemes()
         ThemeManager.addOnChangedListener(onThemeChangeListener)
-        return ResponsiveThemeListView(requireContext()).apply {
+
+        val ctx = requireContext()
+        followSystemSwitch = SwitchCompat(ctx).apply {
+            id = View.generateViewId()
+            text = ctx.getString(R.string.follow_system_day_night_theme)
+            isChecked = followSystemDayNightTheme
+            // Keep padding readable on the theme grid; avoid looking like a buried Configure pref.
+            setPadding(ctx.dp(16), ctx.dp(12), ctx.dp(16), ctx.dp(12))
+            gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            setOnCheckedChangeListener { _, checked ->
+                if (followSystemDayNightTheme == checked) return@setOnCheckedChangeListener
+                followSystemDayNightTheme = checked
+                updateSelectedThemes()
+            }
+        }
+
+        val list = ResponsiveThemeListView(ctx).apply {
             adapter = themeListAdapter
             applyNavBarInsetsBottomPadding()
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+        }
+
+        return LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(
+                followSystemSwitch,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(list)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Sync if toggled from the Configure tab.
+        if (::followSystemSwitch.isInitialized &&
+            followSystemSwitch.isChecked != followSystemDayNightTheme
+        ) {
+            followSystemSwitch.isChecked = followSystemDayNightTheme
+            updateSelectedThemes()
         }
     }
 
@@ -204,16 +254,34 @@ class ThemeListFragment : Fragment() {
     private fun selectTheme(theme: Theme) {
         if (followSystemDayNightTheme) {
             val ctx = requireContext()
+            val actions = arrayOf(
+                getString(R.string.set_as_light_mode_theme),
+                getString(R.string.set_as_dark_mode_theme),
+                getString(R.string.disable_follow_system_use_theme),
+            )
             AlertDialog.Builder(ctx)
                 .setIcon(ctx.styledDrawable(android.R.attr.alertDialogIcon))
-                .setTitle(R.string.configure)
+                .setTitle(R.string.theme_follow_system_pick_title)
                 .setMessage(R.string.theme_message_follow_system_day_night_mode_enabled)
-                .setPositiveButton(android.R.string.ok, null)
-                .setNegativeButton(R.string.disable_it) { _, _ ->
-                    followSystemDayNightTheme = false
-                    lifecycleScope.launch {
-                        ThemeManager.setNormalModeTheme(theme)
-                        updateSelectedThemes()
+                .setNegativeButton(android.R.string.cancel, null)
+                .setItems(actions) { _, i ->
+                    when (i) {
+                        0 -> {
+                            ThemeManager.prefs.lightModeTheme.setValue(theme)
+                            updateSelectedThemes()
+                        }
+                        1 -> {
+                            ThemeManager.prefs.darkModeTheme.setValue(theme)
+                            updateSelectedThemes()
+                        }
+                        2 -> {
+                            followSystemDayNightTheme = false
+                            if (::followSystemSwitch.isInitialized) {
+                                followSystemSwitch.isChecked = false
+                            }
+                            ThemeManager.setNormalModeTheme(theme)
+                            updateSelectedThemes()
+                        }
                     }
                 }
                 .show()

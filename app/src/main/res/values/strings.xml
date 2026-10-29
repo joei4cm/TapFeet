@@ -449,10 +449,14 @@
     <string name="exception_theme_name_clash">Theme name clashes with builtin themes</string>
     <string name="exception_theme_src_image">Unable to save source image of theme background</string>
     <string name="exception_theme_cropped_image">Unable to save cropped image of theme background</string>
-    <string name="follow_system_day_night_theme">Follow system day/night theme</string>
-    <string name="follow_system_day_night_theme_summary">Override manual theme selection</string>
+    <string name="follow_system_day_night_theme">Follow system</string>
+    <string name="follow_system_day_night_theme_summary">Use the light or dark theme below based on system day/night mode. Manual picks are overridden while this is on.</string>
     <string name="light_mode_theme">Light mode theme</string>
     <string name="dark_mode_theme">Dark mode theme</string>
+    <string name="set_as_light_mode_theme">Set as light mode theme</string>
+    <string name="set_as_dark_mode_theme">Set as dark mode theme</string>
+    <string name="disable_follow_system_use_theme">Turn off Follow system and use this theme</string>
+    <string name="theme_follow_system_pick_title">Follow system is on</string>
     <string name="new_theme">New theme</string>
     <string name="skip">Skip</string>
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
@@ -604,7 +608,7 @@
     <string name="sound_scheme_mechanical">Mechanical</string>
     <string name="sound_scheme_silent">Silent</string>
     <string name="clipboard_return_after_paste">Return after pasting</string>
-    <string name="theme_message_follow_system_day_night_mode_enabled">Cannot switch theme manually while \"Follow system day/night mode\" is enabled.</string>
+    <string name="theme_message_follow_system_day_night_mode_enabled">Follow system is on. Choose how to apply this theme, or turn Follow system off.</string>
     <string name="disable_it">Disable it</string>
     <string name="reset_keyboard_on_focus_change">Switch back to keyboard when the focus changes</string>
     <string name="export_user_data">Export user data</string>
