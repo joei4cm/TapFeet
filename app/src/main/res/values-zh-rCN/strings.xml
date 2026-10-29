@@ -445,8 +445,12 @@
     <string name="exception_theme_name_clash">主题名称与内置主题冲突</string>
     <string name="exception_theme_src_image">无法保存主题背景原图片</string>
     <string name="exception_theme_cropped_image">无法保存裁切后的主题背景图片</string>
-    <string name="follow_system_day_night_theme">跟随系统夜间模式</string>
-    <string name="follow_system_day_night_theme_summary">覆盖手动主题选择</string>
+    <string name="follow_system_day_night_theme">跟随系统</string>
+    <string name="follow_system_day_night_theme_summary">按系统深浅色自动切换下方的日间/夜间主题；开启时手动点选主题会被覆盖。</string>
+    <string name="set_as_light_mode_theme">设为日间主题</string>
+    <string name="set_as_dark_mode_theme">设为夜间主题</string>
+    <string name="disable_follow_system_use_theme">关闭跟随系统并使用此主题</string>
+    <string name="theme_follow_system_pick_title">当前已开启跟随系统</string>
     <string name="light_mode_theme">亮色模式主题</string>
     <string name="dark_mode_theme">暗色模式主题</string>
     <string name="new_theme">新增主题</string>
@@ -600,7 +604,7 @@
     <string name="sound_scheme_mechanical">机械键盘</string>
     <string name="sound_scheme_silent">静默无声</string>
     <string name="clipboard_return_after_paste">粘贴后返回键盘</string>
-    <string name="theme_message_follow_system_day_night_mode_enabled">“跟随系统夜间模式”已启用，不能手动更换主题。</string>
+    <string name="theme_message_follow_system_day_night_mode_enabled">已开启跟随系统。可设为日间/夜间主题，或关闭跟随系统后固定使用此主题。</string>
     <string name="disable_it">禁用它</string>
     <string name="reset_keyboard_on_focus_change">焦点改变时切换回键盘</string>
     <string name="export_user_data">导出用户数据</string>
