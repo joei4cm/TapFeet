@@ -37,7 +37,7 @@ object ThemeManager {
         ThemePreset.AMOLEDBlack,
     )
 
-    val DefaultTheme = ThemePreset.PixelDark
+    val DefaultTheme = ThemeMonet.getDark()
 
     private var monetThemes = listOf(ThemeMonet.getLight(), ThemeMonet.getDark())
 
@@ -46,7 +46,8 @@ object ThemeManager {
     fun getTheme(name: String) =
         customThemes.find { it.name == name } ?: BuiltinThemes.find { it.name == name }
 
-    fun getAllThemes() = customThemes + monetThemes + BuiltinThemes
+    /** Monet (Material You) first so Follow-system / Gboard-like colors are easy to find. */
+    fun getAllThemes() = monetThemes + customThemes + BuiltinThemes
 
     fun refreshThemes() {
         customThemes.clear()

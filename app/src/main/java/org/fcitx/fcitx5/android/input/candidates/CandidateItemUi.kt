@@ -152,13 +152,14 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         // Index stays light / non-bold so it reads as a caption, not part of the word.
         index.typeface = CandidateFont.typeface(ctx, bold = false)
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
-        // Frequency tint: never-picked keeps theme original; often-picked leans toward accent.
+        // Frequency tint: never-picked keeps theme original; grades lean toward accent (not
+        // genericActiveForeground — that is often white text-on-accent and washes out).
         val baseFg = if (isActive) theme.genericActiveForegroundColor else theme.candidateTextColor
         val textFg = if (!isActive && prefs.candidateFrequencyColor.getValue()) {
             CandidateFrequency.colorFor(
                 CandidateFrequency.countOf(candidate.text),
                 theme.candidateTextColor,
-                theme.genericActiveForegroundColor,
+                theme.genericActiveBackgroundColor,
             )
         } else {
             baseFg

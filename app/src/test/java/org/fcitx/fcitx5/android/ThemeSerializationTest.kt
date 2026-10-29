@@ -98,7 +98,8 @@ class ThemeSerializationTest {
             }
         """.trimIndent()
         val (decoded, migrated) = raw.toCustomTheme()
-        Assert.assertEquals("Migration shouldn't happen", false, migrated)
+        // 2.0 → current (2.1) always migrates; round-trip must stay stable afterward.
+        Assert.assertEquals("Migration should happen", true, migrated)
         Assert.assertEquals("Round trip", decoded, decoded.toJson().toCustomTheme().first)
     }
 }

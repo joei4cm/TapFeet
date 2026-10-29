@@ -5,11 +5,13 @@
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.Keep
@@ -24,13 +26,14 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeFilesManager
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.ui.common.withLoadingDialog
 import org.fcitx.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 import org.fcitx.fcitx5.android.utils.importErrorDialog
 import org.fcitx.fcitx5.android.utils.queryFileName
 import org.fcitx.fcitx5.android.utils.toast
 import splitties.dimensions.dp
-import splitties.resources.styledDrawable
+import splitties.resources.styledColor
 import java.util.UUID
 
 class ThemeListFragment : Fragment() {
@@ -153,14 +156,24 @@ class ThemeListFragment : Fragment() {
             id = View.generateViewId()
             text = ctx.getString(R.string.follow_system_day_night_theme)
             isChecked = followSystemDayNightTheme
-            // Keep padding readable on the theme grid; avoid looking like a buried Configure pref.
-            setPadding(ctx.dp(16), ctx.dp(12), ctx.dp(16), ctx.dp(12))
+            setPadding(ctx.dp(16), ctx.dp(12), ctx.dp(16), ctx.dp(4))
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             setOnCheckedChangeListener { _, checked ->
                 if (followSystemDayNightTheme == checked) return@setOnCheckedChangeListener
                 followSystemDayNightTheme = checked
+                if (checked) {
+                    // Gboard-like: day/night use Material You (Monet) from the system palette.
+                    ThemeManager.prefs.lightModeTheme.setValue(ThemeMonet.getLight())
+                    ThemeManager.prefs.darkModeTheme.setValue(ThemeMonet.getDark())
+                }
                 updateSelectedThemes()
             }
+        }
+        val followSummary = TextView(ctx).apply {
+            text = ctx.getString(R.string.follow_system_day_night_theme_summary)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(ctx.styledColor(android.R.attr.textColorSecondary))
+            setPadding(ctx.dp(16), 0, ctx.dp(16), ctx.dp(12))
         }
 
         val list = ResponsiveThemeListView(ctx).apply {
@@ -182,13 +195,19 @@ class ThemeListFragment : Fragment() {
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
             )
+            addView(
+                followSummary,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
             addView(list)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Sync if toggled from the Configure tab.
         if (::followSystemSwitch.isInitialized &&
             followSystemSwitch.isChecked != followSystemDayNightTheme
         ) {
@@ -253,38 +272,20 @@ class ThemeListFragment : Fragment() {
 
     private fun selectTheme(theme: Theme) {
         if (followSystemDayNightTheme) {
-            val ctx = requireContext()
-            val actions = arrayOf(
-                getString(R.string.set_as_light_mode_theme),
-                getString(R.string.set_as_dark_mode_theme),
-                getString(R.string.disable_follow_system_use_theme),
-            )
-            AlertDialog.Builder(ctx)
-                .setIcon(ctx.styledDrawable(android.R.attr.alertDialogIcon))
-                .setTitle(R.string.theme_follow_system_pick_title)
-                .setMessage(R.string.theme_message_follow_system_day_night_mode_enabled)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setItems(actions) { _, i ->
-                    when (i) {
-                        0 -> {
-                            ThemeManager.prefs.lightModeTheme.setValue(theme)
-                            updateSelectedThemes()
-                        }
-                        1 -> {
-                            ThemeManager.prefs.darkModeTheme.setValue(theme)
-                            updateSelectedThemes()
-                        }
-                        2 -> {
-                            followSystemDayNightTheme = false
-                            if (::followSystemSwitch.isInitialized) {
-                                followSystemSwitch.isChecked = false
-                            }
-                            ThemeManager.setNormalModeTheme(theme)
-                            updateSelectedThemes()
-                        }
-                    }
-                }
-                .show()
+            // One-tap: Monet sets both day/night from the system palette; otherwise assign by
+            // isDark. Turn Follow system off first to pin a single theme.
+            if (theme is Theme.Monet) {
+                ThemeManager.prefs.lightModeTheme.setValue(ThemeMonet.getLight())
+                ThemeManager.prefs.darkModeTheme.setValue(ThemeMonet.getDark())
+                requireContext().toast(R.string.theme_applied_system_colors)
+            } else if (theme.isDark) {
+                ThemeManager.prefs.darkModeTheme.setValue(theme)
+                requireContext().toast(R.string.set_as_dark_mode_theme)
+            } else {
+                ThemeManager.prefs.lightModeTheme.setValue(theme)
+                requireContext().toast(R.string.set_as_light_mode_theme)
+            }
+            updateSelectedThemes()
             return
         }
         ThemeManager.setNormalModeTheme(theme)

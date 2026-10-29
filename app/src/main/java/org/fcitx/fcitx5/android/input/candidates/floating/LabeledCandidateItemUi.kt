@@ -38,7 +38,7 @@ class LabeledCandidateItemUi(
             prefs.candidateFrequencyColor.getValue() -> CandidateFrequency.colorFor(
                 CandidateFrequency.countOf(candidate.text),
                 theme.candidateTextColor,
-                theme.genericActiveForegroundColor,
+                theme.genericActiveBackgroundColor,
             )
             else -> theme.candidateTextColor
         }

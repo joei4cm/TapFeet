@@ -7,9 +7,7 @@ package org.fcitx.fcitx5.android.data.theme
 
 import android.content.SharedPreferences
 import android.os.Build
-import androidx.annotation.StringRes
 import androidx.core.content.edit
-import org.fcitx.fcitx5.android.BuildConfig
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceCategory
@@ -17,22 +15,6 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceEnum
 
 class ThemePrefs(sharedPreferences: SharedPreferences) :
     ManagedPreferenceCategory(R.string.theme, sharedPreferences) {
-
-    private fun themePreference(
-        @StringRes
-        title: Int,
-        key: String,
-        defaultValue: Theme,
-        @StringRes
-        summary: Int? = null,
-        enableUiOn: (() -> Boolean)? = null
-    ): ManagedThemePreference {
-        val pref = ManagedThemePreference(sharedPreferences, key, defaultValue)
-        val ui = ManagedThemePreferenceUi(title, key, defaultValue, summary, enableUiOn)
-        pref.register()
-        ui.registerUi()
-        return pref
-    }
 
     val keyBorder = switch(R.string.key_border, "key_border", true)
 
@@ -126,36 +108,33 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
 
     /**
      * When [followSystemDayNightTheme] is disabled, this theme is used.
-     * This is effectively an internal preference which does not need UI.
+     * Internal — no Preference UI; pick from the theme grid instead.
      */
     val normalModeTheme = ManagedThemePreference(
-        sharedPreferences, "normal_mode_theme", ThemePreset.PixelDark
+        sharedPreferences, "normal_mode_theme", ThemeMonet.getDark()
     ).also {
         it.register()
     }
 
-    val followSystemDayNightTheme = switch(
-        R.string.follow_system_day_night_theme,
-        "follow_system_dark_mode",
-        true,
-        summary = R.string.follow_system_day_night_theme_summary
-    )
+    /**
+     * Gboard-like: follow system day/night and use Material You (Monet) by default.
+     * Toggle lives on the theme list (not the Configure tab).
+     */
+    val followSystemDayNightTheme = bool("follow_system_dark_mode", true)
 
-    val lightModeTheme = themePreference(
-        R.string.light_mode_theme,
-        "light_mode_theme",
-        ThemePreset.PixelLight,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        })
+    /** Day theme while [followSystemDayNightTheme] is on. Internal — set via theme grid. */
+    val lightModeTheme = ManagedThemePreference(
+        sharedPreferences, "light_mode_theme", ThemeMonet.getLight()
+    ).also {
+        it.register()
+    }
 
-    val darkModeTheme = themePreference(
-        R.string.dark_mode_theme,
-        "dark_mode_theme",
-        ThemePreset.PixelDark,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        })
+    /** Night theme while [followSystemDayNightTheme] is on. Internal — set via theme grid. */
+    val darkModeTheme = ManagedThemePreference(
+        sharedPreferences, "dark_mode_theme", ThemeMonet.getDark()
+    ).also {
+        it.register()
+    }
 
     val dayNightModePrefNames = setOf(
         followSystemDayNightTheme.key,
@@ -165,6 +144,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
 
     init {
         migrateGboardLikeDefaults()
+        migrateSystemMonetDefaults()
     }
 
     /**
@@ -190,18 +170,35 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
             if (h == 3) putInt("key_horizontal_margin", 2)
             val v = sharedPreferences.getInt("key_vertical_margin", 7)
             if (v == 7) putInt("key_vertical_margin", 5)
-            // Day/night still on WeChat stock names → Pixel (Gboard-like blue accent)
+            putBoolean(flag, true)
+        }
+    }
+
+    /**
+     * Gboard-like system colors: day/night slots that still point at WeChat/Pixel stock
+     * themes move to Monet (Material You). Follow-system stays on unless the user already
+     * turned it off.
+     */
+    private fun migrateSystemMonetDefaults() {
+        val flag = "theme_system_monet_defaults_v1"
+        if (sharedPreferences.getBoolean(flag, false)) return
+        val stockLight = setOf("WeChatLight", "PixelLight", "MaterialLight")
+        val stockDark = setOf("WeChatDark", "PixelDark", "MaterialDark")
+        sharedPreferences.edit {
             val light = sharedPreferences.getString("light_mode_theme", null)
-            if (light == null || light == "WeChatLight") {
-                putString("light_mode_theme", ThemePreset.PixelLight.name)
+            if (light == null || light in stockLight) {
+                putString("light_mode_theme", "MonetLight")
             }
             val dark = sharedPreferences.getString("dark_mode_theme", null)
-            if (dark == null || dark == "WeChatDark") {
-                putString("dark_mode_theme", ThemePreset.PixelDark.name)
+            if (dark == null || dark in stockDark) {
+                putString("dark_mode_theme", "MonetDark")
             }
             val normal = sharedPreferences.getString("normal_mode_theme", null)
-            if (normal == null || normal == "WeChatDark" || normal == "WeChatLight") {
-                putString("normal_mode_theme", ThemePreset.PixelDark.name)
+            if (normal == null || normal in stockLight || normal in stockDark) {
+                putString("normal_mode_theme", "MonetDark")
+            }
+            if (!sharedPreferences.contains("follow_system_dark_mode")) {
+                putBoolean("follow_system_dark_mode", true)
             }
             putBoolean(flag, true)
         }

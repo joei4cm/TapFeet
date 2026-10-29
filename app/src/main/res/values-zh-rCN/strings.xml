@@ -382,7 +382,7 @@
     <string name="show_candidate_comment">显示拼音</string>
     <string name="show_candidate_comment_summary">在候选字下方显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。关掉可让一行多放几个词。</string>
     <string name="candidate_frequency_color">按使用频率着色</string>
-    <string name="candidate_frequency_color_summary">常选的候选偏向主题强调色；从未选过的保持原色。记忆留在本机。</string>
+    <string name="candidate_frequency_color_summary">按本机选词次数分档着色（浅→深强调色）；从未选过的保持原色。</string>
     <string name="pinyin_english_candidates">拼音中显示英文单词</string>
     <string name="pinyin_english_candidates_summary">默认关。打开后，在拼音里打 hello 等拉丁字母也会出英文候选（完整单词优先）。纯英文请用 Sym+N 切英文输入法。与中文候选混排可能显得乱。</string>
     <string name="show_translation_comment">翻译释义</string>
@@ -445,12 +445,13 @@
     <string name="exception_theme_name_clash">主题名称与内置主题冲突</string>
     <string name="exception_theme_src_image">无法保存主题背景原图片</string>
     <string name="exception_theme_cropped_image">无法保存裁切后的主题背景图片</string>
-    <string name="follow_system_day_night_theme">跟随系统</string>
-    <string name="follow_system_day_night_theme_summary">按系统深浅色自动切换下方的日间/夜间主题；开启时手动点选主题会被覆盖。</string>
-    <string name="set_as_light_mode_theme">设为日间主题</string>
-    <string name="set_as_dark_mode_theme">设为夜间主题</string>
+    <string name="follow_system_day_night_theme">跟随系统配色</string>
+    <string name="follow_system_day_night_theme_summary">类似 Gboard：深浅色跟随系统，配色使用 Material You（壁纸色）。关闭后可在下方固定单一主题。</string>
+    <string name="set_as_light_mode_theme">已设为日间主题</string>
+    <string name="set_as_dark_mode_theme">已设为夜间主题</string>
     <string name="disable_follow_system_use_theme">关闭跟随系统并使用此主题</string>
     <string name="theme_follow_system_pick_title">当前已开启跟随系统</string>
+    <string name="theme_applied_system_colors">已用系统配色作为日间/夜间主题</string>
     <string name="light_mode_theme">亮色模式主题</string>
     <string name="dark_mode_theme">暗色模式主题</string>
     <string name="new_theme">新增主题</string>

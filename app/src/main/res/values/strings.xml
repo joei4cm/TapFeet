@@ -386,7 +386,7 @@
     <string name="show_candidate_comment">Show pinyin</string>
     <string name="show_candidate_comment_summary">Show pinyin/encoding under each candidate. Uses the engine comment, or the word\'s pinyin. Turn off for a cleaner, wider row.</string>
     <string name="candidate_frequency_color">Color by usage</string>
-    <string name="candidate_frequency_color_summary">Tint candidates you pick often toward the theme accent. Never-picked words stay the original color.</string>
+    <string name="candidate_frequency_color_summary">Grade candidates by how often you pick them (soft → peak accent). Never-picked words stay the original color.</string>
     <string name="pinyin_english_candidates">English words in pinyin</string>
     <string name="pinyin_english_candidates_summary">Off by default. When on, typing latin in pinyin (e.g. hello) also lists English words — the typed word comes first. For pure English typing prefer Sym+N → English IME. Mixing with Chinese candidates can feel busy.</string>
     <string name="show_translation_comment">Translation gloss</string>
@@ -449,14 +449,15 @@
     <string name="exception_theme_name_clash">Theme name clashes with builtin themes</string>
     <string name="exception_theme_src_image">Unable to save source image of theme background</string>
     <string name="exception_theme_cropped_image">Unable to save cropped image of theme background</string>
-    <string name="follow_system_day_night_theme">Follow system</string>
-    <string name="follow_system_day_night_theme_summary">Use the light or dark theme below based on system day/night mode. Manual picks are overridden while this is on.</string>
+    <string name="follow_system_day_night_theme">Follow system colors</string>
+    <string name="follow_system_day_night_theme_summary">Like Gboard: day/night follows the system, and colors use Material You (Monet). Turn off to pin one theme from the grid.</string>
     <string name="light_mode_theme">Light mode theme</string>
     <string name="dark_mode_theme">Dark mode theme</string>
     <string name="set_as_light_mode_theme">Set as light mode theme</string>
     <string name="set_as_dark_mode_theme">Set as dark mode theme</string>
     <string name="disable_follow_system_use_theme">Turn off Follow system and use this theme</string>
     <string name="theme_follow_system_pick_title">Follow system is on</string>
+    <string name="theme_applied_system_colors">Using system colors for day and night</string>
     <string name="new_theme">New theme</string>
     <string name="skip">Skip</string>
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>

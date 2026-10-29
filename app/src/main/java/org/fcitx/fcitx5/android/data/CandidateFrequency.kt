@@ -6,11 +6,9 @@ package org.fcitx.fcitx5.android.data
 
 import android.content.Context
 import androidx.core.content.edit
-import androidx.core.graphics.ColorUtils
 import kotlinx.serialization.json.Json
 import org.fcitx.fcitx5.android.FcitxApplication
 import timber.log.Timber
-import kotlin.math.ln
 
 /**
  * Local candidate-pick memory: how often the user has selected each candidate string.
@@ -18,6 +16,10 @@ import kotlin.math.ln
  * The engine's [org.fcitx.fcitx5.android.core.CandidateWord] has no frequency field, so we count
  * commits that came from an armed candidate pick. Completely unfamiliar words stay at count 0
  * and keep the theme's original candidate color.
+ *
+ * Known counts map to discrete [Grade] steps so the tint reads as a ladder (soft → peak), not a
+ * binary “top vs rest”. Call sites pass the theme accent (e.g. [Theme.genericActiveBackgroundColor]),
+ * never [Theme.genericActiveForegroundColor] — that one is often white text-on-accent and washes out.
  */
 object CandidateFrequency {
 
@@ -26,20 +28,56 @@ object CandidateFrequency {
     /** Cap stored entries so prefs stay small; drop the coldest when over. */
     private const val MAX_ENTRIES = 800
 
+    /** Discrete frequency bands for candidate tint. */
+    enum class Grade {
+        /** Never picked — keep theme base color. */
+        None,
+        Soft,
+        Medium,
+        Strong,
+        Peak,
+    }
+
     /**
-     * Soft saturation: count 1 ≈ light tint, ~20 ≈ near accent. Pure math — unit-testable.
-     * @return blend factor in \[0, 1\]; 0 means keep [base] (unknown).
+     * Map a raw pick count to a grade. Thresholds are intentionally coarse so nearby counts share
+     * a band and the ladder stays readable.
      */
-    fun blendFactor(count: Int): Float {
-        if (count <= 0) return 0f
-        val t = ln(1.0 + count) / ln(1.0 + 20.0)
-        return t.toFloat().coerceIn(0.28f, 0.88f)
+    fun grade(count: Int): Grade = when {
+        count <= 0 -> Grade.None
+        count < 3 -> Grade.Soft
+        count < 8 -> Grade.Medium
+        count < 20 -> Grade.Strong
+        else -> Grade.Peak
+    }
+
+    /**
+     * Blend strength for [grade]. Pure math — unit-testable.
+     * @return factor in \[0, 1\]; 0 means keep [base] (unknown).
+     */
+    fun blendFactor(count: Int): Float = when (grade(count)) {
+        Grade.None -> 0f
+        Grade.Soft -> 0.28f
+        Grade.Medium -> 0.48f
+        Grade.Strong -> 0.68f
+        Grade.Peak -> 0.88f
     }
 
     fun colorFor(count: Int, base: Int, accent: Int): Int {
         val t = blendFactor(count)
         if (t <= 0f) return base
-        return ColorUtils.blendARGB(base, accent, t)
+        return blendArgb(base, accent, t)
+    }
+
+    /** Pure ARGB lerp — no Android Color APIs so JVM unit tests can exercise it. */
+    fun blendArgb(from: Int, to: Int, ratio: Float): Int {
+        val t = ratio.coerceIn(0f, 1f)
+        val inv = 1f - t
+        fun ch(shift: Int): Int {
+            val a = (from ushr shift) and 0xFF
+            val b = (to ushr shift) and 0xFF
+            return (a * inv + b * t).toInt().coerceIn(0, 255)
+        }
+        return (ch(24) shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
 
     @Volatile
