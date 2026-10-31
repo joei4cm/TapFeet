@@ -6,6 +6,7 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -55,6 +56,21 @@ class T9PinyinTest {
     @Test
     fun prefixKeepsTyping() {
         assertEquals("niha", T9Pinyin.decode("6442"))
+    }
+
+    @Test
+    fun haoDigitBackspaceCanLeaveGaNotHa() {
+        // QWERTY "hao" maps to pad 426; dropping the last pad key leaves 42.
+        // T9 may re-decode that as "ga" (same pad as "ha"), which must never run on 26-key.
+        assertEquals("426", T9Pinyin.digitsOfLatin("hao"))
+        assertEquals("42", T9Pinyin.digitsOfLatin("ha"))
+        val afterDropO = T9Pinyin.decode("42")
+        assertTrue(
+            "42 should be a valid incomplete syllable, got $afterDropO",
+            afterDropO in setOf("ha", "ga", "h", "g"),
+        )
+        // Document the collision the user hit: not always "ha".
+        assertTrue(afterDropO == "ha" || afterDropO == "ga")
     }
 
     @Test

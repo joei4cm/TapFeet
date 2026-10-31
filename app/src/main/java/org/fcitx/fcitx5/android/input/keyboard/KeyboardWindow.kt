@@ -253,7 +253,11 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                 AppPrefs.getInstance().keyboard.virtualLayout.setValue(
                     VirtualLayout.fromKeyboardName(dest)
                 )
-                T9Session.clear()
+                // 布局切换时 NineKey 的 onAttach/onDetach 会维护 active；这里兜底关掉，
+                // 避免从九键切到 26 键时残留 digits 劫持退格。
+                if (dest != NineKeyKeyboard.Name) {
+                    T9Session.setActive(false)
+                }
             }
             // 记录当前 Sym 三态：自定义键盘 → CUSTOM；主键盘 / 数字键盘 → NONE
             symMode = if (dest == CustomKeyboard.Name) SymMode.CUSTOM else SymMode.NONE

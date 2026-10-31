@@ -12,6 +12,9 @@ import org.fcitx.fcitx5.android.core.KeySym
 
 /**
  * 9 键会话。中文走 [T9Pinyin] 整串重解再写入 fcitx；英文多击出字母，交给现有英文联想。
+ *
+ * 仅在九键布局 [active] 时同步预编辑 / 劫持退格。26 键字母是确定的，绝不能走 T9 重解码
+ *（否则删 `hao` 的 `o` 时，pad `42` 可能被解成 `ga` 而不是留下 `ha`）。
  */
 object T9Session {
 
@@ -21,10 +24,18 @@ object T9Session {
     private var lastPinyin = ""
     @Volatile
     private var writing = false
+    @Volatile
+    private var active = false
 
     private var lastEnglishDigit: Char? = null
     private var lastEnglishTapAt = 0L
     private var englishCycle = 0
+
+    /** 九键布局附着时打开；离开九键时关闭并清空，避免污染 26 键退格。 */
+    fun setActive(value: Boolean) {
+        active = value
+        if (!value) clear()
+    }
 
     fun clear() {
         digits.setLength(0)
@@ -33,13 +44,16 @@ object T9Session {
         englishCycle = 0
     }
 
+    /** 测试与诊断：当前是否积压了待重解的九键数字串。 */
+    fun hasPendingDigits(): Boolean = digits.isNotEmpty()
+
     fun onPreeditEmpty(empty: Boolean) {
-        if (writing || !empty) return
+        if (!active || writing || !empty) return
         clear()
     }
 
     fun onPanelLatin(text: String) {
-        if (writing) return
+        if (!active || writing) return
         val latin = buildString {
             for (c in text) {
                 if (c.isLetter()) append(c.lowercaseChar())
@@ -54,6 +68,7 @@ object T9Session {
     }
 
     suspend fun onDigit(digit: Char, chinese: Boolean, fcitx: FcitxAPI) {
+        if (!active) return
         if (digit !in '2'..'9') return
         if (chinese) {
             lastEnglishDigit = null
@@ -66,12 +81,10 @@ object T9Session {
     }
 
     suspend fun onBackspace(fcitx: FcitxAPI): Boolean {
-        if (digits.isNotEmpty()) {
-            digits.deleteCharAt(digits.lastIndex)
-            syncChinese(fcitx)
-            return true
-        }
-        return false
+        if (!active || digits.isEmpty()) return false
+        digits.deleteCharAt(digits.lastIndex)
+        syncChinese(fcitx)
+        return true
     }
 
     private suspend fun onChineseDigit(digit: Char, fcitx: FcitxAPI) {

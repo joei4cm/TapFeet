@@ -88,11 +88,11 @@ class NineKeyKeyboard(
     }
 
     override fun onAttach() {
-        T9Session.clear()
+        T9Session.setActive(true)
     }
 
     override fun onDetach() {
-        T9Session.clear()
+        T9Session.setActive(false)
         super.onDetach()
     }
 
