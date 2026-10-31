@@ -564,6 +564,8 @@ class HorizontalCandidateComponent :
             "CandSync: renderPage start=%d pageSize=%d slice=%d shown=%d pool=%d",
             localPageStart, pageSize, slice.size, dropped.words.size, pageCandidates.size
         )
+        // 英文键盘空格上屏已打字母，不高亮「假首选」；中文空格上首选才高亮。
+        adapter.highlightPreferred = currentImeName() != "keyboard-us"
         adapter.updateCandidates(dropped.words, sourceTotal, localPageStart, dropped.engineIndices)
         // Page turn? Only when the user asked for one AND the page actually moved: fresh queries,
         // width changes and the 5→3→1 overflow fallback all re-render through here and must not

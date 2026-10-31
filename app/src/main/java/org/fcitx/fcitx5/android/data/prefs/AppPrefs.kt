@@ -647,12 +647,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.hw_enable_candidate_quick_pick_summary
         )
 
-        // English prefix completion (spell dictionary). Default ON so QWERTY is not typewriter-direct.
-        val englishWordHint = switch(
-            R.string.hw_english_word_hint,
-            "hw_english_word_hint",
-            true,
-            R.string.hw_english_word_hint_summary
+        // English IME commit mode: word hints (default) or literal type-what-you-type.
+        val englishInputMode = enumList(
+            R.string.english_input_mode,
+            "hw_english_input_mode",
+            EnglishInputMode.WordHint,
         )
 
         // After picking an English completion, insert a space before the next word. Default ON.
@@ -661,7 +660,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "hw_english_insert_space",
             true,
             R.string.hw_english_insert_space_summary
-        ) { englishWordHint.getValue() }
+        ) { englishInputMode.getValue() == EnglishInputMode.WordHint }
 
         // Bundled Chinese IM to enable+activate (pinyin / shuangpin / rime / wbx). Default Fcitx.
         val pinyinEngine = enumList(

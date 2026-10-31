@@ -135,10 +135,13 @@
     <string name="hw_special_shift_r">右Shift</string>
     <string name="hw_enable_candidate_quick_pick">巨硬模式</string>
     <string name="hw_enable_candidate_quick_pick_summary">物理键选词：%1$s</string>
-    <string name="hw_english_word_hint">英文联想</string>
-    <string name="hw_english_word_hint_summary">英文输入法默认打开。按前缀出候选（the / there / then…），空格或回车上屏你打的字母，点候选才换成联想词。微信等输入框也能联想。关掉后打什么字符就上什么字符，不组词、不替换。虚拟键盘和物理键盘共用这个开关。</string>
-    <string name="hw_english_insert_space">选词后自动空格</string>
-    <string name="hw_english_insert_space_summary">选中英文联想词后自动加空格，接着打下一个词。</string>
+    <string name="english_input_category">英文输入</string>
+    <string name="english_input_mode">上屏方式</string>
+    <string name="english_input_mode_summary">单词联想按前缀出词；逐字上屏不组词、不替换。虚拟与物理键盘共用。</string>
+    <string name="english_input_mode_word_hint">单词联想</string>
+    <string name="english_input_mode_literal">逐字上屏</string>
+    <string name="hw_english_insert_space">选词后加空格</string>
+    <string name="hw_english_insert_space_summary">点选联想词后自动空一格。</string>
     <string name="pinyin_engine">中文拼音引擎</string>
     <string name="pinyin_engine_fcitx">小企鹅拼音</string>
     <string name="pinyin_engine_shuangpin">双拼</string>

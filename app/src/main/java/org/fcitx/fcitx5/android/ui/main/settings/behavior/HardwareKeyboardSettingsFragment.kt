@@ -11,12 +11,14 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.preference.ListPreference
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import com.google.android.material.tabs.TabLayout
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.InputFeedbacks.SoundScheme
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.EnglishInputMode
 import org.fcitx.fcitx5.android.data.prefs.HardwareKeyProfiles
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.ui.common.createSettingsTabBar
@@ -121,12 +123,21 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(quickPickSwitch)
 
-        val englishWordHintSwitch = SwitchPreference(context).apply {
-            key = hw.englishWordHint.key
-            title = getString(R.string.hw_english_word_hint)
-            summary = getString(R.string.hw_english_word_hint_summary)
-            setDefaultValue(hw.englishWordHint.defaultValue)
-            isChecked = hw.englishWordHint.getValue()
+        val englishCat = PreferenceCategory(context).apply {
+            key = "hw_english_input_category"
+            title = getString(R.string.english_input_category)
+            isIconSpaceReserved = false
+        }
+        profileScreen.addPreference(englishCat)
+        val englishModes = EnglishInputMode.entries
+        val englishModePref = ListPreference(context).apply {
+            key = hw.englishInputMode.key
+            title = getString(R.string.english_input_mode)
+            summary = getString(R.string.english_input_mode_summary)
+            setDefaultValue(hw.englishInputMode.defaultValue.name)
+            entries = englishModes.map { getString(it.stringRes) }.toTypedArray()
+            entryValues = englishModes.map { it.name }.toTypedArray()
+            value = hw.englishInputMode.getValue().name
             isIconSpaceReserved = false
             isSingleLineTitle = false
         }
@@ -138,14 +149,14 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             isChecked = hw.englishInsertSpace.getValue()
             isIconSpaceReserved = false
             isSingleLineTitle = false
-            isEnabled = englishWordHintSwitch.isChecked
+            isEnabled = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
         }
-        englishWordHintSwitch.setOnPreferenceChangeListener { _, newValue ->
-            englishInsertSpaceSwitch.isEnabled = newValue as Boolean
+        englishModePref.setOnPreferenceChangeListener { _, newValue ->
+            englishInsertSpaceSwitch.isEnabled = newValue == EnglishInputMode.WordHint.name
             true
         }
-        profileScreen.addPreference(englishWordHintSwitch)
-        profileScreen.addPreference(englishInsertSpaceSwitch)
+        englishCat.addPreference(englishModePref)
+        englishCat.addPreference(englishInsertSpaceSwitch)
 
         // —— 飞字独立 Tab ——
         // 飞字不依赖任何硬件能力闸门：任意设备都开放。无键盘触摸面的机型只是收不到触摸事件、

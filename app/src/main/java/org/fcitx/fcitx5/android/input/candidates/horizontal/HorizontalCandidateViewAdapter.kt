@@ -46,6 +46,12 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
      */
     var displayMode: CandidateDisplayMode = CandidateDisplayMode.Macrohard
 
+    /**
+     * 是否高亮「首选」（切片下标 0）。拼音空格上首选时为 true；
+     * 英文单词联想时空格上屏已打字母，点候选才换词，故为 false，避免假首选。
+     */
+    var highlightPreferred: Boolean = true
+
     var total = -1
         private set
 
@@ -101,11 +107,8 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     @CallSuper
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         val originalIndex = displayOrder[position]
-        val isActive = originalIndex == 0
-        // Give the preferred (first) candidate extra horizontal padding so it stands out
-        // visually from the other candidates on the bar — the bold typeface + activeBackground
-        // alone are subtle on a narrow BlackBerry-style bar, and the extra breathing room
-        // makes the "tap Space to commit this one" affordance much more obvious.
+        val isActive = highlightPreferred && originalIndex == 0
+        // Extra padding only when Space commits this preferred word (Chinese).
         val horizontalPaddingDp = if (isActive) 20 else 10
         holder.ui.root.setPaddingDp(horizontalPaddingDp, 0, horizontalPaddingDp, 0)
         val prefs = AppPrefs.getInstance().candidateBar

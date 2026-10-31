@@ -4,11 +4,14 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
+import androidx.preference.ListPreference
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.EnglishInputMode
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fcitx.fcitx5.android.utils.navigateWithAnim
@@ -31,17 +34,27 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         }
         screen.addPreference(theme)
 
-        // 英文输入法的联想 / 原样上屏。与物理键盘设置页同一组开关。
         val hw = AppPrefs.getInstance().hardwareKeyboard
-        val wordHint = SwitchPreference(requireContext()).apply {
-            key = hw.englishWordHint.key
-            title = getString(R.string.hw_english_word_hint)
-            summary = getString(R.string.hw_english_word_hint_summary)
-            setDefaultValue(hw.englishWordHint.defaultValue)
-            isChecked = hw.englishWordHint.getValue()
+        val englishCat = PreferenceCategory(requireContext()).apply {
+            key = "virtual_keyboard_english_input"
+            title = getString(R.string.english_input_category)
+            isIconSpaceReserved = false
+            order = -90
+        }
+        screen.addPreference(englishCat)
+
+        val modes = EnglishInputMode.entries
+        val modePref = ListPreference(requireContext()).apply {
+            key = hw.englishInputMode.key
+            title = getString(R.string.english_input_mode)
+            summary = getString(R.string.english_input_mode_summary)
+            setDefaultValue(hw.englishInputMode.defaultValue.name)
+            entries = modes.map { getString(it.stringRes) }.toTypedArray()
+            entryValues = modes.map { it.name }.toTypedArray()
+            value = hw.englishInputMode.getValue().name
             isIconSpaceReserved = false
             isSingleLineTitle = false
-            order = -90
+            order = -89
         }
         val insertSpace = SwitchPreference(requireContext()).apply {
             key = hw.englishInsertSpace.key
@@ -51,14 +64,14 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
             isChecked = hw.englishInsertSpace.getValue()
             isIconSpaceReserved = false
             isSingleLineTitle = false
-            isEnabled = wordHint.isChecked
-            order = -80
+            isEnabled = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
+            order = -88
         }
-        wordHint.setOnPreferenceChangeListener { _, newValue ->
-            insertSpace.isEnabled = newValue as Boolean
+        modePref.setOnPreferenceChangeListener { _, newValue ->
+            insertSpace.isEnabled = newValue == EnglishInputMode.WordHint.name
             true
         }
-        screen.addPreference(wordHint)
-        screen.addPreference(insertSpace)
+        englishCat.addPreference(modePref)
+        englishCat.addPreference(insertSpace)
     }
 }

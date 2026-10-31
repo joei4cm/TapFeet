@@ -32,7 +32,7 @@ object AndroidKeyboardPrefs {
         cfg: RawConfig,
         hw: AppPrefs.HardwareKeyboard = AppPrefs.getInstance().hardwareKeyboard,
     ) {
-        val wordHint = hw.englishWordHint.getValue()
+        val wordHint = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
         apply(cfg, wordHint, wordHint && hw.englishInsertSpace.getValue())
     }
 

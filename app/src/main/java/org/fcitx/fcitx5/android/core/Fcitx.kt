@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.data.prefs.AndroidKeyboardPrefs.syncAndroidKeybo
 import org.fcitx.fcitx5.android.data.prefs.PinyinFuzzyPrefs.syncPinyinFuzzyPrefs
 import org.fcitx.fcitx5.android.data.prefs.PinyinSpellPrefs.syncPinyinSpellPrefs
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.EnglishInputMode
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.input.keyboard.PinyinEngineKind
 import org.fcitx.fcitx5.android.utils.ImmutableGraph
@@ -39,7 +40,13 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     private val lifecycleRegistry = FcitxLifecycleRegistry()
 
     @Keep
-    private val onAndroidKeyboardPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+    private val onEnglishInputModeChange =
+        ManagedPreference.OnChangeListener<EnglishInputMode> { _, _ ->
+            lifecycle.launchWhenReady { this@Fcitx.syncAndroidKeyboardPrefs() }
+        }
+
+    @Keep
+    private val onEnglishInsertSpaceChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
         lifecycle.launchWhenReady { this@Fcitx.syncAndroidKeyboardPrefs() }
     }
 
@@ -255,8 +262,8 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         if (lifecycle.currentState != FcitxLifecycle.State.STOPPED)
             throw IllegalAccessException("Fcitx5 has already been created!")
         val hw = AppPrefs.getInstance().hardwareKeyboard
-        hw.englishWordHint.registerOnChangeListener(onAndroidKeyboardPrefChange)
-        hw.englishInsertSpace.registerOnChangeListener(onAndroidKeyboardPrefChange)
+        hw.englishInputMode.registerOnChangeListener(onEnglishInputModeChange)
+        hw.englishInsertSpace.registerOnChangeListener(onEnglishInsertSpaceChange)
         hw.pinyinEngine.registerOnChangeListener(onPinyinEngineChange)
     }
 
