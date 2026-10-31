@@ -144,6 +144,8 @@
     <string name="english_input_mode_summary">Word suggestions list completions by prefix; literal commits each character as typed. Shared by on-screen and physical keyboards.</string>
     <string name="english_input_mode_word_hint">Word suggestions</string>
     <string name="english_input_mode_literal">Literal</string>
+    <string name="english_space_label_word_hint">EN · Suggest</string>
+    <string name="english_space_label_literal">EN · Literal</string>
     <string name="hw_english_insert_space">Space after pick</string>
     <string name="hw_english_insert_space_summary">Add a space after you tap a suggested word.</string>
     <string name="pinyin_engine">Chinese pinyin engine</string>

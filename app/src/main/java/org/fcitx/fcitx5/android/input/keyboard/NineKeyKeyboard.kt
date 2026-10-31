@@ -11,6 +11,7 @@ import androidx.annotation.Keep
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.EnglishInputMode
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.Theme
 import splitties.views.imageResource
@@ -71,9 +72,19 @@ class NineKeyKeyboard(
         updateLangSwitchKey(v)
     }
 
+    private var lastIme: InputMethodEntry? = null
+
+    @Keep
+    private val onEnglishInputModeChange =
+        ManagedPreference.OnChangeListener<EnglishInputMode> { _, _ ->
+            lastIme?.let { updateSpaceBarLabel(it) }
+        }
+
     init {
         updateLangSwitchKey(showLangSwitchKey.getValue())
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
+        AppPrefs.getInstance().hardwareKeyboard.englishInputMode
+            .registerOnChangeListener(onEnglishInputModeChange)
     }
 
     override fun onAttach() {
@@ -90,8 +101,13 @@ class NineKeyKeyboard(
     }
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
+        lastIme = ime
+        updateSpaceBarLabel(ime)
+    }
+
+    private fun updateSpaceBarLabel(ime: InputMethodEntry) {
         space.mainText.apply {
-            text = ime.displayName
+            text = EnglishInputMode.spaceBarLabel(context, ime)
             isSingleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.END
             alpha = 0.85f

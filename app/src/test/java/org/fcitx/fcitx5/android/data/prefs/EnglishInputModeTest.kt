@@ -36,4 +36,11 @@ class EnglishInputModeTest {
         assertTrue(EnglishInputMode.Literal.stringRes != 0)
         assertFalse(EnglishInputMode.WordHint.name == EnglishInputMode.Literal.name)
     }
+
+    @Test
+    fun englishImeUniqueNameIsStable() {
+        assertTrue(EnglishInputMode.isEnglishIme("keyboard-us"))
+        assertFalse(EnglishInputMode.isEnglishIme("pinyin"))
+        assertFalse(EnglishInputMode.isEnglishIme("rime"))
+    }
 }

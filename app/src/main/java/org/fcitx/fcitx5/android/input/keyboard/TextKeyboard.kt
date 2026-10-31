@@ -14,6 +14,7 @@ import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.EnglishInputMode
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.popup.PopupAction
@@ -98,9 +99,19 @@ class TextKeyboard(
 
     private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
 
+    private var lastIme: InputMethodEntry? = null
+
+    @Keep
+    private val onEnglishInputModeChange =
+        ManagedPreference.OnChangeListener<EnglishInputMode> { _, _ ->
+            lastIme?.let { updateSpaceBarLabel(it) }
+        }
+
     init {
         updateLangSwitchKey(showLangSwitchKey.getValue())
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
+        AppPrefs.getInstance().hardwareKeyboard.englishInputMode
+            .registerOnChangeListener(onEnglishInputModeChange)
     }
 
     private val textKeys: List<TextKeyView> by lazy {
@@ -171,15 +182,20 @@ class TextKeyboard(
     }
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
-        // Short IME badge on the spacebar (Gboard-like); drop noisy "(subMode)" suffixes.
+        lastIme = ime
+        updateSpaceBarLabel(ime)
+        if (capsState != CapsState.None) {
+            switchCapsState()
+        }
+    }
+
+    private fun updateSpaceBarLabel(ime: InputMethodEntry) {
+        // Gboard-like space badge; English adds commit-mode so Space ≠ “首选”习惯不打架。
         space.mainText.apply {
-            text = ime.displayName
+            text = EnglishInputMode.spaceBarLabel(context, ime)
             isSingleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.END
             alpha = 0.85f
-        }
-        if (capsState != CapsState.None) {
-            switchCapsState()
         }
     }
 

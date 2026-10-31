@@ -411,7 +411,7 @@ class CandidatesView(
         val dropped = LatinCandidate.drop(data.candidates, LatinCandidate.hidesInIme(ime))
         pagedEngineIndex = dropped.engineIndices
         // 英文键盘空格上屏已打字母，不高亮假首选（与横向候选栏一致）。
-        val cursor = if (ime == "keyboard-us") {
+        val cursor = if (org.fcitx.fcitx5.android.data.prefs.EnglishInputMode.isEnglishIme(ime)) {
             -1
         } else {
             LatinCandidate.displayCursor(data.cursorIndex, dropped.engineIndices)

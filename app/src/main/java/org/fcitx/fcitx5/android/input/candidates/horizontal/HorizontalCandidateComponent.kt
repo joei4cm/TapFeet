@@ -564,8 +564,15 @@ class HorizontalCandidateComponent :
             "CandSync: renderPage start=%d pageSize=%d slice=%d shown=%d pool=%d",
             localPageStart, pageSize, slice.size, dropped.words.size, pageCandidates.size
         )
-        // 英文键盘空格上屏已打字母，不高亮「假首选」；中文空格上首选才高亮。
-        adapter.highlightPreferred = currentImeName() != "keyboard-us"
+        // 英文：空格上屏已打字母 → 不高亮假首选，并用线性排列，避免巨硬居中把第 1 词做成「主角」。
+        val englishIme = org.fcitx.fcitx5.android.data.prefs.EnglishInputMode.isEnglishIme(currentImeName())
+        adapter.highlightPreferred = !englishIme
+        val layoutMode = if (englishIme) {
+            CandidateDisplayMode.Linear
+        } else {
+            candidateArrangementModePref.getValue().toDisplayMode()
+        }
+        if (adapter.displayMode != layoutMode) adapter.displayMode = layoutMode
         adapter.updateCandidates(dropped.words, sourceTotal, localPageStart, dropped.engineIndices)
         // Page turn? Only when the user asked for one AND the page actually moved: fresh queries,
         // width changes and the 5→3→1 overflow fallback all re-render through here and must not
