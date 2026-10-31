@@ -126,6 +126,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         val englishCat = PreferenceCategory(context).apply {
             key = "hw_english_input_category"
             title = getString(R.string.english_input_category)
+            summary = getString(R.string.english_input_mode_summary)
             isIconSpaceReserved = false
         }
         profileScreen.addPreference(englishCat)
@@ -133,11 +134,12 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         val englishModePref = ListPreference(context).apply {
             key = hw.englishInputMode.key
             title = getString(R.string.english_input_mode)
-            summary = getString(R.string.english_input_mode_summary)
             setDefaultValue(hw.englishInputMode.defaultValue.name)
             entries = englishModes.map { getString(it.stringRes) }.toTypedArray()
             entryValues = englishModes.map { it.name }.toTypedArray()
             value = hw.englishInputMode.getValue().name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setDialogTitle(R.string.english_input_mode)
             isIconSpaceReserved = false
             isSingleLineTitle = false
         }
@@ -149,10 +151,10 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             isChecked = hw.englishInsertSpace.getValue()
             isIconSpaceReserved = false
             isSingleLineTitle = false
-            isEnabled = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
+            isVisible = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
         }
         englishModePref.setOnPreferenceChangeListener { _, newValue ->
-            englishInsertSpaceSwitch.isEnabled = newValue == EnglishInputMode.WordHint.name
+            englishInsertSpaceSwitch.isVisible = newValue == EnglishInputMode.WordHint.name
             true
         }
         englishCat.addPreference(englishModePref)

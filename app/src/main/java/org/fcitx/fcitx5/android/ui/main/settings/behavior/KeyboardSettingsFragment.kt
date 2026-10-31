@@ -38,6 +38,7 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         val englishCat = PreferenceCategory(requireContext()).apply {
             key = "virtual_keyboard_english_input"
             title = getString(R.string.english_input_category)
+            summary = getString(R.string.english_input_mode_summary)
             isIconSpaceReserved = false
             order = -90
         }
@@ -47,11 +48,12 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         val modePref = ListPreference(requireContext()).apply {
             key = hw.englishInputMode.key
             title = getString(R.string.english_input_mode)
-            summary = getString(R.string.english_input_mode_summary)
             setDefaultValue(hw.englishInputMode.defaultValue.name)
             entries = modes.map { getString(it.stringRes) }.toTypedArray()
             entryValues = modes.map { it.name }.toTypedArray()
             value = hw.englishInputMode.getValue().name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setDialogTitle(R.string.english_input_mode)
             isIconSpaceReserved = false
             isSingleLineTitle = false
             order = -89
@@ -64,11 +66,11 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
             isChecked = hw.englishInsertSpace.getValue()
             isIconSpaceReserved = false
             isSingleLineTitle = false
-            isEnabled = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
+            isVisible = hw.englishInputMode.getValue() == EnglishInputMode.WordHint
             order = -88
         }
         modePref.setOnPreferenceChangeListener { _, newValue ->
-            insertSpace.isEnabled = newValue == EnglishInputMode.WordHint.name
+            insertSpace.isVisible = newValue == EnglishInputMode.WordHint.name
             true
         }
         englishCat.addPreference(modePref)

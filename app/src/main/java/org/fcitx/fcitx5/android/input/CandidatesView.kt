@@ -410,9 +410,15 @@ class CandidatesView(
         val ime = fcitx.runImmediately { inputMethodEntryCached.uniqueName }
         val dropped = LatinCandidate.drop(data.candidates, LatinCandidate.hidesInIme(ime))
         pagedEngineIndex = dropped.engineIndices
+        // 英文键盘空格上屏已打字母，不高亮假首选（与横向候选栏一致）。
+        val cursor = if (ime == "keyboard-us") {
+            -1
+        } else {
+            LatinCandidate.displayCursor(data.cursorIndex, dropped.engineIndices)
+        }
         paged = data.copy(
             candidates = dropped.words,
-            cursorIndex = LatinCandidate.displayCursor(data.cursorIndex, dropped.engineIndices),
+            cursorIndex = cursor,
         )
     }
 
