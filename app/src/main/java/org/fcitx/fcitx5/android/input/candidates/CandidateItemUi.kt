@@ -103,7 +103,14 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     }
 
     private val activeBackground by lazy {
-        val border = ColorDrawable(theme.genericActiveForegroundColor)
+        // Accent underline, not genericActiveForeground — that color is white text-on-chip
+        // and disappears on a white candidate bar.
+        val border = ColorDrawable(
+            CandidateFrequency.readableAccent(
+                theme.candidateTextColor,
+                theme.genericActiveBackgroundColor,
+            )
+        )
         LayerDrawable(arrayOf(pressHighlight, border)).apply {
             setLayerGravity(1, Gravity.BOTTOM)
             setLayerHeight(1, borderThickness)
@@ -152,17 +159,16 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         // Index stays light / non-bold so it reads as a caption, not part of the word.
         index.typeface = CandidateFont.typeface(ctx, bold = false)
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
-        // Frequency tint: never-picked keeps theme original; grades lean toward accent (not
-        // genericActiveForeground — that is often white text-on-accent and washes out).
-        val baseFg = if (isActive) theme.genericActiveForegroundColor else theme.candidateTextColor
-        val textFg = if (!isActive && prefs.candidateFrequencyColor.getValue()) {
+        // Preferred candidate stays the theme text color (bold + accent underline).
+        // genericActiveForeground is white-on-accent and is unreadable on a light bar.
+        val textFg = if (prefs.candidateFrequencyColor.getValue()) {
             CandidateFrequency.colorFor(
                 CandidateFrequency.countOf(candidate.text),
                 theme.candidateTextColor,
                 theme.genericActiveBackgroundColor,
             )
         } else {
-            baseFg
+            theme.candidateTextColor
         }
         text.setTextColor(textFg)
         val hint = if (showComment) candidate.displayComment() else ""
@@ -173,9 +179,7 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
                 TypedValue.COMPLEX_UNIT_SP,
                 max(8, textFontSize / 2).toFloat(),
             )
-            comment.setTextColor(
-                if (isActive) theme.genericActiveForegroundColor else theme.candidateCommentColor
-            )
+            comment.setTextColor(theme.candidateCommentColor)
         } else {
             comment.visibility = View.GONE
             comment.text = ""

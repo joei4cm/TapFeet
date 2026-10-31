@@ -18,8 +18,8 @@ import timber.log.Timber
  * and keep the theme's original candidate color.
  *
  * Known counts map to discrete [Grade] steps so the tint reads as a ladder (soft → peak), not a
- * binary “top vs rest”. Call sites pass the theme accent (e.g. [Theme.genericActiveBackgroundColor]),
- * never [Theme.genericActiveForegroundColor] — that one is often white text-on-accent and washes out.
+ * binary “top vs rest”. Call sites pass the theme accent (e.g. [Theme.genericActiveBackgroundColor]).
+ * A light accent is darkened before blending so dark text on a white bar never washes out to white.
  */
 object CandidateFrequency {
 
@@ -65,7 +65,32 @@ object CandidateFrequency {
     fun colorFor(count: Int, base: Int, accent: Int): Int {
         val t = blendFactor(count)
         if (t <= 0f) return base
-        return blendArgb(base, accent, t)
+        return blendArgb(base, readableAccent(base, accent), t)
+    }
+
+    /**
+     * Accent used as the blend target. When the accent is lighter than [base] (typical of a pale
+     * or white highlight on a light theme), blending would fade dark glyphs toward white. Darken
+     * the accent until it is no lighter than the base text.
+     */
+    fun readableAccent(base: Int, accent: Int): Int {
+        val ceiling = luminance(base) + 0.04
+        var color = accent
+        var guard = 0
+        while (luminance(color) > ceiling && guard < 8) {
+            color = blendArgb(color, 0xFF000000.toInt(), 0.45f)
+            guard++
+        }
+        return color
+    }
+
+    /** Relative luminance in \[0, 1\]. Pure math — unit-testable. */
+    fun luminance(color: Int): Double {
+        fun channel(shift: Int): Double {
+            val s = ((color ushr shift) and 0xFF) / 255.0
+            return if (s <= 0.04045) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
     }
 
     /** Pure ARGB lerp — no Android Color APIs so JVM unit tests can exercise it. */

@@ -74,4 +74,21 @@ class CandidateFrequencyTest {
         val accentB = accent and 0xFF
         assertTrue(kotlin.math.abs(peakB - accentB) < kotlin.math.abs(softB - accentB))
     }
+
+    @Test
+    fun colorFor_lightThemeDoesNotWashToWhite() {
+        // Light-theme body text + white "active" accent must stay dark enough to read.
+        val base = 0xFF212121.toInt()
+        val white = 0xFFFFFFFF.toInt()
+        val peak = CandidateFrequency.colorFor(50, base, white)
+        assertTrue(CandidateFrequency.luminance(peak) < 0.35)
+        assertTrue(CandidateFrequency.luminance(peak) <= CandidateFrequency.luminance(base) + 0.15)
+    }
+
+    @Test
+    fun readableAccent_keepsDarkerAccent() {
+        val base = 0xFFFAFAFA.toInt()
+        val accent = 0xFF5E97F6.toInt()
+        assertEquals(accent, CandidateFrequency.readableAccent(base, accent))
+    }
 }
