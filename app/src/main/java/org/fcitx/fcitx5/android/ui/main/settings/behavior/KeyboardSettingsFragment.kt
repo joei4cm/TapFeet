@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
+import androidx.preference.DropDownPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -45,7 +46,8 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         screen.addPreference(englishCat)
 
         val modes = EnglishInputMode.entries
-        val modePref = ListPreference(requireContext()).apply {
+        // DropDown：主列表内联展开，避免被读成只读状态行。
+        val modePref = DropDownPreference(requireContext()).apply {
             key = hw.englishInputMode.key
             title = getString(R.string.english_input_mode)
             setDefaultValue(hw.englishInputMode.defaultValue.name)
@@ -53,7 +55,6 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
             entryValues = modes.map { it.name }.toTypedArray()
             value = hw.englishInputMode.getValue().name
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            setDialogTitle(R.string.english_input_mode)
             isIconSpaceReserved = false
             isSingleLineTitle = false
             order = -89

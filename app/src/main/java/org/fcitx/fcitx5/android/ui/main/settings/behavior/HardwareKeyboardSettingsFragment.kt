@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.preference.DropDownPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -131,7 +132,7 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
         }
         profileScreen.addPreference(englishCat)
         val englishModes = EnglishInputMode.entries
-        val englishModePref = ListPreference(context).apply {
+        val englishModePref = DropDownPreference(context).apply {
             key = hw.englishInputMode.key
             title = getString(R.string.english_input_mode)
             setDefaultValue(hw.englishInputMode.defaultValue.name)
@@ -139,7 +140,6 @@ class HardwareKeyboardSettingsFragment : PaddingPreferenceFragment() {
             entryValues = englishModes.map { it.name }.toTypedArray()
             value = hw.englishInputMode.getValue().name
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            setDialogTitle(R.string.english_input_mode)
             isIconSpaceReserved = false
             isSingleLineTitle = false
         }

@@ -140,8 +140,8 @@
     <string name="english_input_mode_summary">单词联想按前缀出词；逐字上屏不组词、不替换。虚拟与物理键盘共用。</string>
     <string name="english_input_mode_word_hint">单词联想</string>
     <string name="english_input_mode_literal">逐字上屏</string>
-    <string name="english_space_label_word_hint">英·联想</string>
-    <string name="english_space_label_literal">英·逐字</string>
+    <string name="english_space_label_word_hint">空格·上字面</string>
+    <string name="english_space_label_literal">空格·原样</string>
     <string name="hw_english_insert_space">选词后加空格</string>
     <string name="hw_english_insert_space_summary">点选联想词后自动空一格。</string>
     <string name="pinyin_engine">中文拼音引擎</string>
