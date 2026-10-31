@@ -9,8 +9,8 @@ import org.fcitx.fcitx5.android.core.RawConfig
 import timber.log.Timber
 
 /**
- * 把「拼音中显示英文候选」同步到小企鹅拼音 / 双拼的 `SpellEnabled`。
- * 引擎侧已有 Spell；这里只负责设置开关落盘到 IM 配置。
+ * 拼音 / 双拼的 `SpellEnabled` 固定关掉。
+ * 英文单词只在英文输入法里联想；拼音候选不再夹英文。
  */
 object PinyinSpellPrefs {
     const val SPELL_ENABLED = "SpellEnabled"
@@ -18,12 +18,11 @@ object PinyinSpellPrefs {
     /** 小企鹅拼音与双拼共用 pinyin addon，各自一份 IM 配置。 */
     val IM_NAMES = listOf("pinyin", "shuangpin")
 
-    fun apply(cfg: RawConfig, enabled: Boolean) {
-        cfg.getOrCreate(SPELL_ENABLED).value = if (enabled) "True" else "False"
+    fun apply(cfg: RawConfig) {
+        cfg.getOrCreate(SPELL_ENABLED).value = "False"
     }
 
     suspend fun FcitxAPI.syncPinyinSpellPrefs() {
-        val enabled = AppPrefs.getInstance().candidateBar.pinyinEnglishCandidates.getValue()
         for (im in IM_NAMES) {
             val raw = runCatching { getImConfig(im) }.getOrNull()
             val cfg = raw?.findByName("cfg")
@@ -31,7 +30,7 @@ object PinyinSpellPrefs {
                 Timber.w("IM config missing for %s; skip SpellEnabled sync", im)
                 continue
             }
-            apply(cfg, enabled)
+            apply(cfg)
             setImConfig(im, cfg)
         }
     }

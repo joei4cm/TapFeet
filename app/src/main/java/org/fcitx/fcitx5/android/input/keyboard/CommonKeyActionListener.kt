@@ -14,6 +14,7 @@ import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
+import org.fcitx.fcitx5.android.input.candidates.LatinCandidate
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.dependency.context
 import org.fcitx.fcitx5.android.input.dependency.fcitx
@@ -133,7 +134,12 @@ class CommonKeyActionListener :
             if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()) {
                 // preedit not empty, maybe there are candidates to select ...
                 if (!selectCurrentLocalCandidate(1)) {
-                    select(0)
+                    val raw = horizontalCandidate.rawCandidateAt(0)
+                    val hiddenEnglish = raw != null &&
+                        LatinCandidate.hidesInIme(inputMethodEntryCached.uniqueName) &&
+                        LatinCandidate.isEnglishWord(raw.text)
+                    // 栏上没有中文词时，不要把藏起来的英文候选用空格选上屏。
+                    if (!hiddenEnglish) select(0)
                 }
             }
         } else {

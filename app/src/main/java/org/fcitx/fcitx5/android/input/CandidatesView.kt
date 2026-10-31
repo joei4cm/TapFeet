@@ -28,6 +28,7 @@ import org.fcitx.fcitx5.android.data.translation.TranslationChipHelper
 import org.fcitx.fcitx5.android.data.translation.TranslationCommit
 import org.fcitx.fcitx5.android.input.bar.ui.ChipStripUi
 import org.fcitx.fcitx5.android.input.candidates.HardwareShortcutResolver
+import org.fcitx.fcitx5.android.input.candidates.LatinCandidate
 import org.fcitx.fcitx5.android.input.candidates.NumberKeyCandidatePick
 import org.fcitx.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fcitx.fcitx5.android.input.pinyin.pinyinSegments
@@ -70,6 +71,8 @@ class CandidatesView(
 
     private var inputPanel = FcitxEvent.InputPanelEvent.Data()
     private var paged = FcitxEvent.PagedCandidateEvent.Data.Empty
+    /** 与 [paged].candidates 对齐的引擎页内下标。拼音丢掉英文词后点选仍用原始下标。 */
+    private var pagedEngineIndex = IntArray(0)
     private var translationChipItems: List<TranslationCommit.Item> = emptyList()
 
     private val translationChips by lazy {
@@ -145,7 +148,9 @@ class CandidatesView(
     private val candidatesUi = PagedCandidatesUi(
         ctx, theme, setupTextView,
         onCandidateClick = { index -> selectAtVisiblePosition(index) },
-        onCandidateAction = { index, text, view -> showCandidateActionMenu(index, text, view) },
+        onCandidateAction = { index, text, view ->
+            showCandidateActionMenu(engineIndexAt(index), text, view)
+        },
         onPrevPage = { fcitx.launchOnReady { it.offsetCandidatePage(-1) } },
         onNextPage = { fcitx.launchOnReady { it.offsetCandidatePage(1) } }
     )
@@ -168,7 +173,7 @@ class CandidatesView(
                 updateUi()
             }
             is FcitxEvent.PagedCandidateEvent -> {
-                paged = it.data
+                applyPaged(it.data)
                 translationChips.setSource(paged.candidates.firstOrNull()?.text)
                 updateUi()
             }
@@ -379,7 +384,7 @@ class CandidatesView(
             out.add(Triple(pos, loc[0], Rect(loc[0], loc[1], loc[0] + child.width, loc[1] + child.height)))
         }
         out.sortBy { it.second }
-        if (out.isNotEmpty()) return out.map { it.first to it.third }
+        if (out.isNotEmpty()) return out.map { engineIndexAt(it.first) to it.third }
 
         // RecyclerView children weren't laid out / attached yet (can happen if a swipe lands in the
         // first frame after candidates appear). Fall back to dividing the candidate bar's own
@@ -394,19 +399,32 @@ class CandidatesView(
         val top = loc[1]
         val bottom = loc[1] + height
         return (0 until n).map { i ->
-            i to Rect(
+            engineIndexAt(i) to Rect(
                 (startX + i * colW).toInt(), top,
                 (startX + (i + 1) * colW).toInt(), bottom
             )
         }
     }
 
+    private fun applyPaged(data: FcitxEvent.PagedCandidateEvent.Data) {
+        val ime = fcitx.runImmediately { inputMethodEntryCached.uniqueName }
+        val dropped = LatinCandidate.drop(data.candidates, LatinCandidate.hidesInIme(ime))
+        pagedEngineIndex = dropped.engineIndices
+        paged = data.copy(
+            candidates = dropped.words,
+            cursorIndex = LatinCandidate.displayCursor(data.cursorIndex, dropped.engineIndices),
+        )
+    }
+
+    private fun engineIndexAt(visible: Int): Int = pagedEngineIndex.getOrElse(visible) { visible }
+
     private fun selectAtVisiblePosition(position: Int): Boolean {
         if (position !in 0 until paged.candidates.size) return false
         val candidate = paged.candidates.getOrNull(position) ?: return false
+        val engineIndex = engineIndexAt(position)
         CandidateFrequency.record(candidate.text)
         armPickEffect(position)
-        fcitx.launchOnReady { it.select(position) }
+        fcitx.launchOnReady { it.select(engineIndex) }
         return true
     }
 

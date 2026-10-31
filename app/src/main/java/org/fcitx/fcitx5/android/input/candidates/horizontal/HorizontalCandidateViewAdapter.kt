@@ -49,11 +49,24 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     var total = -1
         private set
 
+    /**
+     * @param engineIndices 与 [data] 等长时，选词下标用这组引擎原始下标（拼音里丢掉英文词后不能用数组下标）。
+     *   为空则仍是 [selectionBase] + 切片内下标。
+     */
     @SuppressLint("NotifyDataSetChanged")
-    fun updateCandidates(data: Array<CandidateWord>, total: Int, selectionBase: Int = 0) {
+    fun updateCandidates(
+        data: Array<CandidateWord>,
+        total: Int,
+        selectionBase: Int = 0,
+        engineIndices: IntArray? = null,
+    ) {
         this.candidates = data
         this.displayOrder = buildDisplayOrder(data.size)
-        this.selectionOrder = displayOrder.map { selectionBase + it }.toIntArray()
+        val indexed = engineIndices?.takeIf { it.size == data.size }
+        this.selectionOrder = IntArray(displayOrder.size) { slot ->
+            val sliceIndex = displayOrder[slot]
+            if (indexed != null) indexed[sliceIndex] else selectionBase + sliceIndex
+        }
         this.displayNumbers = displayOrder.map { it + 1 }.toIntArray()
         this.total = total
         notifyDataSetChanged()

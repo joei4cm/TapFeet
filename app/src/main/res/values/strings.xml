@@ -139,8 +139,8 @@
     <string name="hw_candidate_display_mode_linear">Linear</string>
     <string name="hw_enable_candidate_quick_pick">Bottom-row quick-pick</string>
     <string name="hw_enable_candidate_quick_pick_summary">Physical keys pick candidates: %1$s</string>
-    <string name="hw_english_word_hint">English word completion</string>
-    <string name="hw_english_word_hint_summary">Switch to the English IME with Sym+N, then type a prefix (the / there / then…). Pick with the candidate keys or 1–5. Space or Enter commits what you typed. Works in WeChat and other “no suggestions” fields. This is completion, not next-word prediction after a space.</string>
+    <string name="hw_english_word_hint">English suggestions</string>
+    <string name="hw_english_word_hint_summary">On by default for the English IME (Sym+N). A prefix lists words (the / there / then…). Space or Enter commits the letters you typed; pick a candidate to use a suggestion. Works in WeChat and other “no suggestions” fields. Turn off to commit each character exactly as typed, with no word list and no substitution. Shared by the on-screen and physical keyboards.</string>
     <string name="hw_english_insert_space">Insert space after English word</string>
     <string name="hw_english_insert_space_summary">After picking a completion, insert a space so the next word starts immediately.</string>
     <string name="pinyin_engine">Chinese pinyin engine</string>
@@ -387,8 +387,6 @@
     <string name="show_candidate_comment_summary">Show pinyin/encoding under each candidate. Uses the engine comment, or the word\'s pinyin. Turn off for a cleaner, wider row.</string>
     <string name="candidate_frequency_color">Color by usage</string>
     <string name="candidate_frequency_color_summary">Grade candidates by how often you pick them (soft → peak accent). Never-picked words stay the original color.</string>
-    <string name="pinyin_english_candidates">English words in pinyin</string>
-    <string name="pinyin_english_candidates_summary">Off by default. When on, typing latin in pinyin (e.g. hello) also lists English words — the typed word comes first. For pure English typing prefer Sym+N → English IME. Mixing with Chinese candidates can feel busy.</string>
     <string name="show_translation_comment">Translation gloss</string>
     <string name="show_translation_comment_summary">Optional. Append English/Japanese gloss after pinyin (拼音 · en · 日), and show 「英 …」「日 …」chips above candidates — tap a chip to commit that text. Offline compact dictionary. Not a Japanese IME — install Anthy for Japanese typing. Requires Show pinyin on.</string>
     <string name="online_sentence_translate">Online sentence translate</string>

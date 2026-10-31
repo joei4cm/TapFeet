@@ -66,6 +66,7 @@ import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
 import org.fcitx.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
+import org.fcitx.fcitx5.android.input.candidates.LatinCandidate
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.dependency.UniqueViewComponent
@@ -938,7 +939,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         evalIdleUiState()
     }
 
+    private var imeUniqueName = ""
+
     override fun onImeUpdate(ime: InputMethodEntry) {
+        imeUniqueName = ime.uniqueName
         updateInputMethodIcon(ime)
     }
 
@@ -964,8 +968,16 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        lastCandidatesEmpty = data.candidates.isEmpty()
-        translationChips.setSource(data.candidates.firstOrNull()?.text)
+        val ime = imeUniqueName.ifEmpty {
+            fcitx.runImmediately { inputMethodEntryCached.uniqueName }
+        }
+        val visible = if (LatinCandidate.hidesInIme(ime)) {
+            data.candidates.filter { !LatinCandidate.isEnglishWord(it.text) }
+        } else {
+            data.candidates.asList()
+        }
+        lastCandidatesEmpty = visible.isEmpty()
+        translationChips.setSource(visible.firstOrNull()?.text)
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to (lastCandidatesEmpty && !chipsNonEmpty))
     }
 

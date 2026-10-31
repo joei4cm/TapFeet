@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreference
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceFragment
@@ -29,5 +30,35 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
             }
         }
         screen.addPreference(theme)
+
+        // 英文输入法的联想 / 原样上屏。与物理键盘设置页同一组开关。
+        val hw = AppPrefs.getInstance().hardwareKeyboard
+        val wordHint = SwitchPreference(requireContext()).apply {
+            key = hw.englishWordHint.key
+            title = getString(R.string.hw_english_word_hint)
+            summary = getString(R.string.hw_english_word_hint_summary)
+            setDefaultValue(hw.englishWordHint.defaultValue)
+            isChecked = hw.englishWordHint.getValue()
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            order = -90
+        }
+        val insertSpace = SwitchPreference(requireContext()).apply {
+            key = hw.englishInsertSpace.key
+            title = getString(R.string.hw_english_insert_space)
+            summary = getString(R.string.hw_english_insert_space_summary)
+            setDefaultValue(hw.englishInsertSpace.defaultValue)
+            isChecked = hw.englishInsertSpace.getValue()
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isEnabled = wordHint.isChecked
+            order = -80
+        }
+        wordHint.setOnPreferenceChangeListener { _, newValue ->
+            insertSpace.isEnabled = newValue as Boolean
+            true
+        }
+        screen.addPreference(wordHint)
+        screen.addPreference(insertSpace)
     }
 }

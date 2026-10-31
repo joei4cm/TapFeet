@@ -135,8 +135,8 @@
     <string name="hw_special_shift_r">右Shift</string>
     <string name="hw_enable_candidate_quick_pick">巨硬模式</string>
     <string name="hw_enable_candidate_quick_pick_summary">物理键选词：%1$s</string>
-    <string name="hw_english_word_hint">英文单词联想</string>
-    <string name="hw_english_word_hint_summary">先用 Sym+N 切到英文输入法，按前缀出候选（the / there / then…），用巨硬选字键或数字 1–5 选词。空格或回车上屏已输入的字母。微信等「不要建议」的输入框也能联想。这是补全，不是空格后的下一词预测。</string>
+    <string name="hw_english_word_hint">英文联想</string>
+    <string name="hw_english_word_hint_summary">英文输入法默认打开。按前缀出候选（the / there / then…），空格或回车上屏你打的字母，点候选才换成联想词。微信等输入框也能联想。关掉后打什么字符就上什么字符，不组词、不替换。虚拟键盘和物理键盘共用这个开关。</string>
     <string name="hw_english_insert_space">选词后自动空格</string>
     <string name="hw_english_insert_space_summary">选中英文联想词后自动加空格，接着打下一个词。</string>
     <string name="pinyin_engine">中文拼音引擎</string>
@@ -383,8 +383,6 @@
     <string name="show_candidate_comment_summary">在候选字下方显示拼音/编码。引擎有提示就用，没有则用汉字转拼音。关掉可让一行多放几个词。</string>
     <string name="candidate_frequency_color">按使用频率着色</string>
     <string name="candidate_frequency_color_summary">按本机选词次数分档着色（浅→深强调色）；从未选过的保持原色。</string>
-    <string name="pinyin_english_candidates">拼音中显示英文单词</string>
-    <string name="pinyin_english_candidates_summary">默认关。打开后，在拼音里打 hello 等拉丁字母也会出英文候选（完整单词优先）。纯英文请用 Sym+N 切英文输入法。与中文候选混排可能显得乱。</string>
     <string name="show_translation_comment">翻译释义</string>
     <string name="show_translation_comment_summary">可选。在拼音后追加英/日释义（拼音 · en · 日），并在候选上方给出「英 …」「日 …」芯片，点一下即可把该译文上屏。内置精简词表，不联网。这不是日语输入法；要打日文请装 Anthy。需先打开「显示拼音」。</string>
     <string name="online_sentence_translate">联网整句翻译</string>

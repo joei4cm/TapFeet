@@ -493,18 +493,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.candidate_frequency_color_summary
         )
 
-        /**
-         * 拼音输入时把英文单词插进候选（引擎 SpellEnabled）。
-         * 默认关：开着会和中文候选混在一起显得乱；需要中英混打时再开。
-         * key 带 _v2：升级后重新落到默认关，不受旧默认「开」影响。
-         */
-        val pinyinEnglishCandidates = switch(
-            R.string.pinyin_english_candidates,
-            "pinyin_english_candidates_v2",
-            false,
-            R.string.pinyin_english_candidates_summary
-        )
-
         val vMode = switch(
             R.string.v_mode,
             "pinyin_v_mode",

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
+import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.CandidateFrequency
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -35,6 +36,7 @@ import org.fcitx.fcitx5.android.input.effects.EffectMode
 import org.fcitx.fcitx5.android.input.effects.EffectTrigger
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.bar.ExpandButtonStateMachine.BooleanKey.ExpandedCandidatesEmpty
+import org.fcitx.fcitx5.android.input.candidates.LatinCandidate
 import org.fcitx.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesUpdated
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
@@ -216,6 +218,15 @@ class HorizontalCandidateComponent :
     private var layoutMinWidth = 0
     private var layoutFlexGrow = 1f
     private var pageCandidates: Array<org.fcitx.fcitx5.android.core.CandidateWord> = emptyArray()
+
+    /** 当前输入法。拼音类不把英文单词混进候选。 */
+    private var imeUniqueName = ""
+
+    /**
+     * 展开候选的起点。拼音过滤英文时不能用栏上可见个数（那不是引擎下标）；
+     * -1 表示沿用布局算出的可见个数。
+     */
+    private var expandedStart = -1
     private var sourceTotal = -1
     private var candidatePagingMode = 0
     private var remoteHasPrev = false
@@ -544,11 +555,16 @@ class HorizontalCandidateComponent :
         val slice =
                 if (pageCandidates.isEmpty()) emptyArray()
                 else pageCandidates.copyOfRange(localPageStart, end)
+        val hideEnglish = LatinCandidate.hidesInIme(currentImeName())
+        val dropped = LatinCandidate.drop(slice, hideEnglish, localPageStart)
+        // 过滤后展开列表从本页原始窗口之后开始，避免栏上已显示的字再出现，
+        // 也避免把本页丢掉的英文词按可见个数错位取回来。
+        expandedStart = if (hideEnglish) end else -1
         Timber.d(
-            "CandSync: renderPage start=%d pageSize=%d slice=%d pool=%d",
-            localPageStart, pageSize, slice.size, pageCandidates.size
+            "CandSync: renderPage start=%d pageSize=%d slice=%d shown=%d pool=%d",
+            localPageStart, pageSize, slice.size, dropped.words.size, pageCandidates.size
         )
-        adapter.updateCandidates(slice, sourceTotal, localPageStart)
+        adapter.updateCandidates(dropped.words, sourceTotal, localPageStart, dropped.engineIndices)
         // Page turn? Only when the user asked for one AND the page actually moved: fresh queries,
         // width changes and the 5→3→1 overflow fallback all re-render through here and must not
         // animate — they would read as a phantom flip.
@@ -558,7 +574,7 @@ class HorizontalCandidateComponent :
         pendingPageTurn = 0
         if (turnDir != 0 && turned) playPageTurn(turnDir)
         updatePagingState()
-        if (slice.isEmpty()) {
+        if (dropped.words.isEmpty()) {
             refreshExpanded(0)
         }
         // Preload the next backend slice in the background while the user reads this page,
@@ -566,13 +582,33 @@ class HorizontalCandidateComponent :
         maybePrefetchNextSlice()
     }
 
+    private fun currentImeName(): String {
+        if (imeUniqueName.isNotEmpty()) return imeUniqueName
+        return fcitx.runImmediately { inputMethodEntryCached.uniqueName }.also { imeUniqueName = it }
+    }
+
+    override fun onImeUpdate(ime: InputMethodEntry) {
+        val changed = imeUniqueName != ime.uniqueName
+        imeUniqueName = ime.uniqueName
+        if (changed && pageCandidates.isNotEmpty()) renderCurrentPage()
+    }
+
+    /** 引擎列表第 [index] 个候选（未过滤）。空格回退选词时用来避开被藏起的英文词。 */
+    fun rawCandidateAt(index: Int) = pageCandidates.getOrNull(index)
+
     private fun refreshExpanded(childCount: Int) {
-        _expandedCandidateOffset.tryEmit(childCount)
+        val start = if (expandedStart >= 0) expandedStart else childCount
+        _expandedCandidateOffset.tryEmit(start)
         bar.expandButtonStateMachine.push(
                 ExpandedCandidatesUpdated,
                 ExpandedCandidatesEmpty to (adapter.total == childCount)
         )
-        if (childCount in 2 until pageCandidates.size && childCount != localPageSize) {
+        // 只在布局装不下、少画了子 View 时缩小页宽。拼音滤掉英文后可见数会小于页宽，
+        // 但子 View 数等于适配器条数，不能当成溢出，否则一页会越缩越少。
+        if (childCount in 2 until pageCandidates.size &&
+            childCount != localPageSize &&
+            childCount < adapter.itemCount
+        ) {
             scheduleLocalPageResize(childCount)
             return
         }

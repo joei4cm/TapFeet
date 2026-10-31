@@ -44,11 +44,6 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     }
 
     @Keep
-    private val onPinyinSpellPrefChange = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
-        lifecycle.launchWhenReady { this@Fcitx.syncPinyinSpellPrefs() }
-    }
-
-    @Keep
     private val onPinyinEngineChange = ManagedPreference.OnChangeListener<PinyinEngineKind> { _, value ->
         // SharedPreferences 变化 = 用户点选（含同项 fireChange 重试）
         lifecycle.launchWhenReady { applyPinyinEngine(value, userInitiated = true) }
@@ -263,8 +258,6 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         hw.englishWordHint.registerOnChangeListener(onAndroidKeyboardPrefChange)
         hw.englishInsertSpace.registerOnChangeListener(onAndroidKeyboardPrefChange)
         hw.pinyinEngine.registerOnChangeListener(onPinyinEngineChange)
-        AppPrefs.getInstance().candidateBar.pinyinEnglishCandidates
-            .registerOnChangeListener(onPinyinSpellPrefChange)
     }
 
 
