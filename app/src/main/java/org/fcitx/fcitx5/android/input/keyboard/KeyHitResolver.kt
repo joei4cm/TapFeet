@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import kotlin.math.abs
+import kotlin.math.hypot
 
 /**
  * QWERTY hit testing.
@@ -13,6 +14,10 @@ import kotlin.math.abs
  * (the usual miss on a full keyboard) is scored as H and pinyin goes the wrong way.
  * Letter keys therefore treat a touch to their right as closer than the same distance to
  * their left: the G/H boundary sits inside H, and a tap on G's right side stays G.
+ *
+ * Continuous pinyin (e.g. 总是字符输入出错 → zongshizifushuruchucuo) also hits vertical
+ * neighbors (g/t/b, h/y/n, f/r/v). [pick2D] scores across adjacent rows so a touch between
+ * rows goes to the nearer key, not a hard row band.
  */
 object KeyHitResolver {
 
@@ -21,6 +26,12 @@ object KeyHitResolver {
      * 0.35 puts the G/H boundary deeper into H than 0.5 — right-thumb mistaps on G stay G more often.
      */
     const val RIGHT_SIDE_WEIGHT = 0.35f
+
+    /**
+     * Vertical distance scale in [score2D]. &lt; 1 makes vertical slightly cheaper than horizontal
+     * so a near-boundary miss still prefers the intended column's letter over a far horizontal key.
+     */
+    const val VERTICAL_WEIGHT = 0.85f
 
     /** Don't flip to a neighbor until it wins by this fraction of the current key width. */
     const val SWITCH_MARGIN_FRACTION = 0.12f
@@ -32,6 +43,18 @@ object KeyHitResolver {
         val dx = touchX - centerX
         if (forgiveRight && dx > 0f) return dx * RIGHT_SIDE_WEIGHT
         return abs(dx)
+    }
+
+    fun score2D(
+        touchX: Float,
+        touchY: Float,
+        centerX: Float,
+        centerY: Float,
+        forgiveRight: Boolean,
+    ): Float {
+        val sx = score(touchX, centerX, forgiveRight)
+        val sy = abs(touchY - centerY) * VERTICAL_WEIGHT
+        return hypot(sx, sy)
     }
 
     /**
@@ -57,6 +80,43 @@ object KeyHitResolver {
             }
         }
         if (stickyIndex in centers.indices && stickyIndex != best) {
+            val margin = widths[stickyIndex] * SWITCH_MARGIN_FRACTION
+            if (bestScore + margin >= scores[stickyIndex]) return stickyIndex
+        }
+        return best
+    }
+
+    /**
+     * Nearest key in 2D among [centersX]/[centersY], with the same right-forgive on X as [pick].
+     */
+    fun pick2D(
+        touchX: Float,
+        touchY: Float,
+        centersX: FloatArray,
+        centersY: FloatArray,
+        widths: FloatArray,
+        forgiveRight: BooleanArray,
+        stickyIndex: Int = -1,
+    ): Int {
+        if (centersX.isEmpty() || centersX.size != centersY.size) return -1
+        var best = 0
+        var bestScore = Float.POSITIVE_INFINITY
+        val scores = FloatArray(centersX.size)
+        for (i in centersX.indices) {
+            val s = score2D(
+                touchX,
+                touchY,
+                centersX[i],
+                centersY[i],
+                forgiveRight.getOrElse(i) { false },
+            )
+            scores[i] = s
+            if (s < bestScore) {
+                bestScore = s
+                best = i
+            }
+        }
+        if (stickyIndex in centersX.indices && stickyIndex != best) {
             val margin = widths[stickyIndex] * SWITCH_MARGIN_FRACTION
             if (bestScore + margin >= scores[stickyIndex]) return stickyIndex
         }

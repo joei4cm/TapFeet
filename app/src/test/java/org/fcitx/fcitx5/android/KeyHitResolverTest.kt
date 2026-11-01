@@ -57,4 +57,26 @@ class KeyHitResolverTest {
         // 30px into the next row clears the 25% margin.
         assertEquals(2, KeyHitResolver.rowIndex(230f, height, rows, stickyRow = 1))
     }
+
+    // T above G above B (same column); H to the right of G — 总/是 等连续拼音的典型上下误触。
+    private val centersX2d = floatArrayOf(360f, 360f, 360f, 440f) // T, G, B, H
+    private val centersY2d = floatArrayOf(100f, 200f, 300f, 200f)
+    private val widths2d = floatArrayOf(80f, 80f, 80f, 80f)
+    private val forgive2d = booleanArrayOf(true, true, true, true)
+
+    @Test
+    fun verticalNearMissPrefersNearerRow() {
+        // Closer to T than G.
+        assertEquals(0, KeyHitResolver.pick2D(360f, 130f, centersX2d, centersY2d, widths2d, forgive2d))
+        // Closer to G than T.
+        assertEquals(1, KeyHitResolver.pick2D(360f, 170f, centersX2d, centersY2d, widths2d, forgive2d))
+        // Closer to G than B.
+        assertEquals(1, KeyHitResolver.pick2D(360f, 230f, centersX2d, centersY2d, widths2d, forgive2d))
+    }
+
+    @Test
+    fun twoDStillForgivesRightThumbOnG() {
+        // Slightly right of G and a bit toward T — still G, not H.
+        assertEquals(1, KeyHitResolver.pick2D(410f, 190f, centersX2d, centersY2d, widths2d, forgive2d))
+    }
 }

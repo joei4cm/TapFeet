@@ -382,19 +382,39 @@ abstract class BaseKeyboard(
     /**
      * Parent owns the stroke so [KeyHitResolver] picks the key. View hit-testing walks children
      * from the right and gives a right-edge overlap to the next key (G tap becomes H).
+     * Letter rows also compete in 2D with the adjacent row so vertical near-misses (G/T, H/N)
+     * go to the nearer key instead of a hard horizontal band.
      */
     private fun findTargetChild(x: Float, y: Float): View? {
         if (keyRows.isEmpty() || bounds.height() <= 0) return null
-        val rowIndex = KeyHitResolver.rowIndex(y, bounds.height(), keyRows.size, null)
-        val row = keyRows.getOrNull(rowIndex) ?: return null
-        val keys = row.children.filterIsInstance<KeyView>().filter { it.bounds.width() > 0 }.toList()
+        val rawRow = KeyHitResolver.rowIndex(y, bounds.height(), keyRows.size, null)
+        val keys = ArrayList<KeyView>(32)
+        val letterish = ArrayList<Boolean>(32)
+        for ((rowIndex, row) in keyRows.withIndex()) {
+            if (kotlin.math.abs(rowIndex - rawRow) > 1) continue
+            val rowKeys = row.children.filterIsInstance<KeyView>()
+                .filter { it.bounds.width() > 0 }
+                .toList()
+            if (rowKeys.isEmpty()) continue
+            val letterRow = rowKeys.size >= 8
+            // Non-letter rows (space/mod) only compete when they are the raw row.
+            if (!letterRow && rowIndex != rawRow) continue
+            for (k in rowKeys) {
+                keys.add(k)
+                letterish.add(letterRow)
+            }
+        }
         if (keys.isEmpty()) return null
-        val centers = FloatArray(keys.size) { keys[it].bounds.exactCenterX() }
+        val touchX = x + bounds.left
+        val touchY = y + bounds.top
+        val centersX = FloatArray(keys.size) { keys[it].bounds.exactCenterX() }
+        val centersY = FloatArray(keys.size) { keys[it].bounds.exactCenterY() }
         val widths = FloatArray(keys.size) { keys[it].bounds.width().toFloat() }
         val minW = widths.minOrNull() ?: return null
-        val letterRow = keys.size >= 8
-        val forgive = BooleanArray(keys.size) { letterRow && widths[it] <= minW * 1.25f }
-        val idx = KeyHitResolver.pick(x + bounds.left, centers, widths, forgive)
+        val forgive = BooleanArray(keys.size) {
+            letterish[it] && widths[it] <= minW * 1.25f
+        }
+        val idx = KeyHitResolver.pick2D(touchX, touchY, centersX, centersY, widths, forgive)
         return keys.getOrNull(idx)
     }
 
