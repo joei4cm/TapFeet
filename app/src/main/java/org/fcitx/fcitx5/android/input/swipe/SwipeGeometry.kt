@@ -144,6 +144,25 @@ fun swipeDirection(dx: Float, dy: Float, density: Float): SwipeDirection? {
 }
 
 /**
+ * Soft-key fly-text: whether MOVE should kill the letter click ([gestureConsumed]).
+ *
+ * Tentative [swipeAxis] lock alone must NOT consume — a 16–39dp brush while typing with
+ * candidates up used to drop the letter (UP never commits, but MOVE already set consumed).
+ * Only a stroke that clears [swipeDirection] commit slop may cancel the key.
+ */
+fun softFlyMoveConsumesClick(
+    dx: Float,
+    dy: Float,
+    density: Float,
+    locked: SwipeDirection?,
+): Boolean {
+    if (locked == SwipeDirection.DOWN) return false
+    val committed = swipeDirection(dx, dy, density) ?: return false
+    if (committed == SwipeDirection.DOWN) return false
+    return locked == null || locked == committed
+}
+
+/**
  * Map an X coordinate on the keyboard surface to a candidate to select.
  *
  * [rects] pairs each visible candidate's on-screen rectangle with the engine selection index to

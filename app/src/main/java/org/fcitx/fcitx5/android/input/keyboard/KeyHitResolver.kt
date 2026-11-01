@@ -16,8 +16,11 @@ import kotlin.math.abs
  */
 object KeyHitResolver {
 
-    /** Distance to the right of a letter center is weighted by this (< 1 = claim more of the next key). */
-    const val RIGHT_SIDE_WEIGHT = 0.5f
+    /**
+     * Distance to the right of a letter center is weighted by this (< 1 = claim more of the next key).
+     * 0.35 puts the G/H boundary deeper into H than 0.5 — right-thumb mistaps on G stay G more often.
+     */
+    const val RIGHT_SIDE_WEIGHT = 0.35f
 
     /** Don't flip to a neighbor until it wins by this fraction of the current key width. */
     const val SWITCH_MARGIN_FRACTION = 0.12f

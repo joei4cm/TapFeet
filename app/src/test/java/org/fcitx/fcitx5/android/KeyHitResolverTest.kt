@@ -27,8 +27,9 @@ class KeyHitResolverTest {
 
     @Test
     fun tapJustInsideHStillCountsAsG() {
-        // 10px past the geometric boundary (400) is still G — the usual right-thumb miss.
+        // Past geometric mid (400); with RIGHT_SIDE_WEIGHT=0.35 the G/H flip is ~419.
         assertEquals(0, KeyHitResolver.pick(410f, centers, widths, forgive))
+        assertEquals(0, KeyHitResolver.pick(415f, centers, widths, forgive))
     }
 
     @Test

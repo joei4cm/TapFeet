@@ -16,10 +16,10 @@ import timber.log.Timber
  * Soft-keyboard (letter/T9) fly-text: Titan Elite–style up-swipe by column to pick a candidate,
  * left/right to page. Driven from [CustomGestureView] key gestures (not the candidate bar).
  *
- * Important: classify on MOVE (consume so long-press popup / key click cannot steal the stroke),
- * but **commit only on UP**. Firing select mid-MOVE collapses the candidate bar under a live
- * finger — keys reflow / long-press popup appears ("keys stretch") and the touch stream dies so
- * the keyboard stops accepting input.
+ * Classify direction early on MOVE, but **only consume** (kill letter click / long-press) once
+ * travel clears [swipeDirection] commit slop. Tentative [swipeAxis] alone used to set
+ * `gestureConsumed` and drop the letter on micro-drifts while candidates were showing.
+ * Action still **commits only on UP** so mid-MOVE select cannot collapse the candidate bar.
  */
 class SoftKeyFlyText(
     private val density: Float,
@@ -84,8 +84,8 @@ class SoftKeyFlyText(
                     pendingDir = axis
                     onDismissPopups()
                 }
-                // Consume so long-press popup / AltPreview cannot take over mid-swipe.
-                return pendingDir != null
+                // Consume only past commit slop — see [softFlyMoveConsumesClick].
+                return softFlyMoveConsumesClick(dx, dy, d, pendingDir)
             }
             GestureType.Up -> {
                 if (!armed) return false
