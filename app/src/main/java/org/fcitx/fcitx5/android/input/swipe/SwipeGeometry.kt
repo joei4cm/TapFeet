@@ -144,11 +144,43 @@ fun swipeDirection(dx: Float, dy: Float, density: Float): SwipeDirection? {
 }
 
 /**
+ * Soft letter-key fly-text uses **stricter** thresholds than the physical surface selector:
+ * the same finger both types the letter and may fly-select, so accidental 40dp drifts must
+ * remain taps. Physical [SWIPE_UP_SLOP_DP] / [SWIPE_PAGE_SLOP_DP] stay unchanged.
+ */
+const val SOFT_FLY_BASE_SLOP_DP = 24f
+const val SOFT_FLY_UP_SLOP_DP = 56f
+const val SOFT_FLY_PAGE_SLOP_DP = 48f
+/** ≈27° off-axis — clearer vertical/horizontal than [SWIPE_AXIS_RATIO] 1.5. */
+const val SOFT_FLY_AXIS_RATIO = 2.0f
+
+fun softFlyAxis(dx: Float, dy: Float, density: Float): SwipeDirection? {
+    val ax = kotlin.math.abs(dx)
+    val ay = kotlin.math.abs(dy)
+    if (kotlin.math.hypot(ax, ay) < SOFT_FLY_BASE_SLOP_DP * density) return null
+    if (ay >= ax * SOFT_FLY_AXIS_RATIO) return if (dy < 0f) SwipeDirection.UP else SwipeDirection.DOWN
+    if (ax >= ay * SOFT_FLY_AXIS_RATIO) return if (dx < 0f) SwipeDirection.LEFT else SwipeDirection.RIGHT
+    return null
+}
+
+fun softFlyDirection(dx: Float, dy: Float, density: Float): SwipeDirection? {
+    val dir = softFlyAxis(dx, dy, density) ?: return null
+    val slopPx = when (dir) {
+        SwipeDirection.UP, SwipeDirection.DOWN -> SOFT_FLY_UP_SLOP_DP * density
+        SwipeDirection.LEFT, SwipeDirection.RIGHT -> SOFT_FLY_PAGE_SLOP_DP * density
+    }
+    val travel = when (dir) {
+        SwipeDirection.UP, SwipeDirection.DOWN -> kotlin.math.abs(dy)
+        SwipeDirection.LEFT, SwipeDirection.RIGHT -> kotlin.math.abs(dx)
+    }
+    return if (travel >= slopPx) dir else null
+}
+
+/**
  * Soft-key fly-text: whether MOVE should kill the letter click ([gestureConsumed]).
  *
- * Tentative [swipeAxis] lock alone must NOT consume — a 16–39dp brush while typing with
- * candidates up used to drop the letter (UP never commits, but MOVE already set consumed).
- * Only a stroke that clears [swipeDirection] commit slop may cancel the key.
+ * Tentative [softFlyAxis] lock alone must NOT consume — only a stroke that clears
+ * [softFlyDirection] commit slop may cancel the key.
  */
 fun softFlyMoveConsumesClick(
     dx: Float,
@@ -157,7 +189,7 @@ fun softFlyMoveConsumesClick(
     locked: SwipeDirection?,
 ): Boolean {
     if (locked == SwipeDirection.DOWN) return false
-    val committed = swipeDirection(dx, dy, density) ?: return false
+    val committed = softFlyDirection(dx, dy, density) ?: return false
     if (committed == SwipeDirection.DOWN) return false
     return locked == null || locked == committed
 }

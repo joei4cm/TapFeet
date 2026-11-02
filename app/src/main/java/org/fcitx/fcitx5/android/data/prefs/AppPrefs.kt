@@ -221,13 +221,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         // Soft KB: grow edge keys so A-row dead zones don't eat taps (Gboard-like hit targets).
         val expandKeypressArea =
             switch(R.string.expand_keypress_area, "expand_keypress_area", true)
-        // Soft letter-key 飞词 (up = pick / left-right = page). Default off — with candidates
-        // showing, letter-key swipes steal taps and mid-phrase selects; physical 飞字 stays on
-        // hardwareKeyboard.keyboardFlyText. Opt in under 虚拟键盘 if wanted.
+        // Soft letter-key 飞词 (up = pick / left-right = page). Default on — same idea as
+        // physical 飞字; uses stricter soft-only slops so taps are not stolen. Can turn off
+        // under 虚拟键盘. Physical surface fly-text stays on hardwareKeyboard.keyboardFlyText.
         val softKeyboardFlyText = switch(
             R.string.soft_keyboard_flytext,
             "soft_keyboard_flytext",
-            false,
+            true,
             R.string.soft_keyboard_flytext_summary,
         )
         // Default off: accidental down-swipe inserts punctuation and cancels the letter,

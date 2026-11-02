@@ -626,7 +626,7 @@
     <string name="clear_clp_db_confirm">剪贴板数据库将会被完全清空，包括已置顶的条目。继续吗？</string>
     <string name="expand_keypress_area">将按键范围扩展至边缘</string>
     <string name="soft_keyboard_flytext">字母键飞词（虚拟键盘）</string>
-    <string name="soft_keyboard_flytext_summary">默认关闭。开启后在字母键上滑选候选、左右滑翻页；打字时容易误触丢键或中途选词。</string>
+    <string name="soft_keyboard_flytext_summary">默认开启。在字母键上滑选候选、左右滑翻页；滑动距离比普通点击更长，减少打字误触。不需要可关掉。</string>
     <string name="update_table">更新码表</string>
     <string name="table_dict_replace_message">码表词典 \"%1$s\" 已存在。您可以导入新词典并替换它。</string>
     <string name="lang_switch_key_behavior">语言切换键行为</string>

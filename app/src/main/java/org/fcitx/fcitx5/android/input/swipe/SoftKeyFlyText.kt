@@ -13,13 +13,12 @@ import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListen
 import timber.log.Timber
 
 /**
- * Soft-keyboard (letter/T9) fly-text: Titan Elite–style up-swipe by column to pick a candidate,
- * left/right to page. Driven from [CustomGestureView] key gestures (not the candidate bar).
+ * Soft-keyboard (letter/T9) fly-text: same idea as physical 飞字 — up-swipe by column picks a
+ * candidate, left/right pages — but judged with **soft-only** stricter slops ([softFlyDirection])
+ * so normal taps with candidates up are not stolen.
  *
- * Classify direction early on MOVE, but **only consume** (kill letter click / long-press) once
- * travel clears [swipeDirection] commit slop. Tentative [swipeAxis] alone used to set
- * `gestureConsumed` and drop the letter on micro-drifts while candidates were showing.
- * Action still **commits only on UP** so mid-MOVE select cannot collapse the candidate bar.
+ * Classify direction early on MOVE; **consume** (kill letter click) only past commit slop.
+ * Commit action only on UP.
  */
 class SoftKeyFlyText(
     private val density: Float,
@@ -40,9 +39,7 @@ class SoftKeyFlyText(
     private val loc = IntArray(2)
 
     override fun onGesture(view: View, event: CustomGestureView.Event): Boolean {
-        // Soft letter-key fly-text is opt-in and separate from physical-keyboard 飞字.
-        // Default off: with candidates up, letter swipes were stealing taps / mid-phrase selects
-        // (e.g. Rime preedit turning「输入你说什么」into broken latin).
+        // Separate from physical keyboardFlyText; default on — opt out in 虚拟键盘 settings.
         if (!AppPrefs.getInstance().keyboard.softKeyboardFlyText.getValue()) {
             reset()
             return false
@@ -75,20 +72,19 @@ class SoftKeyFlyText(
                 )
                 val dx = rawX - downRawX
                 val dy = rawY - downRawY
-                // Drop lock if the finger returned to the origin (brush, not swipe).
-                if (pendingDir != null && kotlin.math.hypot(dx, dy) < SWIPE_BASE_SLOP_DP * d) {
+                if (pendingDir != null && kotlin.math.hypot(dx, dy) < SOFT_FLY_BASE_SLOP_DP * d) {
                     pendingDir = null
                     return false
                 }
                 if (pendingDir == null) {
-                    val axis = swipeAxis(dx, dy, d) ?: return false
+                    val axis = softFlyAxis(dx, dy, d) ?: return false
                     // Only claim vertical-up / horizontal — leave DOWN to swipe-symbol.
                     if (axis == SwipeDirection.DOWN) return false
                     pendingDir = axis
-                    onDismissPopups()
                 }
-                // Consume only past commit slop — see [softFlyMoveConsumesClick].
-                return softFlyMoveConsumesClick(dx, dy, d, pendingDir)
+                val consume = softFlyMoveConsumesClick(dx, dy, d, pendingDir)
+                if (consume) onDismissPopups()
+                return consume
             }
             GestureType.Up -> {
                 if (!armed) return false
@@ -104,8 +100,8 @@ class SoftKeyFlyText(
                 )
                 val dx = rawX - downRawX
                 val dy = rawY - downRawY
-                val dir = pendingDir?.takeIf { swipeDirection(dx, dy, d) == it }
-                    ?: swipeDirection(dx, dy, d)
+                val dir = pendingDir?.takeIf { softFlyDirection(dx, dy, d) == it }
+                    ?: softFlyDirection(dx, dy, d)
                 val consumed = when (dir) {
                     SwipeDirection.UP -> {
                         val rects = candidateRectsProvider()
