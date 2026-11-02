@@ -27,9 +27,9 @@ class KeyHitResolverTest {
 
     @Test
     fun tapJustInsideHStillCountsAsG() {
-        // Past geometric mid (400); with RIGHT_SIDE_WEIGHT=0.35 the G/H flip is ~419.
+        // Past geometric mid (400); with RIGHT_SIDE_WEIGHT=0.3 the G/H flip is ~421.
         assertEquals(0, KeyHitResolver.pick(410f, centers, widths, forgive))
-        assertEquals(0, KeyHitResolver.pick(415f, centers, widths, forgive))
+        assertEquals(0, KeyHitResolver.pick(418f, centers, widths, forgive))
     }
 
     @Test

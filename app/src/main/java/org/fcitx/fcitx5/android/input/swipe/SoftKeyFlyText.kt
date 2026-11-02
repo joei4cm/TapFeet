@@ -40,7 +40,10 @@ class SoftKeyFlyText(
     private val loc = IntArray(2)
 
     override fun onGesture(view: View, event: CustomGestureView.Event): Boolean {
-        if (!AppPrefs.getInstance().hardwareKeyboard.keyboardFlyText.getValue()) {
+        // Soft letter-key fly-text is opt-in and separate from physical-keyboard 飞字.
+        // Default off: with candidates up, letter swipes were stealing taps / mid-phrase selects
+        // (e.g. Rime preedit turning「输入你说什么」into broken latin).
+        if (!AppPrefs.getInstance().keyboard.softKeyboardFlyText.getValue()) {
             reset()
             return false
         }
