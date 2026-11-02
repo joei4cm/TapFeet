@@ -7,6 +7,10 @@ package org.fcitx.fcitx5.android.input.candidates.floating
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.LayerDrawable
+import android.util.TypedValue
+import android.view.Gravity
 import android.widget.TextView
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
@@ -20,6 +24,12 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.textView
 
+/**
+ * Floating (physical-keyboard) candidate row item.
+ *
+ * Active state uses a thin accent underline — not a full [Theme.genericActiveBackgroundColor]
+ * fill. A solid strip under the preedit row looked like a bar covering the pinyin.
+ */
 class LabeledCandidateItemUi(
     override val ctx: Context,
     val theme: Theme,
@@ -30,19 +40,41 @@ class LabeledCandidateItemUi(
         setupTextView(this)
     }
 
+    private val borderThickness: Int by lazy {
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            3f,
+            ctx.resources.displayMetrics,
+        ).toInt()
+    }
+
+    private val activeUnderline by lazy {
+        val border = ColorDrawable(
+            CandidateFrequency.readableAccent(
+                theme.candidateTextColor,
+                theme.genericActiveBackgroundColor,
+            )
+        )
+        LayerDrawable(arrayOf(border)).apply {
+            setLayerGravity(0, Gravity.BOTTOM)
+            setLayerHeight(0, borderThickness)
+        }
+    }
+
     fun update(candidate: CandidateWord, active: Boolean) {
         val prefs = AppPrefs.getInstance().candidateBar
-        val labelFg = if (active) theme.genericActiveForegroundColor else theme.candidateLabelColor
-        val fg = when {
-            active -> theme.genericActiveForegroundColor
-            prefs.candidateFrequencyColor.getValue() -> CandidateFrequency.colorFor(
+        // Keep theme text colors even when active — white-on-accent was for the old fill chip.
+        val labelFg = theme.candidateLabelColor
+        val fg = if (prefs.candidateFrequencyColor.getValue()) {
+            CandidateFrequency.colorFor(
                 CandidateFrequency.countOf(candidate.text),
                 theme.candidateTextColor,
                 theme.genericActiveBackgroundColor,
             )
-            else -> theme.candidateTextColor
+        } else {
+            theme.candidateTextColor
         }
-        val altFg = if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor
+        val altFg = theme.candidateCommentColor
         root.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)
@@ -61,8 +93,11 @@ class LabeledCandidateItemUi(
                 }
             }
         }
-        root.backgroundColor =
-            if (active) theme.genericActiveBackgroundColor else Color.TRANSPARENT
+        if (active) {
+            root.background = activeUnderline
+        } else {
+            root.backgroundColor = Color.TRANSPARENT
+        }
         root.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
         root.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
     }
