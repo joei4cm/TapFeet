@@ -23,15 +23,16 @@ object KeyHitResolver {
 
     /**
      * Distance to the right of a letter center is weighted by this (< 1 = claim more of the next key).
-     * 0.3 puts the G/H boundary deeper into H — right-thumb mistaps on G stay G more often.
+     * 0.5 is a mild Gboard-like bias (boundary slightly into H). 0.3 claimed too deep into H and
+     * made intentional H/J taps read as G/H after layout was already equal-width.
      */
-    const val RIGHT_SIDE_WEIGHT = 0.3f
+    const val RIGHT_SIDE_WEIGHT = 0.5f
 
     /**
-     * Vertical distance scale in [score2D]. &lt; 1 makes vertical slightly cheaper than horizontal
-     * so a near-boundary miss still prefers the intended column's letter over a far horizontal key.
+     * Vertical distance scale in [score2D]. 1 = plain Euclidean; keep mild so near-boundary
+     * vertical misses still prefer the nearer key without freely stealing across rows.
      */
-    const val VERTICAL_WEIGHT = 0.8f
+    const val VERTICAL_WEIGHT = 0.95f
 
     /** Don't flip to a neighbor until it wins by this fraction of the current key width. */
     const val SWITCH_MARGIN_FRACTION = 0.12f

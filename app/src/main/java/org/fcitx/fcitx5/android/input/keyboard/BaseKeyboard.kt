@@ -117,7 +117,12 @@ abstract class BaseKeyboard(
                         totalWidth += if (it != 0f) it else 1f
                     }
                 }
-                if (expandKeypressArea && totalWidth < 1f) {
+                // Gboard-like: A-row is 9 equal letters centered under Q (side margins stay empty).
+                // Growing A/L into those margins made edge faces ~1.5× wider than S…K and skewed
+                // hit centers vs the glyph — a top source of soft mistypes without any swipe.
+                // Only expand short non-letter rows (e.g. custom tool strips), never alphabet rows.
+                val letterRow = row.any { it is AlphabetKey || it is AlphabetDigitKey }
+                if (expandKeypressArea && totalWidth < 1f && !letterRow) {
                     val free = (1f - totalWidth) / 2f
                     keyViews.first().apply {
                         updateLayoutParams<LayoutParams> {
