@@ -5,11 +5,10 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 /**
- * 智能九键拼音：2–9 的数字串解码成拼音字母，再交给 fcitx 现有拼音引擎出候选。
- * 音节表来自 libime `PinyinFuzzyFlag::None` 条目；同码优先常用音节。
+ * 智能九键拼音：2–9 数字串 → 拼音字母，再交给现有引擎出候选。
  *
- * 单音节 DP 无法表达「感觉 / 好绝」这类同码整词偏好：同码时 [PHRASES] 优先于 DP，
- * 避免把 `426583` 硬写成 `haojue` 导致引擎根本看不到 `ganjue`。
+ * 解码不再 1-best 拍板（曾把「感觉」426583 写成 haojue）。流程接近 WowType：
+ * 同码保留多个音节 → 按位束搜索 → 词表给整词/前缀加分 → 只把胜出的一条拉丁串写入引擎。
  */
 object T9Pinyin {
 
@@ -35,10 +34,7 @@ object T9Pinyin {
             "za zai zan zang zao ze zei zen zeng zha zhai zhan zhang zhao zhe zhei zhen zheng zhi zhong " +
             "zhou zhu zhua zhuai zhuan zhuang zhui zhun zhuo zi zong zou zu zuan zui zun zuo"
 
-    /**
-     * 单音节先验：越靠前越优先。含 gan/gao/han/gang，避免整段未知音节成本把词级路径压垮。
-     * 同码整词仍以 [PHRASES] 为准（例如 感觉 压过 好绝）。
-     */
+    /** 单音节先验：越靠前越优先。 */
     private const val COMMON =
         "de shi ni wo ta le zhe you bu yi ge hao ha he hen hai hei zai lai qu shuo neng hui yao " +
             "kan dao shang xia zhong guo ren men ma ne me a o e ai an ao ou en er ang " +
@@ -49,20 +45,37 @@ object T9Pinyin {
             "jue ju jin jing jian jiang"
 
     /**
-     * 常用整词拼音，空格分隔；同数字码保留先出现的。
-     * 用来纠正「hao 单音节先验」吞掉 gan/han 词（感觉、感谢、尴尬…）。
+     * 常用词拼音（空格分隔，靠前优先）。同码时给对应路径大额加分，
+     * 避免音节先验把「感觉」等词锁死成 hao*。
      */
-    private const val PHRASES =
-        "ganjue ganxie ganga ganqing ganmao ganbu ganjing gankuai ganren ganma " +
+    private const val WORDS =
+        "nihao zhongguo women tamen shenme zhege nage wode nide tade xianzai keyi yinwei suoyi " +
+            "danshi ruguo yinwei xihuan xianzai pengyou shijian diannao shouji dianying yinyue " +
+            "ganjue ganxie ganga ganqing ganmao ganbu ganjing gankuai ganren ganma " +
             "ganggang gangcai gangbi " +
             "hanguo ganhuo hanzi hanyu hanshu " +
-            "gaoxing gaosu gaokao gaibian"
+            "gaoxing gaosu gaokao gaibian gaozhong " +
+            "haode haokan haochi haoxiang haishi haohaode " +
+            "xianzai xianggang shanghai beijing " +
+            "woaini xiexie duibuqi meiyou yijing keqi " +
+            "gongzuo xuexiao laoshi tongxue pengyou jiating " +
+            "wenti " +
+            "jintian mingtian zuotian xingqi " +
+            "zongshi yizhi yiqie yihou yiqian " +
+            "kaixin shengqi haipa nanguo " +
+            "chifan heshui shuijiao shangban xiaban"
 
     private const val UNKNOWN_COST = 4000
     private const val SEG_PENALTY = 80
     private const val INCOMPLETE_PENALTY = 300
-    /** 至少这么多数字才用「唯一词扩展」引导前缀，避免 42/426 过早锁死。 */
-    private const val PHRASE_PREFIX_MIN = 4
+    /** 整词命中时从路径代价里减去（须大于 UNKNOWN 量级，才能翻盘 hao→gan）。 */
+    private const val WORD_BONUS = 9000
+    /** 词前缀引导（数字够长且拼音是某词的数字前缀）。 */
+    private const val PREFIX_BONUS = 4500
+    private const val PREFIX_MIN_DIGITS = 4
+    private const val BEAM_SIZE = 8
+    /** 每个数字切片最多展开几个同码音节。 */
+    private const val SYLLABLE_ALTS = 4
 
     val lettersByDigit: Map<Char, String> = mapOf(
         '2' to "abc",
@@ -119,15 +132,27 @@ object T9Pinyin {
         }
     }
 
-    /** [PHRASES] 顺序：(数字码, 拼音)；同码与前缀引导都取先出现的。 */
-    private val phraseList: List<Pair<String, String>> by lazy {
-        PHRASES.split(' ').filter { it.isNotEmpty() }.map { py -> t9Code(py) to py }
+    /** 词表：拼音 → 序（越小越好）；并保留 (码, 拼音) 列表做前缀引导。 */
+    private val wordRank: Map<String, Int> by lazy {
+        val map = LinkedHashMap<String, Int>()
+        WORDS.split(' ').filter { it.isNotEmpty() }.forEachIndexed { i, py ->
+            map.putIfAbsent(py, i)
+        }
+        map
+    }
+
+    private val wordList: List<Pair<String, String>> by lazy {
+        wordRank.keys.map { py -> t9Code(py) to py }
     }
 
     private fun prefixMatches(digits: String): List<String> {
         if (digits.isEmpty()) return emptyList()
         return syllables.filter { t9Code(it).startsWith(digits) }
-            .sortedWith(compareBy<String> { rank[it] ?: UNKNOWN_COST }.thenBy { t9Code(it).length }.thenBy { it })
+            .sortedWith(
+                compareBy<String> { rank[it] ?: UNKNOWN_COST }
+                    .thenBy { t9Code(it).length }
+                    .thenBy { it },
+            )
     }
 
     private fun pinyinPrefixForDigits(syllable: String, digits: String): String {
@@ -141,67 +166,116 @@ object T9Pinyin {
 
     private data class Node(val pinyin: String, val cost: Int)
 
-    private fun better(a: Node, b: Node): Boolean {
-        if (a.cost != b.cost) return a.cost < b.cost
-        return a.pinyin.length >= b.pinyin.length
-    }
-
     private fun syllableCost(full: String, incomplete: Boolean): Int {
         val base = rank[full] ?: UNKNOWN_COST
         return base + SEG_PENALTY + if (incomplete) INCOMPLETE_PENALTY else 0
     }
 
     /**
-     * 词表命中：精确码，或 [PHRASES] 中第一条更长扩展（数字够长时）引导到该词拼音前缀。
-     * 多词同前缀时按表序，保证「感觉」在敲到 `4265` 起就不被 hao* 抢走。
+     * 词表调整：整词或「词表里最靠前的一条」前缀命中时加分。
+     * 同数字前缀可能对上多个词（ganj←感觉、haok←好看），只能奖一条，
+     * 否则音节先验仍会把 hao* 压过 gan*。
      */
-    private fun phraseHint(digits: String): String? {
-        phraseList.firstOrNull { it.first == digits }?.second?.let { return it }
-        if (digits.length < PHRASE_PREFIX_MIN) return null
-        val ext = phraseList.firstOrNull { (code, _) ->
-            code.startsWith(digits) && code.length > digits.length
-        } ?: return null
-        return pinyinPrefixForDigits(ext.second, digits)
+    private fun lexiconBonus(pinyin: String, digits: String): Int {
+        if (pinyin.isEmpty()) return 0
+        wordRank[pinyin]?.let { r -> return WORD_BONUS - r }
+        if (digits.length < PREFIX_MIN_DIGITS) return 0
+        val best = wordList.firstOrNull { (code, _) ->
+            code.startsWith(digits)
+        } ?: return 0
+        return if (pinyinPrefixForDigits(best.second, digits) == pinyin) {
+            PREFIX_BONUS - wordRank.getOrElse(best.second) { wordList.indexOf(best) }
+        } else {
+            0
+        }
+    }
+
+    private fun effectiveCost(node: Node, digits: String): Int =
+        node.cost - lexiconBonus(node.pinyin, digits)
+
+    private fun prune(bucket: MutableList<Node>, digits: String) {
+        if (bucket.size <= BEAM_SIZE) return
+        bucket.sortWith(
+            compareBy<Node> { effectiveCost(it, digits) }
+                .thenByDescending { it.pinyin.length }
+                .thenBy { it.pinyin },
+        )
+        while (bucket.size > BEAM_SIZE) bucket.removeAt(bucket.lastIndex)
+    }
+
+    private fun expandChoices(slice: String, atEnd: Boolean): List<Pair<String, Boolean>> {
+        val complete = byT9[slice]
+        if (!complete.isNullOrEmpty()) {
+            return complete.take(SYLLABLE_ALTS).map { it to false }
+        }
+        if (!atEnd) return emptyList()
+        return prefixMatches(slice).take(SYLLABLE_ALTS).map { it to true }
     }
 
     /**
-     * 把 2–9 数字串解成拼音。常用整词优先，其次常用音节 DP。
-     * 解不出时退回每键第一个字母（2→a）。
+     * 诊断用：返回按有效代价排序的 top 路径拼音（含词表加分后）。
+     */
+    fun decodeTop(digits: String, limit: Int = BEAM_SIZE): List<String> {
+        if (digits.isEmpty()) return emptyList()
+        val clean = digits.filter { it in '2'..'9' }
+        if (clean.isEmpty()) return emptyList()
+        return beam(clean)
+            .sortedWith(
+                compareBy<Node> { effectiveCost(it, clean) }
+                    .thenByDescending { it.pinyin.length }
+                    .thenBy { it.pinyin },
+            )
+            .map { it.pinyin }
+            .distinct()
+            .take(limit)
+    }
+
+    private fun beam(clean: String): List<Node> {
+        val best = Array(clean.length + 1) { mutableListOf<Node>() }
+        best[0].add(Node("", 0))
+        for (i in 0 until clean.length) {
+            val prevs = best[i]
+            if (prevs.isEmpty()) continue
+            val maxLen = minOf(6, clean.length - i)
+            for (prev in prevs) {
+                for (len in 1..maxLen) {
+                    val slice = clean.substring(i, i + len)
+                    val atEnd = i + len == clean.length
+                    for ((chosenFull, incomplete) in expandChoices(slice, atEnd)) {
+                        val piece = if (incomplete) {
+                            pinyinPrefixForDigits(chosenFull, slice)
+                        } else {
+                            chosenFull
+                        }
+                        val nextIdx = i + len
+                        best[nextIdx].add(
+                            Node(prev.pinyin + piece, prev.cost + syllableCost(chosenFull, incomplete)),
+                        )
+                    }
+                }
+            }
+            // 剪枝目标位：本轮写入的各个 next；为简单起见每层结束后剪所有非空桶
+            for (j in (i + 1)..minOf(i + 6, clean.length)) {
+                prune(best[j], clean.substring(0, j))
+            }
+        }
+        return best[clean.length]
+    }
+
+    /**
+     * 把 2–9 数字串解成拼音。束搜索 + 词表选路；解不出时退回每键首字母。
      */
     fun decode(digits: String): String {
         if (digits.isEmpty()) return ""
         val clean = digits.filter { it in '2'..'9' }
         if (clean.isEmpty()) return ""
-        phraseHint(clean)?.let { return it }
-        val best = arrayOfNulls<Node>(clean.length + 1)
-        best[0] = Node("", 0)
-        for (i in 0 until clean.length) {
-            val prev = best[i] ?: continue
-            val maxLen = minOf(6, clean.length - i)
-            for (len in 1..maxLen) {
-                val slice = clean.substring(i, i + len)
-                val atEnd = i + len == clean.length
-                val complete = byT9[slice]
-                val choices: List<String> = when {
-                    !complete.isNullOrEmpty() -> complete
-                    atEnd -> prefixMatches(slice)
-                    else -> emptyList()
-                }
-                if (choices.isEmpty()) continue
-                val incomplete = complete.isNullOrEmpty()
-                val chosenFull = choices.first()
-                val piece = if (incomplete) {
-                    pinyinPrefixForDigits(chosenFull, slice)
-                } else {
-                    chosenFull
-                }
-                val nextIdx = i + len
-                val cand = Node(prev.pinyin + piece, prev.cost + syllableCost(chosenFull, incomplete))
-                val old = best[nextIdx]
-                if (old == null || better(cand, old)) best[nextIdx] = cand
-            }
-        }
-        return best[clean.length]?.pinyin ?: fallbackFirstLetters(clean)
+        val paths = beam(clean)
+        if (paths.isEmpty()) return fallbackFirstLetters(clean)
+        return paths.minWith(
+            compareBy<Node> { effectiveCost(it, clean) }
+                .thenByDescending { it.pinyin.length }
+                .thenBy { it.pinyin },
+        ).pinyin
     }
 
     private fun fallbackFirstLetters(digits: String): String {

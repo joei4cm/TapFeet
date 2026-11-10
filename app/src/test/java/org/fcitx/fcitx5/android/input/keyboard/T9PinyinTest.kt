@@ -69,20 +69,23 @@ class T9PinyinTest {
             "42 should be a valid incomplete syllable, got $afterDropO",
             afterDropO in setOf("ha", "ga", "h", "g"),
         )
-        // Document the collision the user hit: not always "ha".
         assertTrue(afterDropO == "ha" || afterDropO == "ga")
     }
 
     @Test
     fun ganjueBeatsHaojueOnSamePad() {
-        // 感觉 / 好绝 share pad 426583; without a phrase prior, syllable DP picks haojue
-        // and Rime never sees ganjue — 感觉 disappears from candidates.
         assertEquals("426583", T9Pinyin.t9Code("ganjue"))
         assertEquals("426583", T9Pinyin.t9Code("haojue"))
         assertEquals("ganjue", T9Pinyin.decode("426583"))
-        // Unique phrase extension should lock in before the last digit.
         assertEquals("ganju", T9Pinyin.decode("42658"))
         assertEquals("ganj", T9Pinyin.decode("4265"))
+    }
+
+    @Test
+    fun beamKeepsGanjueAmongTop() {
+        val top = T9Pinyin.decodeTop("426583", limit = 5)
+        assertTrue("ganjue should be in top paths, got $top", "ganjue" in top)
+        assertEquals("ganjue", top.first())
     }
 
     @Test
@@ -91,12 +94,34 @@ class T9PinyinTest {
         assertEquals("ganga", T9Pinyin.decode(T9Pinyin.t9Code("ganga")))
         assertEquals("hanguo", T9Pinyin.decode(T9Pinyin.t9Code("hanguo")))
         assertEquals("gaoxing", T9Pinyin.decode(T9Pinyin.t9Code("gaoxing")))
+        assertEquals("nihao", T9Pinyin.decode(T9Pinyin.t9Code("nihao")))
+        assertEquals("xiexie", T9Pinyin.decode(T9Pinyin.t9Code("xiexie")))
     }
 
     @Test
     fun bareHaoPadStillPrefersHao() {
-        // Single syllable 426 stays 好 — phrase bias only kicks in with enough digits.
         assertEquals("hao", T9Pinyin.decode("426"))
+    }
+
+    @Test
+    fun evalSamePadWordsPreferLexicon() {
+        // Regression board: pad collisions that syllable-only DP used to lose.
+        val cases = listOf(
+            "ganjue" to "感觉",
+            "ganxie" to "感谢",
+            "ganga" to "尴尬",
+            "hanguo" to "韩国",
+            "gaoxing" to "高兴",
+            "haokan" to "好看",
+            "haochi" to "好吃",
+            "woaini" to "我爱你",
+            "xiexie" to "谢谢",
+            "meiyou" to "没有",
+        )
+        for ((py, label) in cases) {
+            val digits = T9Pinyin.t9Code(py)
+            assertEquals("$label ($py) digits=$digits", py, T9Pinyin.decode(digits))
+        }
     }
 
     @Test
@@ -105,5 +130,6 @@ class T9PinyinTest {
         assertEquals(NineKeyKeyboard.Name, VirtualLayout.NineKey.keyboardName)
         assertTrue(VirtualLayout.isTextLayout(TextKeyboard.Name))
         assertTrue(VirtualLayout.isTextLayout(NineKeyKeyboard.Name))
+        assertFalse(VirtualLayout.isTextLayout("Other"))
     }
 }
