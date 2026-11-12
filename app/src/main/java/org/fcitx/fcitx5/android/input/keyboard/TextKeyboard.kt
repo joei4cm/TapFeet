@@ -170,6 +170,12 @@ class TextKeyboard(
         capsState = CapsState.None
         updateCapsButtonIcon()
         updateAlphabetKeys()
+        SoftTypoSession.setActive(true)
+    }
+
+    override fun onDetach() {
+        SoftTypoSession.setActive(false)
+        super.onDetach()
     }
 
     override fun onReturnDrawableUpdate(returnDrawable: Int) {

@@ -167,6 +167,11 @@ class CommonKeyActionListener :
                     } else {
                         service.postFcitxJob {
                             if (!handleLocalCandidateShortcut(action)) {
+                                val ch = action.act.singleOrNull()
+                                val zh = inputMethodEntryCached.languageCode.startsWith("zh")
+                                if (ch != null && SoftTypoSession.onLetter(ch, zh, this)) {
+                                    return@postFcitxJob
+                                }
                                 sendKey(action.act, action.states.states, action.code)
                             }
                         }
@@ -181,7 +186,10 @@ class CommonKeyActionListener :
                             val isBackspace =
                                 action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace ||
                                     action.sym.keyCode == KeyEvent.KEYCODE_DEL
-                            if (isBackspace && T9Session.onBackspace(this)) {
+                            if (isBackspace && (
+                                    T9Session.onBackspace(this) || SoftTypoSession.onBackspace(this)
+                                    )
+                            ) {
                                 return@postFcitxJob
                             }
                             if (!handleLocalCandidateShortcut(action)) {
