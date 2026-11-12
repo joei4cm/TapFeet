@@ -99,12 +99,12 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     private val pressHighlight = pressHighlightDrawable(theme.keyPressHighlightColor)
 
     private val borderThickness: Int by lazy {
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3f, ctx.resources.displayMetrics).toInt()
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2f, ctx.resources.displayMetrics).toInt()
+            .coerceAtLeast(1)
     }
 
     private val activeBackground by lazy {
-        // Accent underline, not genericActiveForeground — that color is white text-on-chip
-        // and disappears on a white candidate bar.
+        // Accent underline under glyphs (layer 0 = press ripples; layer 1 = thin bottom strip).
         val border = ColorDrawable(
             CandidateFrequency.readableAccent(
                 theme.candidateTextColor,
