@@ -258,6 +258,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                 if (dest != NineKeyKeyboard.Name) {
                     T9Session.setActive(false)
                 }
+                if (dest != TextKeyboard.Name) {
+                    SoftTypoSession.setActive(false)
+                }
             }
             // 记录当前 Sym 三态：自定义键盘 → CUSTOM；主键盘 / 数字键盘 → NONE
             symMode = if (dest == CustomKeyboard.Name) SymMode.CUSTOM else SymMode.NONE
@@ -305,16 +308,19 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         if (lastImeUniqueName != ime.uniqueName) {
             lastImeUniqueName = ime.uniqueName
             T9Session.clear()
+            SoftTypoSession.clear()
         }
         currentKeyboard?.onInputMethodUpdate(ime)
     }
 
     override fun onPreeditEmptyStateUpdate(empty: Boolean) {
         T9Session.onPreeditEmpty(empty)
+        SoftTypoSession.onPreeditEmpty(empty)
     }
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
         T9Session.onPanelLatin(data.preedit.toString())
+        SoftTypoSession.onPanelLatin(data.preedit.toString())
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
