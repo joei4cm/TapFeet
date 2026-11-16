@@ -30,12 +30,11 @@ import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
 
 /**
- * Floating (physical-keyboard) candidate row item.
+ * Floating (physical-keyboard) candidate item.
  *
- * Active state is a thin accent underline **below** the glyphs — never a full
- * [Theme.genericActiveBackgroundColor] fill (that covered pinyin), and not a
- * [LayerDrawable] bottom strip on the TextView itself (on some devices the color
- * still filled the whole cell and painted over the candidate — reported on Titan).
+ * Layout: `序号+词` → 选中细线 → 拼音/翻译注释。
+ * Underline sits **between** the word and the translation line so the accent
+ * strip cannot cover gloss text (Titan / translation-comment reports).
  */
 class LabeledCandidateItemUi(
     override val ctx: Context,
@@ -45,8 +44,16 @@ class LabeledCandidateItemUi(
 
     private val label = textView {
         setupTextView(this)
-        // Bottom padding reserved for [underline]; setupTextView's vertical pad stays for top/sides.
         includeFontPadding = false
+    }
+
+    private val comment = textView {
+        // Slightly smaller than the main label; reuse horizontal padding from setup.
+        setupTextView(this)
+        includeFontPadding = false
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize * 0.55f)
+        setTextColor(theme.candidateCommentColor)
+        visibility = View.GONE
     }
 
     private val underlineThickness: Int by lazy {
@@ -66,17 +73,17 @@ class LabeledCandidateItemUi(
 
     override val root = view(::LinearLayout) {
         orientation = LinearLayout.VERTICAL
-        // Transparent hit target; underline is a child, not a TextView background fill.
         backgroundColor = Color.TRANSPARENT
         add(label, lParams(wrapContent, wrapContent))
         add(underline, lParams(matchParent, underlineThickness) {
             topMargin = underlineGap
+            bottomMargin = underlineGap
         })
+        add(comment, lParams(wrapContent, wrapContent))
     }
 
     fun update(candidate: CandidateWord, active: Boolean) {
         val prefs = AppPrefs.getInstance().candidateBar
-        // Keep theme text colors even when active — white-on-accent was for the old fill chip.
         val labelFg = theme.candidateLabelColor
         val fg = if (prefs.candidateFrequencyColor.getValue()) {
             CandidateFrequency.colorFor(
@@ -87,7 +94,6 @@ class LabeledCandidateItemUi(
         } else {
             theme.candidateTextColor
         }
-        val altFg = theme.candidateCommentColor
         label.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)
@@ -95,16 +101,16 @@ class LabeledCandidateItemUi(
             color(fg) {
                 append(candidate.text)
             }
-            val showComment = AppPrefs.getInstance().candidateBar.showCandidateComment.getValue()
-            val hint = if (showComment) candidate.displayComment() else ""
-            if (hint.isNotBlank()) {
-                if (candidate.spaceBetweenComment) {
-                    append(" ")
-                }
-                color(altFg) {
-                    append(hint)
-                }
-            }
+        }
+        val showComment = prefs.showCandidateComment.getValue()
+        val hint = if (showComment) candidate.displayComment() else ""
+        if (hint.isNotBlank()) {
+            comment.visibility = View.VISIBLE
+            comment.text = hint
+            comment.setTextColor(theme.candidateCommentColor)
+        } else {
+            comment.visibility = View.GONE
+            comment.text = ""
         }
         if (active) {
             underline.visibility = View.VISIBLE
@@ -117,6 +123,7 @@ class LabeledCandidateItemUi(
             underline.backgroundColor = Color.TRANSPARENT
         }
         label.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
+        comment.typeface = CandidateFont.typeface(ctx, bold = false)
         label.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
     }
 }
