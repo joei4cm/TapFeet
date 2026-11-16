@@ -259,11 +259,15 @@ class CandidatesView(
         }
         val bottomLimit = parentHeight - bottomInsets
         val bottomSpace = bottomLimit - bottom
-        // move CandidatesView above cursor anchor, only when
-        val tY: Float = if (
+        // Prefer above the cursor when the below-cursor band cannot fit the window
+        // (two-line gloss makes the popup taller). Then clamp so the whole window stays
+        // inside the IME content — otherwise the bottom gloss line is clipped.
+        var tY: Float = if (
             bottom + selfHeight > bottomLimit   // bottom space is not enough
             && top > bottomSpace                // top space is larger than bottom
         ) top - selfHeight else bottom
+        val maxY = (bottomLimit - selfHeight).coerceAtLeast(0f)
+        tY = tY.coerceIn(0f, maxY)
         translationX = tX
         translationY = tY
         // update touchEventReceiverWindow's position after CandidatesView's

@@ -7,6 +7,9 @@ package org.fcitx.fcitx5.android.input.candidates.floating
 
 import android.content.Context
 import android.graphics.Color
+import android.util.TypedValue
+import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.core.text.buildSpannedString
@@ -19,13 +22,18 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.candidates.displayComment
 import splitties.views.backgroundColor
 import splitties.views.dsl.core.Ui
+import splitties.views.dsl.core.add
+import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.view
+import splitties.views.dsl.core.wrapContent
 
 /**
  * Floating (physical-keyboard) candidate item.
  *
- * Preferred state is **accent text color + bold** only — no underline / fill strip.
- * Underlines raised the row and clipped the floating window; fills covered glyphs/gloss.
+ * Layout: `序号+词` over a smaller 拼音/翻译 line. Preferred state is accent text + bold only
+ * (no underline / fill — those either covered the gloss or raised the row until the window
+ * clipped). Window positioning clamps the taller two-line cell on-screen.
  */
 class LabeledCandidateItemUi(
     override val ctx: Context,
@@ -33,10 +41,28 @@ class LabeledCandidateItemUi(
     setupTextView: TextView.() -> Unit
 ) : Ui {
 
-    override val root = textView {
+    private val label = textView {
         setupTextView(this)
         includeFontPadding = false
         backgroundColor = Color.TRANSPARENT
+    }
+
+    private val comment = textView {
+        setupTextView(this)
+        includeFontPadding = true
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize * 0.55f)
+        setTextColor(theme.candidateCommentColor)
+        visibility = View.GONE
+        backgroundColor = Color.TRANSPARENT
+    }
+
+    override val root = view(::LinearLayout) {
+        orientation = LinearLayout.VERTICAL
+        backgroundColor = Color.TRANSPARENT
+        clipToPadding = false
+        clipChildren = false
+        add(label, lParams(wrapContent, wrapContent))
+        add(comment, lParams(wrapContent, wrapContent))
     }
 
     fun update(candidate: CandidateWord, active: Boolean) {
@@ -65,26 +91,27 @@ class LabeledCandidateItemUi(
         } else {
             theme.candidateCommentColor
         }
-        root.text = buildSpannedString {
+        label.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)
             }
             color(fg) {
                 append(candidate.text)
             }
-            val showComment = prefs.showCandidateComment.getValue()
-            val hint = if (showComment) candidate.displayComment() else ""
-            if (hint.isNotBlank()) {
-                if (candidate.spaceBetweenComment) {
-                    append(" ")
-                }
-                color(altFg) {
-                    append(hint)
-                }
-            }
         }
-        root.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
-        root.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
+        val showComment = prefs.showCandidateComment.getValue()
+        val hint = if (showComment) candidate.displayComment() else ""
+        if (hint.isNotBlank()) {
+            comment.visibility = View.VISIBLE
+            comment.text = hint
+            comment.setTextColor(altFg)
+        } else {
+            comment.visibility = View.GONE
+            comment.text = ""
+        }
+        label.typeface = CandidateFont.typeface(ctx, active || prefs.candidateFontBold.getValue())
+        comment.typeface = CandidateFont.typeface(ctx, bold = false)
+        label.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
         root.backgroundColor = Color.TRANSPARENT
     }
 }
