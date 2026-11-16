@@ -34,10 +34,23 @@ import kotlin.math.max
 /**
  * 候选项：竖排「字 / 拼音·翻译」。
  *
- * 选中态只用强调色 + 加粗，不画下划线/底边条——细线会抬高行高把悬浮窗裁切不全，
- * 底边条又会盖住翻译注释。
+ * 选中态只用强调色 + 加粗。竖排注释需要比默认 40dp 更高的行高，见 [rowHeightDp]。
  */
 class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
+
+    companion object {
+        /** Idle / 无注释时的候选行高（dp）。 */
+        const val ROW_HEIGHT_DP = 40
+
+        /**
+         * 开启「显示注释/翻译」时的行高（dp）。
+         * 20sp 汉字 + ~10sp 注释 + 字体内边距，40dp 会把翻译底边裁掉。
+         */
+        const val ROW_HEIGHT_WITH_COMMENT_DP = 56
+
+        fun rowHeightDp(showComment: Boolean): Int =
+            if (showComment) ROW_HEIGHT_WITH_COMMENT_DP else ROW_HEIGHT_DP
+    }
 
     private val index = textView {
         textSize = 7f // sp — badge default; prefs can nudge within a small range
@@ -63,7 +76,8 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     private val comment = textView {
         textSize = 10f
         isSingleLine = true
-        includeFontPadding = false
+        // Keep font padding so Latin gloss descenders (g/y/p) are not clipped.
+        includeFontPadding = true
         gravity = gravityCenter
         setTextColor(theme.candidateCommentColor)
         visibility = View.GONE

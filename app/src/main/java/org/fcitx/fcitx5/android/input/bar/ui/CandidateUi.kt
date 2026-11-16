@@ -1,13 +1,15 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 package org.fcitx.fcitx5.android.input.bar.ui
 
 import android.content.Context
 import android.view.View
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.candidates.CandidateItemUi
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.after
 import splitties.views.dsl.constraintlayout.before
@@ -34,6 +36,10 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
         const val BlackBerryBottomRowKeyCount = 5
     }
 
+    private val candidateRowHeightDp = CandidateItemUi.rowHeightDp(
+        AppPrefs.getInstance().candidateBar.showCandidateComment.getValue()
+    )
+
     val prevPageButton = ToolButton(ctx, R.drawable.ic_baseline_arrow_prev_24, theme).apply {
         id = R.id.prev_candidate_btn
         visibility = View.INVISIBLE
@@ -57,19 +63,20 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
     val chipStrip = ChipStripUi(ctx, theme)
 
     private val candidateRow = ctx.constraintLayout {
-        add(prevPageButton, lParams(dp(40)) {
+        val btn = dp(CandidateItemUi.ROW_HEIGHT_DP)
+        add(prevPageButton, lParams(btn) {
             centerVertically()
             startOfParent()
         })
-        add(nextPageButton, lParams(dp(40)) {
+        add(nextPageButton, lParams(btn) {
             centerVertically()
             endOfParent()
         })
-        add(expandButton, lParams(dp(40)) {
+        add(expandButton, lParams(btn) {
             centerVertically()
             before(nextPageButton)
         })
-        add(keyboardToggleButton, lParams(dp(40)) {
+        add(keyboardToggleButton, lParams(btn) {
             centerVertically()
             before(expandButton)
         })
@@ -82,6 +89,7 @@ class CandidateUi(override val ctx: Context, theme: Theme, private val horizonta
 
     override val root = ctx.verticalLayout {
         add(chipStrip.root, linearLParams(matchParent, wrapContent))
-        add(candidateRow, linearLParams(matchParent, dp(40)))
+        // Taller when gloss/pinyin is shown under each word so the comment is not clipped.
+        add(candidateRow, linearLParams(matchParent, dp(candidateRowHeightDp)))
     }
 }

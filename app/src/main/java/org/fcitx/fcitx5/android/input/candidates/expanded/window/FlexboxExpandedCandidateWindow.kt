@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.input.candidates.CandidateItemUi
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateLayout
 import org.fcitx.fcitx5.android.input.candidates.expanded.PagingCandidateViewAdapter
@@ -28,9 +30,14 @@ class FlexboxExpandedCandidateWindow :
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
                 return super.onCreateViewHolder(parent, viewType).apply {
                     itemView.apply {
-                        minimumWidth = dp(40)
+                        val rowH = dp(
+                            CandidateItemUi.rowHeightDp(
+                                AppPrefs.getInstance().candidateBar.showCandidateComment.getValue()
+                            )
+                        )
+                        minimumWidth = dp(CandidateItemUi.ROW_HEIGHT_DP)
                         setPaddingDp(10, 0, 10, 0)
-                        layoutParams = FlexboxLayoutManager.LayoutParams(wrapContent, dp(40))
+                        layoutParams = FlexboxLayoutManager.LayoutParams(wrapContent, rowH)
                             .apply { flexGrow = 1f }
                     }
                 }

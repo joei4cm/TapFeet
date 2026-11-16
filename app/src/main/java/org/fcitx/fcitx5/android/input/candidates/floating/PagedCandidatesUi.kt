@@ -132,7 +132,8 @@ class PagedCandidatesUi(
                 alignItems = AlignItems.STRETCH
             } else {
                 flexDirection = FlexDirection.ROW
-                alignItems = AlignItems.BASELINE
+                // CENTER (not BASELINE): two-line word/gloss cells share a common mid-line.
+                alignItems = AlignItems.CENTER
             }
         }
         paginationUi.update(data)
