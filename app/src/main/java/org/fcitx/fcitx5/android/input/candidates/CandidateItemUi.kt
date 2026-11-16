@@ -6,7 +6,6 @@
 package org.fcitx.fcitx5.android.input.candidates
 
 import android.content.Context
-import android.graphics.Color
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -21,7 +20,6 @@ import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
 import splitties.dimensions.dp
-import splitties.views.backgroundColor
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -34,9 +32,10 @@ import splitties.views.gravityCenterHorizontal
 import kotlin.math.max
 
 /**
- * 候选项：竖排「字 / 下划线 / 拼音·翻译」。
+ * 候选项：竖排「字 / 拼音·翻译」。
  *
- * 选中细线画在汉字和注释之间，绝不用根布局底边条——底边条会盖住翻译行。
+ * 选中态只用强调色 + 加粗，不画下划线/底边条——细线会抬高行高把悬浮窗裁切不全，
+ * 底边条又会盖住翻译注释。
  */
 class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
 
@@ -61,17 +60,6 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         setTextColor(theme.candidateTextColor)
     }
 
-    private val underlineThickness: Int by lazy {
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2f, ctx.resources.displayMetrics)
-            .toInt()
-            .coerceAtLeast(1)
-    }
-
-    private val underline = view(::View) {
-        visibility = View.INVISIBLE
-        backgroundColor = Color.TRANSPARENT
-    }
-
     private val comment = textView {
         textSize = 10f
         isSingleLine = true
@@ -85,12 +73,6 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         orientation = LinearLayout.VERTICAL
         gravity = gravityCenterHorizontal
         add(text, lParams(wrapContent, wrapContent))
-        add(underline, lParams(matchParent, underlineThickness) {
-            topMargin = dp(1)
-            bottomMargin = dp(1)
-            // Keep a minimum width so the strip is visible under short glyphs.
-            width = matchParent
-        })
         add(comment, lParams(wrapContent, wrapContent))
     }
 
@@ -159,7 +141,7 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         // Index stays light / non-bold so it reads as a caption, not part of the word.
         index.typeface = CandidateFont.typeface(ctx, bold = false)
         text.letterSpacing = prefs.candidateLetterSpacing.getValue() / 100f
-        val textFg = if (prefs.candidateFrequencyColor.getValue()) {
+        val baseFg = if (prefs.candidateFrequencyColor.getValue()) {
             CandidateFrequency.colorFor(
                 CandidateFrequency.countOf(candidate.text),
                 theme.candidateTextColor,
@@ -167,6 +149,12 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
             )
         } else {
             theme.candidateTextColor
+        }
+        // Preferred = readable accent (not white-on-chip); others keep theme / frequency color.
+        val textFg = if (isActive) {
+            CandidateFrequency.readableAccent(baseFg, theme.genericActiveBackgroundColor)
+        } else {
+            baseFg
         }
         text.setTextColor(textFg)
         val hint = if (showComment) candidate.displayComment() else ""
@@ -177,23 +165,17 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
                 TypedValue.COMPLEX_UNIT_SP,
                 max(8, textFontSize / 2).toFloat(),
             )
-            comment.setTextColor(theme.candidateCommentColor)
+            comment.setTextColor(
+                if (isActive) {
+                    ColorUtils.setAlphaComponent(textFg, 0xB3)
+                } else {
+                    theme.candidateCommentColor
+                },
+            )
         } else {
             comment.visibility = View.GONE
             comment.text = ""
         }
-        // Always keep press ripples only on the root — never a bottom fill that covers comment.
         root.background = pressHighlight
-        if (isActive) {
-            underline.visibility = View.VISIBLE
-            underline.backgroundColor = CandidateFrequency.readableAccent(
-                theme.candidateTextColor,
-                theme.genericActiveBackgroundColor,
-            )
-        } else {
-            // INVISIBLE keeps row height stable when the preferred slot moves.
-            underline.visibility = View.INVISIBLE
-            underline.backgroundColor = Color.TRANSPARENT
-        }
     }
 }
