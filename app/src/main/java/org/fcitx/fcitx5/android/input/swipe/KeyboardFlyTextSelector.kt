@@ -114,7 +114,21 @@ class KeyboardFlyTextSelector(
      * false for left (previous IME).
      */
     private val onTwoFingerHorizontal: (forward: Boolean) -> Unit = {},
+    /**
+     * Soft candidate-bar (and similar) use [softFlyAxis] / [softFlyDirection] so a finger drift
+     * on the taller gloss row is less likely to page or steal a tap. Physical surface keeps the
+     * original [swipeAxis] / [swipeDirection] thresholds.
+     */
+    private val softSlops: Boolean = false,
 ) {
+    private fun axisOf(dx: Float, dy: Float, d: Float): SwipeDirection? =
+        if (softSlops) softFlyAxis(dx, dy, d) else swipeAxis(dx, dy, d)
+
+    private fun directionOf(dx: Float, dy: Float, d: Float): SwipeDirection? =
+        if (softSlops) softFlyDirection(dx, dy, d) else swipeDirection(dx, dy, d)
+
+    private fun baseSlopDp(): Float =
+        if (softSlops) SOFT_FLY_BASE_SLOP_DP else SWIPE_BASE_SLOP_DP
     private var downX = 0f
     private var downY = 0f
     private var downTime = 0L
@@ -280,13 +294,13 @@ class KeyboardFlyTextSelector(
                 val dy = event.rawY - downY
                 // Reversal guard: the finger returned to the start (travel back under the base slop)
                 // — this was a brush, not a swipe. Drop the locked direction so it cannot fire later.
-                if (hypot(dx, dy) < SWIPE_BASE_SLOP_DP * d) {
+                if (hypot(dx, dy) < baseSlopDp() * d) {
                     pendingDir = null
                     return
                 }
                 // Lock the direction as soon as the travel is clearly one axis (below the higher
                 // commit slop). From here the direction is fixed; a wobble cannot reclassify it.
-                if (pendingDir == null) pendingDir = swipeAxis(dx, dy, d)
+                if (pendingDir == null) pendingDir = axisOf(dx, dy, d)
                 val dir = pendingDir ?: return
                 // Corner-delete path: a contact that began in the top-right corner is reserved for
                 // Backspace. Only a clearly leftward swipe fires it; up/down/right from the corner are
@@ -294,7 +308,7 @@ class KeyboardFlyTextSelector(
                 // The commit slop is the same horizontal one the page gestures use, scaled by the
                 // fly-text sensitivity, so the delete threshold tracks the same mis-touch tuning.
                 if (cornerDeleteArmed) {
-                    if (swipeDirection(dx, dy, d) == SwipeDirection.LEFT) {
+                    if (directionOf(dx, dy, d) == SwipeDirection.LEFT) {
                         Timber.i("FlyText: corner-delete (rawX=${event.rawX})")
                         onDelete()
                         classified = true
@@ -334,9 +348,9 @@ class KeyboardFlyTextSelector(
                 }
                 // Fire only once the travel also clears the *commit* slop for this direction — the
                 // hysteresis that separates a deliberate swipe from a stray touch that merely grazed
-                // the base slop. swipeDirection re-applies the same axis ratio + per-direction slop
+                // the base slop. directionOf re-applies the same axis ratio + per-direction slop
                 // the Lab page reports, so the read-out still matches what happens here.
-                if (swipeDirection(dx, dy, d) != dir) return
+                if (directionOf(dx, dy, d) != dir) return
                 when (dir) {
                     SwipeDirection.UP -> {
                         val rects = candidateRectsProvider()
@@ -405,13 +419,13 @@ class KeyboardFlyTextSelector(
         val (cx, cy) = centroidRaw(event)
         val dx = cx - downX
         val dy = cy - downY
-        if (hypot(dx, dy) < SWIPE_BASE_SLOP_DP * d) {
+        if (hypot(dx, dy) < baseSlopDp() * d) {
             pendingDir = null
             return
         }
-        if (pendingDir == null) pendingDir = swipeAxis(dx, dy, d)
+        if (pendingDir == null) pendingDir = axisOf(dx, dy, d)
         val dir = pendingDir ?: return
-        if (swipeDirection(dx, dy, d) != dir) return
+        if (directionOf(dx, dy, d) != dir) return
         when (dir) {
             SwipeDirection.LEFT, SwipeDirection.RIGHT -> {
                 val forward = dir == SwipeDirection.RIGHT

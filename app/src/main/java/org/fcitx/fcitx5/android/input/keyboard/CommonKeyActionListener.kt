@@ -8,7 +8,9 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.core.FcitxAPI
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.daemon.launchOnReady
@@ -83,6 +85,10 @@ class CommonKeyActionListener :
 
     private suspend fun FcitxAPI.selectCurrentLocalCandidate(number: Int): Boolean {
         val index = horizontalCandidate.selectionIndexForLocalNumber(number) ?: return false
+        // Arm fade / fly on the visible cell before select clears the bar (Space / digit pick).
+        withContext(Dispatchers.Main.immediate) {
+            horizontalCandidate.prepareSelectFeedbackForLocalNumber(number)
+        }
         setCandidatePagingMode(horizontalCandidate.currentCandidatePagingMode())
         if (select(index)) return true
         val candidate = horizontalCandidate.candidateForLocalNumber(number) ?: return false
