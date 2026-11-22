@@ -92,6 +92,10 @@ class PaginationUi(override val ctx: Context, val theme: Theme) : Ui {
     }
 
     fun update(data: FcitxEvent.PagedCandidateEvent.Data) {
+        prevIcon.isEnabled = data.hasPrev
+        nextIcon.isEnabled = data.hasNext
+        prevIcon.isClickable = data.hasPrev
+        nextIcon.isClickable = data.hasNext
         prevIcon.alpha = if (data.hasPrev) 1f else disabledAlpha
         nextIcon.alpha = if (data.hasNext) 1f else disabledAlpha
     }

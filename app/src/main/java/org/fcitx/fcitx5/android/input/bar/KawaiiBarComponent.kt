@@ -768,15 +768,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private fun updateCandidatePageButtons(ui: CandidateUi, hasPrev: Boolean, hasNext: Boolean) {
         pageHasPrev = hasPrev
         pageHasNext = hasNext
-        // Soft keyboard: swipe / expand cover paging — drop the ← → chrome so the row is wider.
-        if (windowManager.isKeyboardWindowVisible()) {
-            ui.prevPageButton.visibility = View.GONE
-            ui.nextPageButton.visibility = View.GONE
-            return
-        }
+        // Keep ←/→ when there is another page — swipe/fly alone is easy to miss (soft fly can be
+        // off). GONE when single-page so the row stays wide.
         val multiPage = hasPrev || hasNext
-        ui.prevPageButton.visibility = if (multiPage) View.VISIBLE else View.INVISIBLE
-        ui.nextPageButton.visibility = if (multiPage) View.VISIBLE else View.INVISIBLE
+        ui.prevPageButton.visibility = if (multiPage) View.VISIBLE else View.GONE
+        ui.nextPageButton.visibility = if (multiPage) View.VISIBLE else View.GONE
         ui.prevPageButton.isEnabled = hasPrev
         ui.nextPageButton.isEnabled = hasNext
         ui.prevPageButton.alpha = if (hasPrev) 1f else 0.35f

@@ -83,9 +83,14 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     fun selectionIndexAtDisplayPosition(position: Int): Int? = selectionOrder.getOrNull(position)
 
     fun selectionIndexForDisplayNumber(number: Int): Int? {
-        val idx = displayNumbers.indexOfFirst { it == number }
-        if (idx < 0) return null
+        val idx = displayPositionForDisplayNumber(number) ?: return null
         return selectionOrder.getOrNull(idx)
+    }
+
+    /** Adapter (display) position for on-screen number ①…⑤ — not the engine selection index. */
+    fun displayPositionForDisplayNumber(number: Int): Int? {
+        val idx = displayNumbers.indexOfFirst { it == number }
+        return idx.takeIf { it >= 0 }
     }
 
     override fun getItemId(position: Int): Long {

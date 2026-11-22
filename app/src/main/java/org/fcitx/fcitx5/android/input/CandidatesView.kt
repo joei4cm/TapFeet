@@ -136,13 +136,23 @@ class CandidatesView(
 
     private val chipStrip = ChipStripUi(ctx, theme)
 
-    // Default candidate row height: one line of text at candidates.fontSize plus the vertical
-    // item padding. The paging-buttons column is sized to this height, so the two stacked buttons
-    // split a default row evenly (half a row each).
+    // Paging-buttons column matches a candidate cell: main line (+ optional gloss line) plus
+    // vertical item padding. Two stacked buttons then each get half of that column.
     private val candidateRowHeightPx: Int by lazy {
-        val fontHeight = TextView(ctx).apply { textSize = fontSize.toFloat() }
-            .paint.fontMetricsInt.let { it.bottom - it.top }
-        fontHeight + dp(itemPaddingVertical) * 2
+        val showComment = AppPrefs.getInstance().candidateBar.showCandidateComment.getValue()
+        val mainH = TextView(ctx).apply {
+            textSize = fontSize.toFloat()
+            includeFontPadding = false
+        }.paint.fontMetricsInt.let { it.bottom - it.top }
+        val commentH = if (showComment) {
+            TextView(ctx).apply {
+                textSize = fontSize * 0.55f
+                includeFontPadding = true
+            }.paint.fontMetricsInt.let { it.bottom - it.top }
+        } else {
+            0
+        }
+        mainH + commentH + dp(itemPaddingVertical) * 2
     }
 
     private val candidatesUi = PagedCandidatesUi(

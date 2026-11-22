@@ -96,11 +96,14 @@ class HorizontalCandidateComponent :
             cursorModeProvider = { false },
             downSwipeEnabled = { false },
             twoFingerEnabled = { false },
+            // Match SoftKeyFlyText slops — 56dp gloss rows need a longer deliberate swipe.
+            softSlops = true,
         )
     }
 
+    /** Soft bar paging/select follows the virtual-keyboard 飞词 switch (not physical surface). */
     private fun softFlyEnabled(): Boolean =
-        AppPrefs.getInstance().hardwareKeyboard.keyboardFlyText.getValue()
+        AppPrefs.getInstance().keyboard.softKeyboardFlyText.getValue()
 
     private fun softFlySelect(selectionIndex: Int) {
         if (selectionIndex < 0) return
@@ -180,10 +183,25 @@ class HorizontalCandidateComponent :
 
     fun prepareFlyAnimationForLocalNumber(number: Int) {
         val candidate = candidateForLocalNumber(number) ?: return
-        val position = adapter.selectionIndexForDisplayNumber(number) ?: return
+        val displayPos = displayPositionForLocalNumber(number) ?: return
         val viewHolder =
-                view.findViewHolderForAdapterPosition(position) as? CandidateViewHolder ?: return
+                view.findViewHolderForAdapterPosition(displayPos) as? CandidateViewHolder ?: return
         prepareFlyAnimation(candidate.text, viewHolder.ui.text)
+    }
+
+    /** Soft fade / physical fly for Space / number-key picks (same path as tap). */
+    fun prepareSelectFeedbackForLocalNumber(number: Int) {
+        val candidate = candidateForLocalNumber(number) ?: return
+        val displayPos = displayPositionForLocalNumber(number) ?: return
+        val viewHolder =
+            view.findViewHolderForAdapterPosition(displayPos) as? CandidateViewHolder ?: return
+        prepareSelectFeedback(candidate.text, viewHolder.ui.text)
+    }
+
+    fun displayPositionForLocalNumber(number: Int): Int? {
+        val normalized = if (number == 0) 10 else number
+        if (normalized <= 0) return null
+        return adapter.displayPositionForDisplayNumber(normalized)
     }
 
     private val fillStyle by AppPrefs.getInstance().candidateBar.horizontalCandidateStyle
