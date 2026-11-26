@@ -79,4 +79,20 @@ class KeyHitResolverTest {
         // Slightly right of G and a bit toward T — still G, not H.
         assertEquals(1, KeyHitResolver.pick2D(410f, 190f, centersX2d, centersY2d, widths2d, forgive2d))
     }
+
+    @Test
+    fun syllablePriorTipsNearBoundaryTowardAllowedKey() {
+        // G at 360, H at 440. Touch slightly into H (geometric prefers H).
+        // Prior marks H unlikely → soft penalty flips back to G.
+        val priors = floatArrayOf(0f, 1f, 0f)
+        assertEquals(1, KeyHitResolver.pick(415f, centers, widths, forgive))
+        assertEquals(0, KeyHitResolver.pick(415f, centers, widths, forgive, priors = priors))
+    }
+
+    @Test
+    fun syllablePriorDoesNotStealClearCenterTap() {
+        // Center of H stays H even when prior says H is unlikely.
+        val priors = floatArrayOf(0f, 1f, 0f)
+        assertEquals(1, KeyHitResolver.pick(440f, centers, widths, forgive, priors = priors))
+    }
 }

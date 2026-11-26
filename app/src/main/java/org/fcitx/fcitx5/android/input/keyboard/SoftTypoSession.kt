@@ -33,6 +33,11 @@ object SoftTypoSession {
 
     fun hasPending(): Boolean = letters.isNotEmpty()
 
+    /** Current latin buffer (lowercase), for soft hit priors. Empty when inactive / cleared. */
+    fun latin(): String = letters.toString()
+
+    fun isActive(): Boolean = active
+
     fun onPreeditEmpty(empty: Boolean) {
         if (!active || writing || !empty) return
         clear()

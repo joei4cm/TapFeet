@@ -92,6 +92,15 @@ object SoftPinyinTypo {
         SYLLABLE_TEXT.split(' ').filter { it.isNotEmpty() }.toSet()
     }
 
+    /** Every non-empty prefix of every syllable (incl. the full syllable). */
+    private val syllablePrefixes: Set<String> by lazy {
+        buildSet {
+            for (s in syllables) {
+                for (i in 1..s.length) add(s.substring(0, i))
+            }
+        }
+    }
+
     private val wordRank: Map<String, Int> by lazy {
         val map = LinkedHashMap<String, Int>()
         WORDS.split(' ').filter { it.isNotEmpty() }.forEachIndexed { i, w ->
@@ -104,6 +113,43 @@ object SoftPinyinTypo {
 
     fun neighbors(c: Char): List<Char> =
         NEIGHBORS[c.lowercaseChar()]?.map { it } ?: emptyList()
+
+    /**
+     * Whether [letter] can continue [prefix] into a valid (possibly incomplete) pinyin path.
+     * Used as a soft hit prior: impossible next letters keep a geometric penalty, not a hard block.
+     */
+    fun isNextLetterAllowed(prefix: String, letter: Char): Boolean {
+        val clean = prefix.lowercase().filter { it in 'a'..'z' }
+        val c = letter.lowercaseChar()
+        if (c !in 'a'..'z') return true
+        val n = clean.length
+        val reachable = BooleanArray(n + 1)
+        reachable[0] = true
+        for (i in 0 until n) {
+            if (!reachable[i]) continue
+            val maxLen = minOf(6, n - i)
+            for (len in 1..maxLen) {
+                val slice = clean.substring(i, i + len)
+                if (slice in syllables) reachable[i + len] = true
+            }
+        }
+        for (i in 0..n) {
+            if (!reachable[i]) continue
+            val tail = clean.substring(i) + c
+            if (tail in syllablePrefixes) return true
+        }
+        return false
+    }
+
+    /**
+     * Soft prior for [KeyHitResolver]: 0 = allowed by the syllable table, 1 = impossible.
+     * Empty [prefix] → all zeros (first letter of a word stays unconstrained).
+     */
+    fun nextLetterPrior(prefix: String, letter: Char): Float {
+        val clean = prefix.lowercase().filter { it in 'a'..'z' }
+        if (clean.isEmpty()) return 0f
+        return if (isNextLetterAllowed(clean, letter)) 0f else 1f
+    }
 
     private data class Variant(val text: String, val penalty: Int)
 

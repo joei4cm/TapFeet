@@ -40,6 +40,13 @@ object KeyHitResolver {
     /** How far into the next row (fraction of row height) before a slide leaves the current row. */
     const val ROW_SWITCH_FRACTION = 0.25f
 
+    /**
+     * Extra distance (fraction of key width) added when a soft prior marks a key unlikely.
+     * Tips near-boundary ties toward syllable-plausible letters without blocking intentional taps
+     * near a key's center (a clear center tap still wins over a prior-favored neighbor).
+     */
+    const val PRIOR_PENALTY_FRACTION = 0.4f
+
     fun score(touchX: Float, centerX: Float, forgiveRight: Boolean): Float {
         val dx = touchX - centerX
         if (forgiveRight && dx > 0f) return dx * RIGHT_SIDE_WEIGHT
@@ -60,6 +67,8 @@ object KeyHitResolver {
 
     /**
      * @param stickyIndex index to keep until [SWITCH_MARGIN_FRACTION] of its width says otherwise; -1 on press-down
+     * @param priors optional per-key soft prior in `[0, 1]` (0 = likely / allowed, 1 = unlikely); scaled by
+     *   [PRIOR_PENALTY_FRACTION] * key width and added to the geometric score
      */
     fun pick(
         touchX: Float,
@@ -67,13 +76,16 @@ object KeyHitResolver {
         widths: FloatArray,
         forgiveRight: BooleanArray,
         stickyIndex: Int = -1,
+        priors: FloatArray? = null,
     ): Int {
         if (centers.isEmpty()) return -1
         var best = 0
         var bestScore = Float.POSITIVE_INFINITY
         val scores = FloatArray(centers.size)
         for (i in centers.indices) {
-            val s = score(touchX, centers[i], forgiveRight.getOrElse(i) { false })
+            val prior = priors?.getOrElse(i) { 0f }?.coerceIn(0f, 1f) ?: 0f
+            val s = score(touchX, centers[i], forgiveRight.getOrElse(i) { false }) +
+                prior * widths.getOrElse(i) { 0f } * PRIOR_PENALTY_FRACTION
             scores[i] = s
             if (s < bestScore) {
                 bestScore = s
@@ -98,19 +110,21 @@ object KeyHitResolver {
         widths: FloatArray,
         forgiveRight: BooleanArray,
         stickyIndex: Int = -1,
+        priors: FloatArray? = null,
     ): Int {
         if (centersX.isEmpty() || centersX.size != centersY.size) return -1
         var best = 0
         var bestScore = Float.POSITIVE_INFINITY
         val scores = FloatArray(centersX.size)
         for (i in centersX.indices) {
+            val prior = priors?.getOrElse(i) { 0f }?.coerceIn(0f, 1f) ?: 0f
             val s = score2D(
                 touchX,
                 touchY,
                 centersX[i],
                 centersY[i],
                 forgiveRight.getOrElse(i) { false },
-            )
+            ) + prior * widths.getOrElse(i) { 0f } * PRIOR_PENALTY_FRACTION
             scores[i] = s
             if (s < bestScore) {
                 bestScore = s
