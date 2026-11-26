@@ -389,6 +389,9 @@ abstract class BaseKeyboard(
      * from the right and gives a right-edge overlap to the next key (G tap becomes H).
      * Letter rows also compete in 2D with the adjacent row so vertical near-misses (G/T, H/N)
      * go to the nearer key instead of a hard horizontal band.
+     *
+     * While a soft 26-key pinyin buffer is pending, syllable-plausible next letters get a soft
+     * prior (iOS-style dynamic hit map): near-boundary misses lean toward allowed continuations.
      */
     private fun findTargetChild(x: Float, y: Float): View? {
         if (keyRows.isEmpty() || bounds.height() <= 0) return null
@@ -419,8 +422,28 @@ abstract class BaseKeyboard(
         val forgive = BooleanArray(keys.size) {
             letterish[it] && widths[it] <= minW * 1.25f
         }
-        val idx = KeyHitResolver.pick2D(touchX, touchY, centersX, centersY, widths, forgive)
+        val priors = syllablePriorsFor(keys)
+        val idx = KeyHitResolver.pick2D(
+            touchX, touchY, centersX, centersY, widths, forgive, priors = priors,
+        )
         return keys.getOrNull(idx)
+    }
+
+    /** Soft prior array aligned with [keys], or null when no pinyin buffer is pending. */
+    private fun syllablePriorsFor(keys: List<KeyView>): FloatArray? {
+        if (!SoftTypoSession.isActive() || !SoftTypoSession.hasPending()) return null
+        val prefix = SoftTypoSession.latin()
+        if (prefix.isEmpty()) return null
+        return FloatArray(keys.size) { i ->
+            val ch = letterOf(keys[i]) ?: return@FloatArray 0f
+            SoftPinyinTypo.nextLetterPrior(prefix, ch)
+        }
+    }
+
+    private fun letterOf(view: KeyView): Char? {
+        val text = (view.def as? KeyDef.Appearance.Text)?.displayText ?: return null
+        val c = text.firstOrNull()?.lowercaseChar() ?: return null
+        return c.takeIf { it in 'a'..'z' }
     }
 
     private fun dispatchToChild(

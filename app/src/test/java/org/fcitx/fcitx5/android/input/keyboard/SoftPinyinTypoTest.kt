@@ -69,7 +69,40 @@ class SoftPinyinTypoTest {
         SoftTypoSession.setActive(true)
         SoftTypoSession.onPanelLatin("nihao")
         assertTrue(SoftTypoSession.hasPending())
+        assertEquals("nihao", SoftTypoSession.latin())
         SoftTypoSession.setActive(false)
         assertTrue(!SoftTypoSession.hasPending())
+        assertEquals("", SoftTypoSession.latin())
+    }
+
+    @Test
+    fun nextLetterAfterZhAllowsONotP() {
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("zh", 'o'))
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("zh", 'u'))
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("zh", 'a'))
+        assertTrue(!SoftPinyinTypo.isNextLetterAllowed("zh", 'p'))
+        assertTrue(!SoftPinyinTypo.isNextLetterAllowed("zh", 'b'))
+    }
+
+    @Test
+    fun nextLetterAfterCompleteSyllableStartsNew() {
+        // "ni" is a complete syllable; "h" can start "hao".
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("ni", 'h'))
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("ni", 'm')) // ming / men …
+        assertTrue(!SoftPinyinTypo.isNextLetterAllowed("ni", 'v'))
+    }
+
+    @Test
+    fun emptyPrefixPriorIsNeutral() {
+        assertEquals(0f, SoftPinyinTypo.nextLetterPrior("", 'p'), 0f)
+        assertEquals(0f, SoftPinyinTypo.nextLetterPrior("", 'z'), 0f)
+    }
+
+    @Test
+    fun priorMarksImpossibleContinuation() {
+        assertTrue(!SoftPinyinTypo.isNextLetterAllowed("t", 'h')) // no th* syllables
+        assertTrue(SoftPinyinTypo.isNextLetterAllowed("t", 'a')) // ta/tai/tan…
+        assertEquals(1f, SoftPinyinTypo.nextLetterPrior("zh", 'p'), 0f)
+        assertEquals(0f, SoftPinyinTypo.nextLetterPrior("zh", 'o'), 0f)
     }
 }
